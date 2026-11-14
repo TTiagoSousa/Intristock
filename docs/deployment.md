@@ -23,7 +23,13 @@ REPO_URL=https://git.example.com/me/intristock.git \
   bash -c "$(curl -fsSL https://git.example.com/me/intristock/raw/branch/main/deploy/proxmox/vm-create.sh)"
 ```
 
-The install then takes its updates from that mirror, so the mirror must copy the **tags** too (Forgejo and Gitea pull mirrors do). A private mirror needs `REPO_TOKEN`.
+The install then takes its updates from that mirror, so the mirror must copy the **tags** too (Forgejo and Gitea pull mirrors do). A new version only reaches the VM after the mirror syncs: on Forgejo every 8 hours by default (repository settings → mirror interval, or "Synchronize now"). A private mirror needs `REPO_TOKEN`.
+
+Without `REPO_URL` the installer tries this GitHub repository first and then the author's Forgejo mirror, and uses the first that answers.
+
+### The VM always needs GitHub
+
+The chart library, [OpenChartsCandle](https://github.com/TTiagoSousa/OpenChartsCandle), is installed from GitHub at the tag in `apps/frontend/package.json`, wherever IntriStock itself comes from. Without access to GitHub the frontend build fails, both when installing and when updating.
 
 ## What runs where
 

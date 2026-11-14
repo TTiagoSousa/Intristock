@@ -57,6 +57,13 @@ REPO_URL=https://gitlab.exemplo.pt/eu/intristock.git \
 - **As atualizações seguem a origem**: uma VM instalada a partir de um espelho vai lá
   buscar as versões novas. O espelho tem de copiar **também as tags** (os espelhos de
   pull do Forgejo e do Gitea copiam-nas sozinhos) — é por elas que as versões chegam.
+  Uma versão nova só aparece na VM depois de o espelho sincronizar: no Forgejo, por
+  omissão, de 8 em 8 horas (Definições do repositório → Intervalo de sincronização, ou
+  «Sincronizar agora»).
+- **A VM precisa sempre do GitHub**: a biblioteca dos gráficos
+  ([OpenChartsCandle](https://github.com/TTiagoSousa/OpenChartsCandle)) instala-se do
+  GitHub pela tag que está no `apps/frontend/package.json`, venha o IntriStock de onde
+  vier. Sem acesso ao GitHub o build do frontend falha, na instalação e nas atualizações.
 - **Sem `REPO_URL`**, o instalador experimenta o repositório oficial no GitHub e depois o
   espelho do autor, e usa o primeiro que responder.
 - **Repositório privado**: passa-se o token com `REPO_TOKEN=…`; serve para o
