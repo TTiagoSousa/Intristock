@@ -26,7 +26,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://intristock:intristock@localhost:5432/intristock
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -47,7 +47,7 @@ jobs:
       run:
         working-directory: apps/frontend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -81,7 +81,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://intristock:intristock@localhost:5432/intristock
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -101,7 +101,7 @@ jobs:
       matrix:
         app: [downloader, simulator]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
@@ -116,6 +116,6 @@ jobs:
     name: Shell scripts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: shellcheck
         run: shellcheck -x deploy/proxmox/*.sh
