@@ -1,0 +1,45 @@
+// O gráfico por mês: ocupa o contentor (que lhe dá a altura)
+.Month_Chart{
+  width: 100%;
+  height: 100%;
+}
+
+// O tooltip, em HTML dentro do da biblioteca
+.Month_Chart_Tip{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.Month_Chart_Tip_Label{
+  font-size: 12px;
+  color: var(--month-chart-muted);
+
+  &::first-letter{ text-transform: uppercase; }
+}
+
+.Month_Chart_Tip_Row{
+  display: grid;
+  grid-template-columns: 8px auto auto;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.Month_Chart_Tip_Dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.Month_Chart_Tip_Name{
+  font-size: 12px;
+  color: var(--month-chart-text);
+}
+
+.Month_Chart_Tip_Value{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--month-chart-tooltip-text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

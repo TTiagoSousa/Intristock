@@ -1,0 +1,61 @@
+// Partilhado pelas páginas de administração (Utilizadores, APIs, Impostos,
+// Plataformas, Versões): o mesmo cabeçalho e os mesmos blocos das definições
+.Admin_Page{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Admin_Block{
+  max-width: 980px;
+  margin-top: 16px;
+  padding: 0;
+
+  &:first-of-type{ margin-top: 0; }
+
+  // As tabelas grandes (Utilizadores) ocupam a largura toda
+  &.Full{ max-width: none; }
+
+  .Settings_List{
+    max-width: none;
+    padding: 2px 16px 8px;
+  }
+}
+
+.Admin_Block_Body{
+  padding: 12px 16px 16px;
+}
+
+.Admin_Message{
+  padding: 20px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+// Um filtro por cima da tabela (ex. país, nos impostos), à esquerda e estreito
+.Admin_Filter{
+  max-width: 280px;
+  margin-bottom: 12px;
+}
+
+.Admin_Muted_Cell{
+  color: var(--text-3);
+}
+
+.Admin_Nowrap{ white-space: nowrap; }
+
+// Plataformas: os tipos à esquerda, a pesquisa à direita
+.Platforms_Filters{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.Platforms_Search{
+  margin-left: auto;
+  width: 240px;
+
+  @media (max-width: 700px){ margin-left: 0; width: 100%; }
+}

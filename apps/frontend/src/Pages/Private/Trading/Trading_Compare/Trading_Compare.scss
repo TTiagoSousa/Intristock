@@ -1,0 +1,55 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// Comparar simulações: a casca do cartão vem do Styles/Cards.scss e os painéis
+// do Run_Summary.scss. Aqui fica a lista das simulações escolhidas.
+.Trading_Compare {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Trading_Compare_Body {
+  padding: 12px;
+}
+
+.Trading_Compare_Runs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.Trading_Compare_Run {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--factsheet-table-border);
+  border-radius: 8px;
+  background: none;
+  color: var(--factsheet-value);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast);
+
+  &:hover {
+    background-color: var(--factsheet-table-hover);
+  }
+}
+
+.Trading_Compare_Run_Name {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.Trading_Compare_Run_Detail {
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--factsheet-info);
+}
+
+.Trading_Compare_Head {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

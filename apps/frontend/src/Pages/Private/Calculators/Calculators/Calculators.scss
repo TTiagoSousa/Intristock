@@ -1,0 +1,83 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Calculators{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Calculators_Search{
+  width: 100%;
+  max-width: 320px;
+
+  > *{ flex: 1; }
+}
+
+.Calculators_Grid{
+  display: grid;
+  // auto-fill (não auto-fit): com uma calculadora só, auto-fit esticava o
+  // cartão de ponta a ponta do ecrã
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+
+  > *{ min-width: 0; }
+}
+
+// Como os cartões das empresas: neutro, só a superfície muda ao passar por cima
+.Calculator_Card{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  border: var(--card-border);
+  border-radius: var(--radius);
+  background-color: var(--cards-background);
+  box-shadow: var(--card-box-shadow);
+  transition: background-color var(--dur-fast), border-color var(--dur-fast);
+
+  &:hover:not(:disabled){
+    background-color: var(--surface-2);
+    border-color: var(--line-strong);
+  }
+
+  &:active:not(:disabled){ transform: scale(.99); }
+}
+
+// Está no catálogo mas ainda não tem página: fica à vista, sem reagir ao rato
+.Calculator_Card_Unavailable{
+  cursor: default;
+  opacity: .6;
+}
+
+.Calculator_Name{
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Calculator_Description{
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+// Contagem de simulações, no fundo do cartão, alinhada entre cartões de
+// alturas diferentes
+.Calculator_Simulations_Count{
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Calculators_Message{
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}

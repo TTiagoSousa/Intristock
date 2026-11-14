@@ -1,0 +1,101 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão e a tabela vêm do Styles/Cards.scss. Aqui fica só o que é
+// dos movimentos.
+.Company_Stock_Movements{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Movement_Item_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Movement_Note{
+  max-width: 220px;
+  color: var(--text-2);
+}
+
+// Entrada, saída e acerto lêem-se de relance pela cor
+.Movement_Type{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text-2);
+
+  &::before{
+    content: '';
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.in{
+    background-color: var(--supplier-status-active-background);
+    color: var(--supplier-status-active-color);
+  }
+
+  &.out{
+    background-color: var(--danger-color-soft);
+    color: var(--danger-color);
+  }
+
+  &.adjustment{
+    background-color: var(--warn-soft);
+    color: var(--warn);
+  }
+}
+
+// Campo de data nativo, com a mesma pele dos outros campos
+.Stock_Date_Input{
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--simple-input-background-color);
+  color: var(--simple-input-letter-color);
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+
+  &:focus{
+    outline: none;
+    border-color: var(--simple-input-focus-border-color);
+    background-color: var(--cards-background);
+  }
+}
+
+// Que item está a filtrar a lista. Clicar limpa o filtro.
+.Filter_Chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line-strong);
+  background-color: var(--surface-3);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+
+  svg{ width: 11px; height: 11px; }
+
+  &:hover{
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+  }
+}

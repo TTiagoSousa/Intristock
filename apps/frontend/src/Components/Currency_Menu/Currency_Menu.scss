@@ -1,0 +1,111 @@
+@use '../../Styles/Fonts.scss' as Font;
+
+// A moeda do topo: o botão como o sino e o tema, a lista por baixo dele
+.Currency_Menu{
+  position: relative;
+}
+
+.Currency_Menu_Symbol{
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.Currency_Menu_Dropdown{
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--currency-menu-dropdown-background);
+  border: 1px solid var(--currency-menu-dropdown-border);
+  border-radius: var(--radius);
+  box-shadow: var(--currency-menu-dropdown-shadow);
+  transform-origin: top right;
+  animation: Menu_In var(--dur-menu) var(--ease-out);
+  z-index: 60;
+  overflow: hidden;
+}
+
+.Currency_Menu_Head{
+  padding: 8px;
+  border-bottom: 1px solid var(--currency-menu-dropdown-line);
+}
+
+.Currency_Menu_Search{
+  width: 100%;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--currency-menu-dropdown-line);
+  border-radius: 8px;
+  background-color: var(--currency-menu-search-background);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+
+  &:focus{ border-color: var(--currency-menu-selected-text); }
+}
+
+.Currency_Menu_Empty{
+  padding: 16px 12px;
+  font-size: 13px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.Currency_Menu_List{
+  max-height: 320px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.Currency_Menu_Item{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px;
+  border-radius: 8px;
+  text-align: left;
+  transition: background-color var(--dur-fast);
+
+  &:hover{ background-color: var(--currency-menu-item-hover); }
+
+  &.Selected{
+    background-color: var(--currency-menu-selected-background);
+
+    .Currency_Menu_Item_Symbol,
+    .Currency_Menu_Item_Code{ color: var(--currency-menu-selected-text); }
+  }
+}
+
+.Currency_Menu_Item_Symbol{
+  flex: none;
+  width: 28px;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
+}
+
+.Currency_Menu_Item_Code{
+  flex: none;
+  width: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Currency_Menu_Item_Name{
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,12 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão, o cabeçalho e o estado vazio vêm do Styles/Cards.scss.
+.Favoritos{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Favoritos .Page_Card{
+  max-width: 780px;
+}

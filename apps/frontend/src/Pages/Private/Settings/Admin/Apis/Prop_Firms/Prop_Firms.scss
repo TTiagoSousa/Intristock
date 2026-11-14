@@ -1,0 +1,92 @@
+// As páginas da API das prop firms: a lista (base e base vs API) e a de cada
+// firma. Os números do topo e as tabelas vêm da página APIs e do Admin.scss.
+
+.Prop_Firms_Page{
+  .Admin_Block + .Admin_Block{ margin-top: 16px; }
+}
+
+.Prop_Firms_Back{
+  display: inline-block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-2);
+  text-decoration: none;
+
+  &:hover{ color: var(--accent); }
+}
+
+// O atualizar em curso ou o resultado do último
+.Prop_Firms_Run{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+
+  &.Bad{ border-color: var(--loss); }
+}
+
+.Prop_Firms_Run_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.Prop_Firms_Tabs_Head{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.Prop_Firms_Filters{ margin-bottom: 12px; }
+
+.Prop_Firms_Diff_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  > .Api_Sync_Detail{ flex: 1; }
+}
+
+// A página de uma firma
+.Prop_Firm_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.Prop_Firm_Logo{
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+  background-color: var(--surface-2);
+  padding: 4px;
+}
+
+.Prop_Firm_Site{
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover{ text-decoration: underline; }
+}
+
+// As regras e os payouts lado a lado; em ecrãs estreitos, um por baixo do outro
+.Prop_Firm_Columns{
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  margin-top: 16px;
+
+  @media (max-width: 1100px){ grid-template-columns: minmax(0, 1fr); }
+}
+
+.Prop_Firm_Columns .Prop_Firm_Facts{
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+// Lado a lado, os dois cartões começam à mesma altura
+.Prop_Firms_Page .Prop_Firm_Columns > .Admin_Block{ margin-top: 0; }

@@ -1,0 +1,97 @@
+// ============================================================
+// ESQUELETO DA APLICAÇÃO
+// Barra de módulos (largura fixa) + painel de contexto + tela.
+//
+// Antes o conteúdo era um bloco com `width: calc(100% - 250px)`
+// e margens à mão, o que deixava sempre uma faixa por usar à
+// direita. Agora é uma grelha: a tela ocupa o que sobra, até ao
+// limite do ecrã.
+// ============================================================
+
+$rail-width: 56px;
+$panel-width: 208px;
+$mobile-drawer-width: 280px;
+$header-height: 46px;
+
+.Shell{
+  display: grid;
+  grid-template-columns: $rail-width $panel-width 1fr;
+  min-height: 100svh;
+  background-color: var(--bg);
+
+  // Painel recolhido: só a barra dos ícones, a tela fica com o resto
+  &.Panel_Collapsed{ grid-template-columns: $rail-width 1fr; }
+}
+
+.Shell_Canvas{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.Shell_View{
+  width: 100%;
+  padding: 16px 16px 32px;
+}
+
+.Shell_Backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background-color: var(--scrim);
+}
+
+// ============================================================
+// MODO MENU MÓVEL
+//
+// Vale pela CLASSE e não por uma media query, porque também se
+// pode escolher à mão nas Definições: com a media query, quem
+// escolhesse "Menu Mobile" num ecrã largo ficava com a barra
+// fixa na mesma e o botão do cabeçalho não fazia nada.
+//
+// A navegação sai de cena por completo — nem barra, nem painel.
+// O botão do cabeçalho é que a traz, numa gaveta que ocupa a
+// altura toda e mostra os módulos E as secções de uma só vez.
+// ============================================================
+.Shell.Mobile{
+  grid-template-columns: 1fr;
+
+  .Module_Rail,
+  .Context_Panel{
+    position: fixed;
+    left: 0;
+    z-index: 26;
+    // Começa abaixo do cabeçalho: o botão que abre a gaveta tem de continuar
+    // à vista para se poder fechá-la
+    top: $header-height;
+    height: calc(100svh - #{$header-height});
+    transform: translateX(-100%);
+    transition: transform var(--dur-panel) var(--ease-out);
+  }
+
+  // A barra fica por cima do painel, encostada à sua esquerda
+  .Module_Rail{ z-index: 27; }
+
+  .Context_Panel{
+    width: $mobile-drawer-width;
+    // Espaço à esquerda para a barra de módulos, que lhe fica por cima
+    padding-left: calc(#{$rail-width} + 12px);
+    box-shadow: var(--shadow-pop);
+  }
+
+  .Shell_Backdrop{ top: $header-height; }
+
+  // Aberta: a barra e o painel entram juntos, como uma peça só
+  &.Menu_Open{
+    .Module_Rail,
+    .Context_Panel{
+      transform: translateX(0);
+    }
+  }
+
+  .Shell_View{ padding: 12px; }
+}
+
+@media (max-width: 1000px){
+  .Shell_View{ padding: 12px; }
+}

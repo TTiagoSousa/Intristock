@@ -1,0 +1,59 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+.Global_Input{
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  input{
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--input-global-background-color);
+    color: var(--input-global-letter-color);
+    // Os campos numéricos alinham por baixo uns dos outros
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    transition: border-color var(--dur-fast), background-color var(--dur-fast);
+
+    &::placeholder{ color: var(--text-3); }
+
+    &:hover{ border-color: var(--line-strong); }
+
+    &:focus{
+      outline: none;
+      border-color: var(--global-input-focus-border-color);
+      background-color: var(--cards-background);
+    }
+
+    &:disabled{
+      opacity: .6;
+      cursor: not-allowed;
+    }
+  }
+
+  // Texto corrido (nome, email, morada) não é para ser mono
+  &.Text input{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: normal;
+  }
+
+  &.With_Icon input{ padding-left: 32px; }
+
+  .Input_Icon{
+    position: absolute;
+    left: 11px;
+    display: flex;
+    width: 15px;
+    height: 15px;
+    pointer-events: none;
+    color: var(--global-input-icon-color);
+  }
+
+  &:focus-within .Input_Icon{ color: var(--accent); }
+}

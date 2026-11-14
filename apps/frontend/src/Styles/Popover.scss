@@ -1,0 +1,595 @@
+@use './Fonts.scss' as Font;
+
+// ============================================================
+// POPOVERS
+// Formulários e confirmações. Carregado uma vez no App.scss —
+// as páginas usam só as classes.
+// ============================================================
+
+// Os campos dos formulários. São os mesmos num popover e numa página de
+// formulário (.Form_Page) — por isso vivem num mixin e não só no popover.
+@mixin form-fields{
+  .Form_Field{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    label{
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--simple-input-label-color);
+    }
+  }
+
+  .Field_Hint{
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  // Uma ação dentro da dica ("usar a cotação do dia"): texto clicável, sem
+  // o peso de um botão
+  .Hint_Action{
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+
+    &:hover{ text-decoration: underline; }
+  }
+
+  // A mesma linha da dica, quando o que lá está escrito não passa
+  .Field_Hint_Error{
+    color: var(--danger-color);
+    font-weight: 500;
+  }
+
+  .Form_Textarea{
+    min-height: 64px;
+    padding: 8px 12px;
+    resize: vertical;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--simple-input-background-color);
+    color: var(--simple-input-letter-color);
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    line-height: 1.5;
+    transition: border-color var(--dur-fast), background-color var(--dur-fast);
+
+    &::placeholder{ color: var(--text-3); }
+
+    &:focus{
+      outline: none;
+      border-color: var(--simple-input-focus-border-color);
+      background-color: var(--cards-background);
+    }
+  }
+
+  .Checkbox_Field{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-2);
+    cursor: pointer;
+
+    input{
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent);
+    }
+  }
+}
+
+.Popover_Backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: var(--popover-backdrop-background);
+  animation: Popover_Fade .16s ease-out;
+
+  // Popover aberto por cima de outro (criar conta bancária a partir do
+  // formulário de fornecedor) — tem de ficar acima do primeiro
+  &.Stacked{ z-index: 950; }
+
+  .Popover_Card{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 740px;
+    max-height: 90svh;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--border-radius);
+    background-color: var(--cards-background);
+    box-shadow: var(--shadow-pop);
+    font-family: Font.$font_family_sans;
+    animation: Popover_Rise var(--dur-panel) var(--ease-out);
+
+    &.Narrow{ max-width: 520px; }
+
+    // Para formulários com linhas (item + quantidade + preço + total na mesma
+    // linha), que não cabem na largura normal
+    &.Wide{ max-width: 920px; }
+  }
+
+  .Popover_Header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    background-color: var(--card-global-header-background);
+  }
+
+  .Popover_Header_Text{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .Popover_Title{
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--card-global-header-title-color);
+  }
+
+  .Popover_Subtitle{
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .Popover_Close{
+    width: 31px;
+    height: 31px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    color: var(--text-2);
+    font-size: 14px;
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    svg{ width: 15px; height: 15px; }
+
+    &:hover{
+      background-color: var(--surface-3);
+      color: var(--text);
+    }
+  }
+
+  .Popover_Body{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+
+    &::-webkit-scrollbar{ width: 8px; }
+    &::-webkit-scrollbar-track{ background: transparent; }
+    &::-webkit-scrollbar-thumb{
+      background-color: var(--line-strong);
+      border-radius: 4px;
+    }
+  }
+
+  .Popover_Footer{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    background-color: var(--card-global-header-background);
+
+    // A ação principal fica sempre encostada à direita
+    .Form_Action{
+      width: auto;
+      min-width: 120px;
+
+      &:first-child{ margin-right: auto; }
+    }
+  }
+
+  // --- campos ---------------------------------------------------------------
+  @include form-fields;
+
+  .Confirm_Message{
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background-color: var(--danger-color-soft);
+    color: var(--danger-color);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  // --- linhas de item e de imposto ------------------------------------------
+  .Lines_Header,
+  .Documents_Header{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    label{
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--simple-input-label-color);
+    }
+
+    > *:last-child{ margin-left: auto; }
+  }
+
+  .Lines_Empty{
+    padding: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-3);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-sm);
+  }
+
+  .Payment_Lines,
+  .Tax_Rows,
+  .Documents_List{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .Payment_Line,
+  .Tax_Row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    > *{ min-width: 0; }
+  }
+
+  .Line_Item{ flex: 2.2; }
+  .Line_Number{ flex: 0 0 80px; }
+  .Line_Total{ flex: 0 0 96px; }
+
+  .Tax_Row_Name{ flex: 2; font-size: 13px; color: var(--text); }
+  .Tax_Row_Country{ font-size: 12px; color: var(--text-3); }
+  .Tax_Row_Rate,
+  .Tax_Row_Value{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .Line_Remove,
+  .Row_Action{
+    width: 25px;
+    height: 25px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-xs);
+    color: var(--text-3);
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    svg{ width: 14px; height: 14px; }
+
+    &:hover{
+      background-color: var(--surface-3);
+      color: var(--text);
+    }
+
+    &.Danger:hover{
+      background-color: var(--danger-color-soft);
+      color: var(--danger-color);
+    }
+  }
+
+  // --- totais ---------------------------------------------------------------
+  .Amount_Summary{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+  }
+
+  .Amount_Row{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-2);
+
+    > span:last-child{
+      margin-left: auto;
+      font-family: Font.$font_family_sans;
+      font-variant-numeric: tabular-nums;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    &.Total{
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      font-weight: 500;
+      color: var(--text);
+
+      > span:last-child{
+        font-size: 14px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .Amount_Hint{
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .Amount_Readonly{ opacity: .65; }
+
+  // --- documentos -----------------------------------------------------------
+  // O campo de ficheiro nativo nunca se vê: quem abre o seletor é o botão do
+  // cabeçalho. Visível, punha um segundo botão "Escolher ficheiros" e um
+  // "Nenhum ficheiro selecionado" ao lado do nosso.
+  .Documents_Input{ display: none; }
+
+  // A ação encosta à direita do cabeçalho da secção
+  .Documents_Action{ margin-left: auto; }
+
+  // Confirmação de apagar, em linha por baixo da lista — um popover por cima de
+  // outro para apagar um anexo era pesado de mais para o que está em causa
+  .Document_Confirm{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px;
+    border: 1px solid var(--danger-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--danger-color-soft);
+
+    @media (max-width: 520px){
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .Document_Confirm_Text{
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--danger-color);
+    overflow-wrap: anywhere;
+  }
+
+  .Document_Confirm_Actions{
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex: none;
+
+    @media (max-width: 520px){ margin-left: 0; }
+  }
+
+  .Document_Row{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+  }
+
+  .Document_Info{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .Document_Name{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .Document_Meta{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .Document_Actions{
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+
+  // --- detalhe (popovers de leitura) ----------------------------------------
+  // Um detalhe não é um formulário: não há campos, há factos. Estas classes
+  // dão-lhes a mesma hierarquia que o resto do site — micro-etiqueta em cima,
+  // valor legível por baixo — em vez de linhas de texto todas iguais.
+
+  // O valor é a razão de se abrir o detalhe, por isso ocupa o topo sozinho
+  .Detail_Hero{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+  }
+
+  .Detail_Hero_Main{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    // O estado encosta à direita, longe do número, para não se lerem juntos
+    > .Pill{ margin-left: auto; }
+  }
+
+  .Detail_Hero_Amount{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.02em;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .Detail_Hero_Meta{
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  // Duas colunas, e uma só quando não há largura para as duas
+  .Detail_Grid{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+
+    @media (max-width: 560px){
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .Detail{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  // A mesma micro-etiqueta dos cabeçalhos de tabela — é metadado, não título
+  .Detail_Label{
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  .Detail_Value{
+    font-size: 13px;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+
+  .Detail_Note{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 12px;
+    border-left: 2px solid var(--line-strong);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background-color: var(--surface-2);
+
+    p{
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text-2);
+    }
+  }
+
+  .Detail_Section{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .Detail_Section_Title{
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--simple-input-label-color);
+  }
+
+  .Detail_Section .Table{
+    // Dentro de um detalhe a tabela não é clicável, por isso não pisca no hover
+    tbody tr:hover{ background-color: transparent; }
+
+    // As bordas exteriores encostam à margem do corpo, para a primeira coluna
+    // ficar alinhada com os painéis de cima e de baixo em vez de 12px recuada
+    th:first-child,
+    td:first-child{ padding-left: 0; }
+
+    th:last-child,
+    td:last-child{ padding-right: 0; }
+  }
+
+  // O total de cada linha destaca-se do preço unitário que o explica
+  .Table td.Strong{
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .Full_Width{ grid-column: 1 / -1; }
+}
+
+@keyframes Popover_Fade{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+
+@keyframes Popover_Rise{
+  from{ opacity: 0; transform: translateY(10px) scale(.985); }
+  to{ opacity: 1; transform: none; }
+}
+
+// Formulário numa página inteira ("Novo fornecedor" a partir de "Avançadas"):
+// os mesmos campos do popover, em duas colunas
+.Form_Page{
+  font-family: Font.$font_family_sans;
+
+  @include form-fields;
+
+  .Form_Page_Body{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 16px;
+    padding: 16px;
+
+    @media (max-width: 620px){
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .Form_Page_Footer{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    background-color: var(--card-global-header-background);
+
+    // A ação principal fica sempre encostada à direita, como no popover
+    .Form_Action{
+      width: auto;
+      min-width: 120px;
+
+      &:first-child{ margin-right: auto; }
+    }
+  }
+
+  .Full_Width{ grid-column: 1 / -1; }
+}

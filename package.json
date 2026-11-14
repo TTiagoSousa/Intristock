@@ -1,0 +1,26 @@
+{
+  "name": "intristock",
+  "private": true,
+  "description": "IntriStock: company management, personal finances and a trading simulator, self-hosted on a Proxmox VM.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "install:all": "npm ci --prefix apps/backend && npm ci --prefix apps/frontend",
+    "dev:backend": "npm run start:dev --prefix apps/backend",
+    "dev:frontend": "npm run dev --prefix apps/frontend",
+    "setup:downloader": "node scripts/python-app.mjs downloader setup",
+    "dev:downloader": "node scripts/python-app.mjs downloader dev",
+    "setup:simulator": "node scripts/python-app.mjs simulator setup",
+    "dev:simulator": "node scripts/python-app.mjs simulator dev",
+    "build": "npm run build --prefix apps/backend && npm run build --prefix apps/frontend",
+    "release": "node scripts/release.mjs"
+  },
+  "version": "1.0.0",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TTiagoSousa/Intristock.git"
+  }
+}

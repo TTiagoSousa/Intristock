@@ -1,0 +1,201 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+.Dropdown_Field{
+  position: relative;
+  width: 100%;
+
+  .Dropdown_Field_Trigger{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 32px;
+    padding: 0 8px 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--input-global-background-color);
+    color: var(--input-global-letter-color);
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    text-align: left;
+    transition: border-color var(--dur-fast), background-color var(--dur-fast);
+
+    > span{
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    svg{
+      width: 15px;
+      height: 15px;
+      flex: none;
+      color: var(--global-input-icon-color);
+      transition: transform var(--dur-fast), color var(--dur-fast);
+    }
+
+    &:hover{ border-color: var(--line-strong); }
+
+    &:disabled{
+      opacity: .6;
+      cursor: not-allowed;
+    }
+  }
+
+  // Sem valor escolhido, o texto é o do sugestor e não o de um valor real
+  &.Empty .Dropdown_Field_Trigger > span{ color: var(--text-3); }
+
+  &.Open .Dropdown_Field_Trigger{
+    border-color: var(--global-input-focus-border-color);
+    background-color: var(--cards-background);
+
+    svg{
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+  }
+}
+
+// O painel é montado num portal, para não ser cortado pelo overflow do cartão
+.Dropdown_Field_Panel{
+  position: fixed;
+  z-index: 1200;
+  // Num campo estreito o painel não fica mais estreito do que isto (os nomes não se partem)
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  transform-origin: top left;
+  animation: Menu_In var(--dur-menu) var(--ease-out);
+  background-color: var(--cards-background);
+  box-shadow: var(--shadow-pop);
+
+  .Dropdown_Field_Search{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px;
+    flex: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xs);
+    background-color: var(--input-global-background-color);
+
+    svg{
+      width: 13px;
+      height: 13px;
+      color: var(--global-input-icon-color);
+    }
+
+    input{
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      background: none;
+      font-family: Font.$font_family_sans;
+      font-size: 13px;
+      color: var(--input-global-letter-color);
+
+      &::placeholder{ color: var(--text-3); }
+    }
+  }
+
+  .Dropdown_Field_Options{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--global-dropdown-scrollbar-thumb) transparent;
+
+    &::-webkit-scrollbar{ width: 7px; }
+    &::-webkit-scrollbar-track{ background: transparent; }
+    &::-webkit-scrollbar-thumb{
+      background-color: var(--global-dropdown-scrollbar-thumb);
+      border-radius: 4px;
+
+      &:hover{ background-color: var(--global-dropdown-scrollbar-thumb-hover); }
+    }
+
+    li{
+      display: flex;
+      list-style: none;
+      cursor: pointer;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-family: Font.$font_family_sans;
+      font-size: 13px;
+      text-align: left;
+      color: var(--text-2);
+      transition: background-color var(--dur-fast), color var(--dur-fast);
+
+      &:hover{
+        background-color: var(--global-dropdown-option-hover-background);
+        color: var(--text);
+      }
+
+      &.Selected{
+        background-color: var(--accent-soft);
+        color: var(--global-dropdown-option-selected-color);
+        font-weight: 500;
+      }
+
+      // Separa os grupos ("Outros itens"): pequena, sem se poder escolher
+      &.Group_Divider{
+        margin-top: 4px;
+        padding: 8px 12px 4px;
+        border-top: 1px solid var(--line);
+        border-radius: 0;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-3);
+        cursor: default;
+
+        &:hover{
+          background-color: transparent;
+          color: var(--text-3);
+        }
+      }
+
+      // Opções que não são valores mas ações ("+ Criar grupo"),
+      // separadas por uma linha para não se confundirem com a lista
+      &.Action{
+        border-top: 1px solid var(--line);
+        border-radius: 0 0 6px 6px;
+        color: var(--accent);
+        font-weight: 500;
+      }
+    }
+  }
+
+  // A mesma cara das opções-ação da lista, mas fora dela: não rola nem é
+  // filtrada pela pesquisa
+  .Dropdown_Field_Action{
+    width: 100%;
+    padding: 8px 12px 4px;
+    border-top: 1px solid var(--line);
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    color: var(--accent);
+
+    &:hover{ color: var(--text); }
+  }
+
+  .No_Results{
+    padding: 12px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+}

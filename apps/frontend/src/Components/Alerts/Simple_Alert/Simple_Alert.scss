@@ -1,0 +1,121 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+// O alerta é uma peça do produto, não uma faixa colorida: o fundo é o do
+// cartão e só o quadrado do ícone e a barra de tempo é que levam a cor.
+// Assim lê-se em ambos os temas sem texto branco sobre amarelo.
+.Simple_Alert{
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 270px;
+  max-width: 380px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background-color: var(--cards-background);
+  box-shadow: var(--shadow-pop);
+  animation: Simple_Alert_In var(--dur-panel) var(--ease-out);
+
+  // A saída é mais rápida do que a entrada
+  &--exit{
+    animation: Simple_Alert_Out 160ms var(--ease-out) forwards;
+  }
+
+  &__icon{
+    width: 24px;
+    height: 24px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-xs);
+    background-color: var(--alert-info-background);
+    color: var(--alert-icon-text);
+
+    svg{ width: 14px; height: 14px; }
+  }
+
+  &__body{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__label{
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  &__message{
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text);
+  }
+
+  &__close{
+    width: 24px;
+    height: 24px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-xs);
+    color: var(--text-3);
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    svg{ width: 14px; height: 14px; }
+
+    &:hover{
+      background-color: var(--surface-3);
+      color: var(--text);
+    }
+  }
+
+  &__progress{
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    transform-origin: left;
+    background-color: var(--alert-info-background);
+    animation: Simple_Alert_Progress 3s linear forwards;
+  }
+
+  &--success{
+    .Simple_Alert__icon,
+    .Simple_Alert__progress{ background-color: var(--alert-success-background); }
+  }
+
+  &--warning{
+    .Simple_Alert__icon,
+    .Simple_Alert__progress{ background-color: var(--alert-warning-background); }
+  }
+
+  &--error{
+    .Simple_Alert__icon,
+    .Simple_Alert__progress{ background-color: var(--alert-error-background); }
+  }
+}
+
+@keyframes Simple_Alert_In{
+  from{ opacity: 0; transform: translateX(16px); }
+  to{ opacity: 1; transform: none; }
+}
+
+@keyframes Simple_Alert_Out{
+  to{ opacity: 0; transform: translateX(8px); }
+}
+
+// A barra do tempo encolhe por transform (a largura obrigava a refazer o layout a cada frame)
+@keyframes Simple_Alert_Progress{
+  from{ transform: scaleX(1); }
+  to{ transform: scaleX(0); }
+}

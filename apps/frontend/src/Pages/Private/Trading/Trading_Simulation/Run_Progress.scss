@@ -1,0 +1,108 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A página de uma simulação enquanto corre (Run_Progress): o resto vem do
+// Run_Summary.scss (secções, cartões, painéis e a ficha)
+
+// A barra de toda a simulação, por baixo dos cartões
+.Run_Progress_Bar{
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: var(--trading-progress-track);
+}
+
+// O cancelar, por baixo da barra (a cancelar: o aviso no lugar dele)
+.Run_Progress_Actions{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 30px;
+  margin-top: 12px;
+}
+
+.Run_Progress_Cancelling{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// --- as fases ------------------------------------------------------------------
+.Run_Progress_Steps{
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.Run_Progress_Step{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 2px;
+
+  & + &{ border-top: 1px solid var(--factsheet-table-border); }
+
+  &.Pending{ opacity: .55; }
+}
+
+.Run_Progress_Step_Mark{
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+
+  svg{ width: 14px; height: 14px; }
+  font-size: 12px;
+  font-weight: 500;
+  background-color: var(--trading-progress-track);
+  color: var(--text-3);
+
+  .Done &{
+    background-color: var(--trading-runs-done-background);
+    color: var(--trading-runs-done-color);
+  }
+
+  .Current &{
+    background-color: var(--trading-runs-active-background);
+    color: var(--trading-runs-active-color);
+    animation: Run_Progress_Pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes Run_Progress_Pulse{
+  50%{ opacity: .55; }
+}
+
+.Run_Progress_Step_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.Run_Progress_Step_Name{
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Run_Progress_Step_Detail{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Run_Progress_Step_Percent{
+  margin-left: auto;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}

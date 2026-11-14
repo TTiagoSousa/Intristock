@@ -1,0 +1,131 @@
+// Despesas (finanças pessoais). O resto da casca vem do Earnings.scss.
+
+// No formulário: o que ocupa as duas colunas
+.Expense_Full{ grid-column: 1 / -1; }
+
+// As linhas de uma compra: produto, quantidade, preço, subcategoria, total e apagar
+.Expense_Lines{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+}
+
+.Expense_Line{
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) 70px 90px minmax(150px, 1.4fr) 90px 29px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+
+  .Right{ text-align: right; }
+}
+
+.Expense_Line_Head{
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.Expense_Lines_Foot{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.Expense_Total{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+// A tabela: as linhas com compras abrem-se
+.Expense_Row_Open{ cursor: pointer; }
+
+.Expense_Items_Row td{ background-color: var(--surface-2); }
+
+.Expense_Items{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.Expense_Item{
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 1fr;
+  gap: 12px;
+  font-size: 12px;
+
+  .Right{ text-align: right; }
+}
+
+// O nome de uma categoria na árvore (clica-se para a editar)
+.Expense_Category_Name{
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+
+  &:hover{ color: var(--accent); }
+}
+
+// O dashboard: cada categoria abre as de dentro
+.Expense_Share_Button{
+  width: 100%;
+  text-align: left;
+
+  &:hover span:first-child{ color: var(--accent); }
+}
+
+.Earnings_Share_Fill.Loss{ background-color: var(--loss); }
+
+// O formulário em duas colunas (as linhas e as notas ocupam as duas)
+.Popover_Backdrop .Popover_Body.Expense_Body{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  align-content: start;
+}
+
+// No formulário: a categoria do item de cada linha (vem do produto)
+.Expense_Line_Category{
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Itens: os separadores, a categoria em cada linha e a árvore
+.Items_Tabs{ align-self: flex-start; }
+
+.Item_Category_Cell{ min-width: 220px; }
+
+.Item_Tree{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.Item_Tree_Row{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+
+  &.Inactive{ opacity: .5; }
+  .Icon_Button{ opacity: 0; }
+  &:hover .Icon_Button,
+  .Icon_Button:focus-visible{ opacity: 1; }
+}
+
+// O dashboard: uma categoria de item abre as de dentro, em degraus
+.Expense_Tree_Children{ padding-left: 12px; }
+
+// As subscrições: o mês que cada pagamento paga, com maiúscula
+.Subscription_Period::first-letter{ text-transform: uppercase; }

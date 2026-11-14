@@ -1,0 +1,182 @@
+// Membros e Cargos de uma empresa. A casca do cartão, a tabela, as janelas e o
+// estado vazio vêm do Styles/.
+.Company_Members{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Company_Members_Card{
+  padding: 0;
+  overflow: hidden;
+}
+
+// O corpo do cartão, com o mesmo espaço da tabela dos Utilizadores
+.Company_Members_Body{
+  padding: 12px 16px 16px;
+
+  .Col_Name{ width: 40%; }
+  .Col_Role{ width: 22%; }
+  .Col_Actions{ width: 80px; }
+}
+
+// Sem membros: o aviso por baixo do dono, separado da tabela
+.Company_Members_Empty{ margin-top: 12px; }
+
+.Company_Members_Message{
+  display: block;
+  padding: 20px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Member_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Member_Sub{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Os ajustes ao cargo: o que tem a mais e o que lhe foi tirado
+.Member_Adjustments{
+  display: inline-flex;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+
+  .Extra{ color: var(--gain); }
+  .Denied{ color: var(--loss); }
+}
+
+.Role_Fields{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
+
+  @media (max-width: 640px){ grid-template-columns: minmax(0, 1fr); }
+}
+
+// A grelha das permissões: uma linha por área, uma coluna por ação
+.Permission_Grid{
+  .Center{ text-align: center; }
+
+  td, th{ padding-top: 8px; padding-bottom: 8px; }
+
+  input[type="checkbox"]{
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent);
+    cursor: pointer;
+
+    &:disabled{ cursor: default; }
+  }
+}
+
+.Permission_Area{
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled){ color: var(--accent); }
+  &:disabled{ cursor: default; }
+}
+
+// Num membro: a mais que o cargo (+) ou tirada ao cargo (−)
+.Permission_Cell{
+  position: relative;
+
+  &.Extra input{ accent-color: var(--gain); }
+  &.Denied{ background-color: var(--loss-soft); }
+}
+
+.Permission_Mark{
+  position: absolute;
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 500;
+
+  .Extra &{ color: var(--gain); }
+  .Denied &{ color: var(--loss); }
+}
+
+// --- página de um membro ------------------------------------------------------
+.Member_File_Input{ display: none; }
+
+// O botão de acrescentar, por baixo de cada lista
+.Member_Add{
+  display: flex;
+  margin-top: 12px;
+}
+
+.Member_Pill{ margin-left: 8px; }
+
+// Os contratos, um cartão cada, com os ficheiros dele por baixo
+.Member_Contracts{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Member_Contract{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+}
+
+.Member_Contract_Head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.Member_Documents{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.Member_Document{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+
+  > svg{
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--text-3);
+  }
+
+  .Row_Actions{ margin-left: auto; }
+}
+
+.Member_Document_Info{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.Member_Document_Name{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

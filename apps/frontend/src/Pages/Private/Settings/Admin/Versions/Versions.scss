@@ -1,0 +1,113 @@
+.Versions{
+  .Versions_Summary{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+
+    .Tile_Value{ font-size: 18px; }
+  }
+
+  .Versions_New{ color: var(--accent); }
+
+  .Versions_Notice{
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--text-3);
+  }
+
+  // A próxima versão, com o botão ao lado: é a única ação desta página
+  .Versions_Next{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--accent-line);
+    border-radius: var(--radius-sm);
+    background-color: var(--accent-soft);
+
+    @media (max-width: 620px){
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .Versions_Next_Text{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .Versions_Next_Title{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .Versions_Next_Hint{
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .Versions_List{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .Versions_Item{
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+
+    &.Installed{ border-color: var(--gain); }
+  }
+
+  .Versions_Item_Head{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px;
+    border: none;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .Versions_Chevron{
+    display: inline-flex;
+    width: 14px;
+    height: 14px;
+    color: var(--text-3);
+    transform: rotate(-90deg);
+    transition: transform var(--dur-fast);
+
+    &.Open{ transform: rotate(0deg); }
+  }
+
+  .Versions_Item_Version{
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .Versions_Item_Date{
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+
+  .Versions_Item_Body{
+    padding: 4px 16px 16px 36px;
+  }
+
+  .Versions_Item_Headline{
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+}

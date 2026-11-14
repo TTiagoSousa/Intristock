@@ -1,0 +1,56 @@
+@use 'sass:map';
+@use 'core';
+@use 'components';
+
+// ============================================================
+// EMISSÃO DO TEMA
+//
+// O tema do visitante tem TRÊS estados, não dois:
+//   1. escolheu claro       -> <html data-theme="light">
+//   2. escolheu escuro      -> <html data-theme="dark">
+//   3. segue o sistema      -> sem atributo nenhum (é o defeito)
+//
+// Por isso o escuro é declarado duas vezes: uma para o sistema
+// (só quando o utilizador não escolheu claro) e outra para a
+// escolha explícita. É o que garante que a escolha ganha ao SO
+// nos dois sentidos.
+//
+// `color-scheme` vai junto para as caixas de seleção, os campos
+// de data e as barras de scroll nativas seguirem o tema também.
+// ============================================================
+
+@mixin emit-core($mode) {
+  @each $name, $values in core.$core {
+    --#{$name}: #{map.get($values, $mode)};
+  }
+  color-scheme: $mode;
+}
+
+:root {
+  @include emit-core(light);
+
+  // Não mudam com o tema — emitidos uma vez só
+  @each $name, $value in core.$constants {
+    --#{$name}: #{$value};
+  }
+
+  // Camada de componente — também uma vez só, porque cada token
+  // aponta para um semântico que já muda sozinho
+  @each $name, $value in components.$components {
+    --#{$name}: #{$value};
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include emit-core(dark);
+  }
+}
+
+:root[data-theme='dark'] {
+  @include emit-core(dark);
+}
+
+:root[data-theme='light'] {
+  @include emit-core(light);
+}

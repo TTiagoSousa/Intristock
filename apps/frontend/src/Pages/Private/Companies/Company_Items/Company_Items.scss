@@ -1,0 +1,104 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão, o cabeçalho, a tabela e as ações por linha vêm do
+// Styles/Cards.scss. Aqui fica só o que é dos itens.
+.Company_Items{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Item_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+// A descrição vive debaixo do nome, na mesma célula
+.Item_Description{
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+// Recorrente vs pontual: pastilha, porque é o que distingue os itens que
+// trazem preço por defeito dos que não trazem
+.Item_Recurrence{
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text-2);
+
+  &.Recurring{
+    background-color: var(--accent-soft);
+    color: var(--accent);
+  }
+}
+
+// A natureza do item é o que decide o que sobra de cada compra: nada, stock
+// em mão, ou um ativo a amortizar. Por isso é pastilha e não texto solto.
+.Item_Kind{
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text-2);
+
+  &.stock{
+    background-color: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  &.asset{
+    background-color: var(--warn-soft);
+    color: var(--warn);
+  }
+}
+
+// Fornecedores ligados ao item, em pastilhas por cima do dropdown de acrescentar
+.Item_Supplier_Chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.Item_Supplier_Chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background-color: var(--surface-3);
+  font-size: 12px;
+  color: var(--text);
+
+  button{
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--text-3);
+
+    &:hover{
+      background-color: var(--danger-color-soft);
+      color: var(--danger-color);
+    }
+  }
+}

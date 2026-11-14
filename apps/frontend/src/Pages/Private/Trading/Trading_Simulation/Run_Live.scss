@@ -1,0 +1,325 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// O teste ao vivo: a barra do teste, o gráfico, os números, as condições e os registos
+.Run_Live {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.Live_Start {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .Simulator_Field {
+    gap: 8px;
+  }
+}
+
+.Live_Start_Actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// A barra de cima: o estado, o teste escolhido, as datas, a ligação e os botões
+.Live_Bar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 12px 16px;
+}
+
+.Live_Bar_Main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  min-width: 0;
+}
+
+.Live_Bar_Picker {
+  width: 340px;
+  max-width: 100%;
+}
+
+.Live_Bar_Meta,
+.Live_Link {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Live_Link {
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background-color: var(--trading-live-stopped);
+  }
+
+  &.Up::before {
+    background-color: var(--trading-live-running);
+  }
+}
+
+.Live_Bar_Actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.Live_Confirm {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Live_Status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--trading-live-stopped);
+  background-color: var(--trading-live-stopped-soft);
+
+  &.running {
+    color: var(--trading-live-running);
+    background-color: var(--trading-live-running-soft);
+
+    .Live_Status_Dot {
+      animation: live-pulse 1.6s ease-in-out infinite;
+    }
+  }
+
+  &.waiting,
+  &.stopping {
+    color: var(--trading-live-waiting);
+    background-color: var(--trading-live-waiting-soft);
+  }
+
+  &.failed {
+    color: var(--trading-live-failed);
+    background-color: var(--trading-live-failed-soft);
+  }
+}
+
+.Live_Status_Dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Live_Status.running .Live_Status_Dot {
+    animation: none;
+  }
+}
+
+// As posições abertas e os últimos trades, um por baixo do outro
+.Live_Tables {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Live_Lower {
+  align-items: start;
+}
+
+// O estado das condições de cada entrada
+.Live_Conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 560px;
+  overflow-y: auto;
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.Live_Conditions_Entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Live_Conditions_Head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.Live_Conditions_Label {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.Live_Pill {
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--trading-live-stopped);
+  background-color: var(--trading-live-stopped-soft);
+
+  &.True {
+    color: var(--trading-live-running);
+    background-color: var(--trading-live-running-soft);
+  }
+}
+
+.Live_Condition {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+
+  &.Nested {
+    padding-left: 24px;
+  }
+
+  &.True {
+    color: var(--text);
+  }
+}
+
+.Live_Condition_Mark {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--trading-live-condition-false);
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .True > & {
+    color: var(--trading-live-condition-true);
+  }
+}
+
+// Os registos: um por linha, a hora e a frase, com o ponto da cor do grupo
+.Live_Log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Live_Log_List {
+  display: flex;
+  flex-direction: column;
+  max-height: 560px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.Live_Log_Row {
+  display: grid;
+  grid-template-columns: 10px 128px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.trade .Live_Log_Dot {
+    background-color: var(--trading-live-log-trade);
+  }
+
+  &.signal .Live_Log_Dot {
+    background-color: var(--trading-live-log-signal);
+  }
+
+  &.condition .Live_Log_Dot {
+    background-color: var(--trading-live-log-condition);
+  }
+
+  &.account .Live_Log_Dot {
+    background-color: var(--trading-live-log-account);
+  }
+
+  &.system .Live_Log_Dot {
+    background-color: var(--trading-live-log-system);
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: 10px minmax(0, 1fr);
+
+    .Live_Log_Text {
+      grid-column: 2;
+    }
+  }
+}
+
+.Live_Log_Dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translateY(-1px);
+}
+
+.Live_Log_Time {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.Live_Log_Text {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.Live_Log_More {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .Live_Lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

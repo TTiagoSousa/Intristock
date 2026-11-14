@@ -1,0 +1,169 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// Cada módulo num cartão (a casca vem do .Card), por baixo do Page_Head.
+.Company_Modules{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Modules_Head_Filters{ align-items: center; }
+
+.Modules_Search{ width: 240px; }
+
+@media (max-width: 700px){
+  .Modules_Head_Filters{ margin-left: 0; width: 100%; }
+  .Modules_Search{ width: 100%; }
+}
+
+.Modules_Message{
+  padding: 16px 0;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+// Um cartão por módulo, cada um numa linha inteira
+.Modules_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Module_Card{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+
+  // Ligado ou desligado lê-se no estado ao lado do nome e no interruptor; o
+  // cartão não muda de cor
+  @media (max-width: 640px){ flex-wrap: wrap; }
+}
+
+.Module_Title{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.Module_Actions{
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+.Module_Icon{
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background-color: var(--module-icon-background);
+  color: var(--module-icon-color);
+
+  svg{ width: 16px; height: 16px; }
+}
+
+.Module_Info{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Module_Label{
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Module_Description{
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+// Interruptor. Reage no instante do clique e volta sozinho se o pedido falhar,
+// por isso não leva indicador nenhum — nada aqui pode mudar de tamanho.
+.Module_Toggle{
+  flex: none;
+  cursor: pointer;
+
+  // A checkbox real fica escondida mas continua a ser ela a receber o
+  // clique e o teclado — o interruptor é só a pele dela
+  input{
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  input:disabled + .Toggle_Track{
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  input:focus-visible + .Toggle_Track{
+    box-shadow: var(--ring);
+  }
+
+  input:checked + .Toggle_Track{
+    background-color: var(--module-toggle-on-background);
+
+    .Toggle_Thumb{ transform: translateX(16px); }
+  }
+}
+
+.Toggle_Track{
+  display: block;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background-color: var(--module-toggle-off-background);
+  transition: background-color var(--dur-menu) var(--ease-out);
+}
+
+.Toggle_Thumb{
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--module-toggle-thumb);
+  box-shadow: var(--switch-thumb-shadow);
+  transition: transform var(--dur-menu) var(--ease-out);
+}
+
+// A página de definições de um módulo
+.Module_Settings_Card{
+  padding: 0;
+  overflow: hidden;
+}
+
+.Module_Settings_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .Card_Header_Text{ flex: 1; min-width: 0; }
+}
+
+.Module_Settings_Body{ padding: 12px 16px 16px; }
+
+.Module_Settings_Link{
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover{ text-decoration: underline; }
+}

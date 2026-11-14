@@ -1,0 +1,1561 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// O Resumo: as secções, cada uma com o número, o título, o que diz e os blocos
+.Run_Summary {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+.Factsheet_Section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Factsheet_Heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.Factsheet_Title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--factsheet-title);
+}
+
+// A que parte da simulação se refere a secção, ao lado do título
+.Factsheet_Tag {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--factsheet-detail);
+}
+.Factsheet_Info {
+  margin: 0;
+  max-width: 1100px;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--factsheet-info);
+}
+
+.Factsheet_Hint {
+  font-size: 13px;
+  color: var(--factsheet-info);
+}
+
+// --- 2.1: a ficha de simulação ------------------------------------------------
+// Três cartões lado a lado (geral, regras, dados), todos da mesma altura: as linhas que não
+// cabem fazem scroll dentro do cartão. Em ecrãs menores, uns por baixo dos outros
+.Factsheet_Sheet_Grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.Factsheet_Sheet_Card {
+  display: flex;
+  flex-direction: column;
+  height: 360px;
+  min-height: 0;
+}
+
+.Factsheet_Sheet_List {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--factsheet-setup-scrollbar-thumb) transparent;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--factsheet-setup-scrollbar-thumb);
+    border-radius: 4px;
+
+    &:hover { background-color: var(--factsheet-setup-scrollbar-thumb-hover); }
+  }
+}
+
+// --- 2.2: o funil de sinais ---------------------------------------------------
+// Uma linha por contagem: o nome, a barra e o número
+// Como as barras da nota (1.1): 12px, a barra de 10px e o número em mono
+.Factsheet_Funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.Factsheet_Funnel_Row {
+  display: grid;
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 12px;
+}
+
+.Factsheet_Funnel_Label {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--factsheet-value);
+}
+
+.Factsheet_Funnel_Track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: var(--factsheet-funnel-track);
+}
+
+.Factsheet_Funnel_Fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width .4s ease;
+
+  &.Bars { background-color: var(--factsheet-funnel-bars); }
+  &.Signals { background-color: var(--factsheet-funnel-signals); }
+  &.Blocked { background-color: var(--factsheet-funnel-blocked); }
+  &.Orders { background-color: var(--factsheet-funnel-orders); }
+  &.Trades { background-color: var(--factsheet-funnel-trades); }
+  &.Wins { background-color: var(--factsheet-funnel-wins); }
+}
+
+.Factsheet_Funnel_Value {
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  color: var(--factsheet-value);
+}
+
+// 2.3 variantes da ordem: a atual a negrito
+.Factsheet_Table.Factsheet_Variants tr.Current td {
+  font-weight: 500;
+}
+
+// 2.2 por entrada: o quadrado da cor da entrada ao lado do nome, e a nota por baixo
+.Factsheet_By_Entry_Name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// 5.3 a melhor e a pior entrada de um dia: o nome e o P&L dela
+.Factsheet_Weekday_Entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+// 5.3 a legenda das entradas, partilhada pelos três gráficos por entrada
+.Factsheet_Weekday_Legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+
+  button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: opacity var(--dur-fast) ease;
+
+    &.Hidden {
+      opacity: .4;
+      text-decoration: line-through;
+    }
+  }
+}
+
+.Factsheet_By_Entry_Dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 2px;
+
+  @for $index from 1 through 6 {
+    &.Color_#{$index} {
+      background-color: var(--factsheet-entry-#{$index});
+    }
+  }
+}
+
+.Factsheet_By_Entry_Footnote {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--factsheet-table-border);
+  border-radius: var(--factsheet-panel-radius);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--factsheet-setup-label);
+}
+
+// As entradas, passo a passo: colunas de largura fixa, 12px, uma condição, saída
+// ou detalhe por linha (o detalhe apagado), tudo ao centro da linha na vertical
+.Factsheet_Table.Factsheet_Entries {
+  table-layout: fixed;
+  min-width: 1000px;
+
+  col.Name { width: 15%; }
+  col.Side { width: 7%; }
+  col.When { width: 24%; }
+  col.At { width: 14%; }
+  col.Size { width: 13%; }
+  col.Exit { width: 17%; }
+  col.Schedule { width: 10%; }
+
+  th,
+  td {
+    font-size: 12px;
+    white-space: normal;
+    vertical-align: middle;
+  }
+
+  td {
+    line-height: 1.45;
+  }
+}
+
+.Factsheet_Entries_Line {
+  display: block;
+  color: var(--factsheet-value);
+
+  & + & {
+    margin-top: 2px;
+  }
+
+  &.Muted {
+    color: var(--factsheet-setup-label);
+  }
+}
+
+// O E/OU que junta uma condição à anterior
+.Factsheet_Entries_Joiner {
+  margin-right: 8px;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--factsheet-label);
+}
+
+// Compra ou venda, numa etiqueta
+.Factsheet_Entries_Side {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &.Long {
+    color: var(--factsheet-entries-long);
+    background-color: var(--factsheet-entries-long-background);
+  }
+
+  &.Short {
+    color: var(--factsheet-entries-short);
+    background-color: var(--factsheet-entries-short-background);
+  }
+}
+
+// Uma linha: o nome à esquerda, o valor à direita. Como as linhas das tabelas
+// (as dos Juros compostos): 13px, 8px 10px, a mesma cor e o fundo ao passar
+.Factsheet_Sheet_Row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--factsheet-table-border);
+  transition: background-color var(--dur-fast);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: var(--factsheet-table-hover);
+  }
+
+  dt,
+  dd {
+    font-size: 12px;
+  }
+
+  // O nome apagado e o valor forte, como os cartões do Resumo
+  dt {
+    color: var(--factsheet-setup-label);
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+    color: var(--factsheet-value);
+  }
+}
+
+// --- 1.1: os 12 cartões ------------------------------------------------------
+.Factsheet_Cards {
+  display: grid;
+  // Seis por linha (duas linhas); em ecrãs menores, três e depois dois
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 1500px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  // Dez cartões: cinco por linha (duas linhas)
+  &.Five {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+
+    @media (max-width: 1100px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 760px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
+
+.Factsheet_Card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--factsheet-card-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--factsheet-card-background);
+
+  &.Positive .Factsheet_Value {
+    color: var(--factsheet-positive);
+  }
+
+  &.Negative .Factsheet_Value {
+    color: var(--factsheet-negative);
+  }
+}
+
+.Factsheet_Label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--factsheet-label);
+}
+
+.Factsheet_Value {
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--factsheet-value);
+  overflow-wrap: anywhere;
+}
+
+.Factsheet_Detail {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--factsheet-detail);
+}
+
+// O "?" de cada título: a explicação por cima, ao passar o rato ou com o teclado
+.Factsheet_Help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--factsheet-help-border);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--factsheet-help-color);
+  cursor: help;
+  outline: none;
+
+  &:hover .Factsheet_Help_Tip,
+  &:focus-visible .Factsheet_Help_Tip {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    border-color: var(--factsheet-number-color);
+  }
+}
+
+.Factsheet_Help_Tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 20;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 8px;
+  border: 1px solid var(--factsheet-help-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--factsheet-help-tip-background);
+  box-shadow: var(--card-box-shadow);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--factsheet-help-tip-color);
+  transform: translateX(-50%);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease;
+  pointer-events: none;
+}
+
+// O "?" que abre a explicação longa de um cartão, gráfico ou tabela (num portal no body)
+.Factsheet_Explain {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  padding: 0;
+  border: 1px solid var(--factsheet-help-border);
+  border-radius: 50%;
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--factsheet-help-color);
+  vertical-align: middle;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible,
+  &.Open {
+    border-color: var(--factsheet-explain-hover);
+    color: var(--factsheet-explain-hover);
+    outline: none;
+  }
+}
+
+.Factsheet_Label .Factsheet_Explain {
+  margin-left: 0;
+}
+
+// A explicação ao centro do ecrã, com a página escurecida por trás
+.Factsheet_Explain_Backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: var(--factsheet-explain-backdrop);
+  backdrop-filter: blur(3px);
+  animation: Factsheet_Explain_Fade .16s ease-out;
+}
+
+.Factsheet_Explain_Dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(640px, 100%);
+  max-height: 100%;
+  padding: 20px 24px 20px;
+  overflow-y: auto;
+  border: 1px solid var(--factsheet-explain-border);
+  border-radius: var(--radius);
+  background-color: var(--factsheet-explain-background);
+  box-shadow: var(--factsheet-explain-shadow);
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--factsheet-explain-text);
+  outline: none;
+  animation: Factsheet_Explain_Rise .18s ease-out;
+
+  p,
+  ul {
+    margin: 0;
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 20px;
+  }
+}
+
+.Factsheet_Explain_Head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.Factsheet_Explain_Badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--factsheet-explain-badge-background);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--factsheet-explain-hover);
+}
+
+.Factsheet_Explain_Title {
+  flex: 1;
+  min-width: 0;
+  font-family: Font.$font_family_sans;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--factsheet-explain-title);
+}
+
+.Factsheet_Explain_Close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--factsheet-explain-heading);
+  cursor: pointer;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--factsheet-explain-border);
+    color: var(--factsheet-explain-title);
+    outline: none;
+  }
+}
+
+.Factsheet_Explain_Summary {
+  padding: 12px 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--factsheet-explain-section-background);
+  color: var(--factsheet-explain-title);
+}
+
+.Factsheet_Explain_Section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.Factsheet_Explain_Heading {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--factsheet-explain-heading);
+}
+
+.Factsheet_Explain_Columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  &.Single {
+    grid-template-columns: 1fr;
+  }
+}
+
+.Factsheet_Explain_List {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+
+  &.Positive {
+    border-color: var(--factsheet-explain-positive-border);
+    background-color: var(--factsheet-explain-positive-background);
+
+    .Factsheet_Explain_Heading {
+      color: var(--factsheet-positive);
+    }
+  }
+
+  &.Negative {
+    border-color: var(--factsheet-explain-negative-border);
+    background-color: var(--factsheet-explain-negative-background);
+
+    .Factsheet_Explain_Heading {
+      color: var(--factsheet-negative);
+    }
+  }
+}
+
+@keyframes Factsheet_Explain_Fade {
+  from { opacity: 0; }
+}
+
+@keyframes Factsheet_Explain_Rise {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Factsheet_Explain_Backdrop,
+  .Factsheet_Explain_Dialog {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .Factsheet_Explain_Backdrop {
+    padding: 12px;
+  }
+
+  .Factsheet_Explain_Dialog {
+    padding: 16px 16px 16px;
+  }
+
+  .Factsheet_Explain_Columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+// --- painéis com gráfico (1.2) -------------------------------------------------
+// Como os cartões das calculadoras: o cabeçalho numa faixa (título e nota ao
+// lado), o gráfico por baixo
+.Factsheet_Panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 12px;
+  overflow: hidden;
+  border: 1px solid var(--factsheet-card-border);
+  border-radius: var(--factsheet-panel-radius);
+  background-color: var(--factsheet-card-background);
+  box-shadow: var(--factsheet-panel-shadow);
+
+  // A margem é do painel (a biblioteca põe o gráfico a 100% de largura); e o
+  // gráfico encolhe com o painel (o canvas tem largura fixa)
+  > * {
+    min-width: 0;
+  }
+}
+
+.Factsheet_Panel_Header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 8px;
+  // A faixa vai de lado a lado, por cima da margem do painel; a mesma altura com ou
+  // sem botões (os de 30px cabem), com o conteúdo ao centro
+  box-sizing: border-box;
+  min-height: 48px;
+  margin: 0 -16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--factsheet-panel-header-border);
+  background-color: var(--factsheet-panel-header-background);
+}
+
+// O título e a nota lado a lado, na mesma linha de base (letras de tamanhos diferentes)
+.Factsheet_Panel_Heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-width: 0;
+}
+
+.Factsheet_Panel_Title {
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--factsheet-panel-title);
+}
+
+.Factsheet_Panel_Note {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--factsheet-info);
+}
+
+// Um painel só com uma tabela, sem a faixa do cabeçalho
+.Factsheet_Panel.Plain {
+  padding-top: 8px;
+}
+
+// Os botões do painel (Mês / Trimestre / Ano…) encostam à direita da faixa
+.Factsheet_Panel_Actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+// --- tabelas dos painéis (como as dos Juros compostos) -------------------------
+.Factsheet_Table_Scroll {
+  overflow-x: auto;
+}
+
+.Factsheet_Table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 8px 12px;
+    font-size: 13px;
+    text-align: left;
+    white-space: nowrap;
+    color: var(--factsheet-value);
+  }
+
+  th {
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    border-bottom: 1px solid var(--factsheet-table-border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--factsheet-table-border);
+    transition: background-color var(--dur-fast);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: var(--factsheet-table-hover);
+    }
+
+    // A linha do total (o período todo) com o fundo do cabeçalho
+    &.Total {
+      font-weight: 500;
+      background-color: var(--factsheet-table-total);
+    }
+  }
+
+  .Numeric {
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  th.Numeric {
+    font-family: Font.$font_family_sans;
+  }
+
+  // Datas e contagens em mono, mas alinhadas à esquerda
+  .Numeric.Left {
+    text-align: left;
+  }
+
+  // Texto comprido (fórmulas) que pode partir em mais linhas
+  .Factsheet_Table_Wrap {
+    white-space: normal;
+    min-width: 220px;
+  }
+
+  .Strong {
+    font-weight: 500;
+  }
+
+  .Positive {
+    color: var(--factsheet-positive);
+  }
+
+  .Negative {
+    color: var(--factsheet-negative);
+  }
+}
+
+// Os botões do cabeçalho de um painel (vista avançada, ecrã inteiro)
+.Factsheet_Panel_Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--factsheet-panel-button-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--factsheet-panel-button-background);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--factsheet-panel-button-text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  &:hover {
+    color: var(--factsheet-value);
+  }
+
+  &.Active {
+    background-color: var(--factsheet-panel-button-active-background);
+    color: var(--factsheet-panel-button-active-text);
+  }
+
+  &.Icon {
+    width: 30px;
+    padding: 8px;
+  }
+}
+
+// Em ecrã inteiro: o painel ocupa a janela (com margem) e a página escurece por trás
+.Factsheet_Panel.Fullscreen {
+  position: fixed;
+  inset: 16px;
+  z-index: 1001;
+  overflow: auto;
+  // Ao chegar ao fim da tabela, o scroll não passa para a página
+  overscroll-behavior: contain;
+
+  .Factsheet_Panel_Header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .Factsheet_Monthly_Scroll {
+    max-height: none;
+    overflow: visible;
+  }
+
+  // Os gráficos crescem até ao fundo da janela (a biblioteca acompanha o tamanho)
+  .Factsheet_Chart {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 260px;
+  }
+}
+
+.Factsheet_Panel_Backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: var(--factsheet-panel-backdrop);
+}
+
+// --- 1.3: mês a mês ------------------------------------------------------------
+// No painel, a altura fica limitada (o cabeçalho das colunas fica à vista ao descer)
+.Factsheet_Monthly_Scroll {
+  max-height: 460px;
+  overflow: auto;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--factsheet-card-background);
+  }
+}
+
+.Factsheet_Monthly td.Partial {
+  font-style: italic;
+}
+
+// --- 1.3: a grelha dos retornos ----------------------------------------------
+// O mapa de calor (com a letra dos números) e, por cima, o contorno tracejado
+// dos períodos parciais
+.Factsheet_Returns_Grid {
+  position: relative;
+}
+
+// Os mapas de calor (1.3, 4.2, 4.6): a letra dos números
+.Factsheet_Heatmap {
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+}
+
+.Factsheet_Returns_Partial {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--factsheet-returns-partial);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.Factsheet_Chart {
+  position: relative;
+  width: 100%;
+
+  &.Equity {
+    height: 340px;
+  }
+
+  &.Equity_Base,
+  &.Underwater {
+    height: 210px;
+  }
+
+  &.Distribution,
+  &.Rolling_Sharpe,
+  &.Sample_Equity,
+  &.Stops_Month {
+    height: 240px;
+  }
+
+  &.Scatter {
+    height: 440px;
+  }
+
+  &.Entry_Equity,
+  &.Trade_Path {
+    height: 300px;
+  }
+
+  &.Hour_Stack {
+    height: 280px;
+  }
+
+  &.Hour_Bars {
+    height: 240px;
+  }
+
+  // 5.3 os dias da semana, a toda a largura
+  &.Weekday {
+    height: 260px;
+  }
+
+  // 5.9 os gaps, ao lado da tabela das passagens (mais alta)
+  &.Gap_Daily {
+    height: 400px;
+  }
+}
+
+// O início, a legenda do tracejado e o fim, por baixo do gráfico
+.Factsheet_Chart_Footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--factsheet-info);
+}
+
+// --- 1.1: a nota da estratégia ------------------------------------------------
+// O anel à esquerda; o rótulo, as partes e "como se calcula" à direita
+.Factsheet_Score {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 20px 24px;
+  border: 1px solid var(--factsheet-card-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--factsheet-card-background);
+
+  @media (max-width: 760px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.Factsheet_Score_Gauge {
+  flex: none;
+  width: 150px;
+  height: 150px;
+
+  @media (max-width: 760px) {
+    align-self: center;
+  }
+}
+
+.Factsheet_Score_Body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.Factsheet_Score_Heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.Factsheet_Score_Label {
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--factsheet-value);
+}
+
+.Factsheet_Score_Meaning {
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  color: var(--factsheet-info);
+}
+
+.Factsheet_Score_Parts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.Factsheet_Score_Part {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 12px;
+}
+
+.Factsheet_Score_Name {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--factsheet-value);
+}
+
+.Factsheet_Score_Track {
+  height: 10px;
+  border-radius: 4px;
+  background-color: var(--factsheet-score-track);
+  overflow: hidden;
+}
+
+.Factsheet_Score_Bar {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+
+  &.High {
+    background-color: var(--factsheet-score-high);
+  }
+
+  &.Mid {
+    background-color: var(--factsheet-score-mid);
+  }
+
+  &.Low {
+    background-color: var(--factsheet-score-low);
+  }
+}
+
+.Factsheet_Score_Points {
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  color: var(--factsheet-value);
+}
+
+// "Como se calcula a nota": fechado por omissão
+.Factsheet_Score_How {
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--factsheet-info);
+
+  summary {
+    width: max-content;
+    color: var(--factsheet-number-color);
+    cursor: pointer;
+  }
+
+  p {
+    margin: 8px 0 0;
+  }
+
+  dl {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 0;
+  }
+}
+
+.Factsheet_Score_Formula {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+
+  dt {
+    font-weight: 500;
+    color: var(--factsheet-value);
+  }
+
+  dd {
+    margin: 0;
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+// --- 4: Entradas e saídas -----------------------------------------------------
+// Oito cartões (4.3): quatro por linha (duas linhas iguais, como os 12 e os 10 do
+// Resumo); em ecrãs pequenos, dois
+.Factsheet_Cards.Four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// Painéis lado a lado (as três tabelas da 4.4); um por linha em ecrãs menores
+.Factsheet_Grid {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+
+  // Dois gráficos lado a lado: o botão fica na linha do título (a nota parte
+  // ao lado dele) e os gráficos encostam ao fundo, à mesma altura
+  &.Two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+
+    > .Factsheet_Panel > .Factsheet_Panel_Header,
+    > .Factsheet_Stack > .Factsheet_Panel > .Factsheet_Panel_Header {
+      flex-wrap: nowrap;
+    }
+
+    > .Factsheet_Panel > .Factsheet_Chart {
+      margin-top: auto;
+    }
+  }
+
+  &.Three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 1100px) {
+    &.Two,
+    &.Three {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+// Tabelas estreitas (três lado a lado): os cabeçalhos partem em duas linhas
+.Factsheet_Table.Compact th {
+  white-space: normal;
+}
+
+// A nota por baixo de uma tabela (o que quer dizer uma coluna)
+.Factsheet_Panel_Footnote {
+  margin: 0;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--factsheet-info);
+}
+
+// 4.7 diário de trades: a linha "a carregar" ao centro
+.Factsheet_Journal_Message {
+  text-align: center;
+  color: var(--factsheet-info);
+}
+
+// O quadrado da cor de uma saída (na tabela por motivo de saída, 4.3)
+.Factsheet_Legend_Square {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+// A cor de cada tipo de saída
+.Factsheet_Legend_Square {
+  &.Exit_Stop { background-color: var(--factsheet-exit-stop); }
+  &.Exit_Trailing { background-color: var(--factsheet-exit-trailing); }
+  &.Exit_Break_Even { background-color: var(--factsheet-exit-break-even); }
+  &.Exit_Take { background-color: var(--factsheet-exit-take); }
+  &.Exit_Signal { background-color: var(--factsheet-exit-signal); }
+  &.Exit_Time { background-color: var(--factsheet-exit-time); }
+  &.Exit_Other { background-color: var(--factsheet-exit-other); }
+}
+
+// 5.5 o calendário: um ano de cada vez (os quadrados enchem a largura)
+.Factsheet_Chart.Factsheet_Calendar {
+  height: 250px;
+}
+
+// 5.5 a escolha do ano, por cima do calendário
+.Factsheet_Calendar_Years {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// 5.5 o ano entre as setas (quando são muitos para botões)
+.Factsheet_Calendar_Year {
+  min-width: 44px;
+  text-align: center;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--factsheet-value);
+}
+
+// As setas desligadas no primeiro e no último ano
+.Factsheet_Panel_Button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+// 5.6 cada entrada por hora: o nome com o horário ao lado, as barras e três cartões
+.Factsheet_Chart.Entry_Hours {
+  height: 190px;
+}
+
+.Factsheet_Cards.Three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.Factsheet_Entry_Hours_Title {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.Factsheet_Entry_Hours_Badge {
+  padding: 1px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--factsheet-entry-badge-text);
+  background-color: var(--factsheet-entry-badge);
+}
+
+// 5.6 entrada × bloco de 4 horas: duas linhas por célula, com a cor da expectancy
+.Factsheet_Table.Factsheet_Entry_Blocks {
+  border-collapse: separate;
+  border-spacing: 3px;
+
+  .Centered {
+    text-align: center;
+  }
+
+  .Factsheet_Entry_Block {
+    text-align: center;
+    border-radius: 4px;
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+
+    strong,
+    span {
+      display: block;
+    }
+
+    strong {
+      font-size: 13px;
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--factsheet-info);
+    }
+
+    &.Empty {
+      color: var(--factsheet-info);
+    }
+
+    // Amostra pequena: poucos trades no bloco
+    &.Faded {
+      opacity: .45;
+    }
+
+    // A atual, no meio dos passos da sensibilidade
+    &.Current {
+      outline: 1px solid var(--factsheet-value);
+      outline-offset: -1px;
+    }
+  }
+}
+
+// 5.7 painéis um por baixo do outro dentro de uma coluna
+.Factsheet_Stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+// 5.5 as entradas de um dia, uma por linha
+.Factsheet_Calendar_Entry {
+  display: block;
+}
+
+// 5.10 a conclusão por baixo do horário de trabalho
+.Factsheet_Work_Verdict {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--factsheet-table-border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--factsheet-info);
+}
+
+// O veredicto: o selo (robusta, frágil, inconclusiva) e a frase
+.Factsheet_Verdict {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  @each $state in robust, fragile, inconclusive {
+    &.#{$state} .Factsheet_Verdict_Badge {
+      color: var(--factsheet-verdict-#{$state});
+      border-color: color-mix(in srgb, var(--factsheet-verdict-#{$state}) 50%, transparent);
+      background-color: color-mix(in srgb, var(--factsheet-verdict-#{$state}) 12%, transparent);
+    }
+  }
+}
+
+.Factsheet_Verdict_Badge {
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.Factsheet_Verdict_Text {
+  font-size: 13px;
+  color: var(--factsheet-info);
+}
+
+// O veredicto numa célula (a família de mercados, comparar)
+.Factsheet_Verdict_Tag {
+  font-size: 12px;
+  font-weight: 500;
+
+  @each $state in robust, fragile, inconclusive {
+    &.#{$state} {
+      color: var(--factsheet-verdict-#{$state});
+    }
+  }
+}
+
+// Os testes e as conclusões, um por linha, com a marca do estado
+.Factsheet_Tests {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.Factsheet_Test {
+  display: grid;
+  grid-template-columns: 22px minmax(150px, max-content) 1fr;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--factsheet-value);
+
+  &:not(:has(.Factsheet_Test_Title)) {
+    grid-template-columns: 22px 1fr;
+  }
+
+  &.pass .Factsheet_Test_Mark,
+  &.positive .Factsheet_Test_Mark {
+    color: var(--factsheet-positive);
+  }
+
+  &.fail .Factsheet_Test_Mark,
+  &.negative .Factsheet_Test_Mark {
+    color: var(--factsheet-negative);
+  }
+
+  &.unknown .Factsheet_Test_Mark,
+  &.neutral .Factsheet_Test_Mark {
+    color: var(--factsheet-info);
+  }
+}
+
+.Factsheet_Test_Mark {
+  display: inline-grid;
+  place-items: center;
+  font-weight: 500;
+  text-align: center;
+
+  svg { width: 14px; height: 14px; }
+}
+
+.Factsheet_Test_Title {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.Factsheet_Test_Text {
+  color: var(--factsheet-info);
+}
+
+// Uma segunda linha pequena numa célula (as datas de uma janela, o valor de um parâmetro)
+.Factsheet_Cell_Detail {
+  display: block;
+  margin-top: 1px;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--factsheet-info);
+}
+
+// 3.7 a escolha dos mercados: o campo, os escolhidos e o botão
+.Factsheet_Markets_Form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.Factsheet_Markets_Picker {
+  width: 260px;
+}
+
+.Factsheet_Markets_Chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 12px;
+  border: 1px solid var(--factsheet-table-border);
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--factsheet-value);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.Factsheet_Markets_Error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--factsheet-negative);
+}
+
+.Factsheet_Markets_Row {
+  cursor: pointer;
+}
+
+// 3.8 — os desafios de cada segunda-feira, numa fita: um quadrado por janela
+.Prop_Strip{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.Prop_Window{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background-color: var(--trading-prop-open);
+
+  &.passed{ background-color: var(--trading-prop-passed); }
+  &.failed{ background-color: var(--trading-prop-failed); }
+}
+
+.Prop_Legend{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Prop_Legend_Item{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// 4.7 — as saídas parciais por baixo do motivo da saída
+.Factsheet_Journal_Partial{
+  display: block;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.Factsheet_Markets_Chip_Close {
+  display: inline-grid;
+  width: 12px;
+  height: 12px;
+  color: var(--text-3);
+}

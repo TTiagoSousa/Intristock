@@ -1,0 +1,96 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão, o cabeçalho, a tabela e as ações por linha vêm do
+// Styles/Cards.scss. Aqui fica só o que é dos pagamentos.
+.Company_Payments{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Payments_Table{
+  // Os montantes são a coluna que se lê a sério: mono e a alinhar à direita
+  td:nth-child(4){
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  th:nth-child(4){ text-align: right; }
+}
+
+.Payment_Row{
+  cursor: pointer;
+}
+
+.Payment_Party{
+  font-weight: 500;
+  color: var(--text);
+}
+
+// A referência vive debaixo da contraparte, mais apagada e em mono
+.Payment_Reference{
+  display: block;
+  margin-top: 1px;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Corrigir o valor na moeda da empresa, no detalhe: botões em linha e o
+// campo só com a largura de um valor
+.Rate_Actions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.Rate_Input{ width: 140px; }
+
+// Noutra moeda, o valor na da empresa por baixo do original
+.Payment_Converted{
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Estado do pagamento. As três cores são as semânticas, não o azul da marca:
+// concluído lê-se como bom, cancelado como mau, rascunho como neutro.
+.Payment_Status{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text-2);
+
+  &::before{
+    content: '';
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.completed{
+    background-color: var(--supplier-status-active-background);
+    color: var(--supplier-status-active-color);
+  }
+
+  &.cancelled{
+    background-color: var(--danger-color-soft);
+    color: var(--danger-color);
+  }
+}

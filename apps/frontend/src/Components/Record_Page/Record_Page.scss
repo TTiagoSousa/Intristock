@@ -1,0 +1,164 @@
+@use '../../Styles/Fonts.scss' as Font;
+
+// A página de um registo, ao jeito do ERPNext. Os campos (.Form_Field, …) e a
+// grelha de duas colunas (.Form_Page_Body) vêm do .Form_Page do Popover.scss.
+.Record_Page{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Record_Page_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.Record_Page_Title{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+
+  h1{
+    font-family: Font.$font_family_sans;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -.02em;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// Ativo/inativo: pastilha, como na lista de fornecedores
+.Record_Page_Status{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--record-page-status-inactive-background);
+  color: var(--record-page-status-inactive-color);
+
+  &::before{
+    content: '';
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.Active{
+    background-color: var(--record-page-status-active-background);
+    color: var(--record-page-status-active-color);
+  }
+}
+
+.Record_Page_Unsaved{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Record_Page_Actions{
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+// Separadores em texto, com o ativo sublinhado. Quando não cabem (telemóvel)
+// rolam de lado em vez de partirem em duas linhas.
+.Record_Page_Tabs{
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar{ display: none; }
+
+  button{
+    flex: none;
+    margin-bottom: -1px;
+    padding: 12px 0 12px;
+    border-bottom: 2px solid transparent;
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    white-space: nowrap;
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+
+    &:hover{ color: var(--text); }
+
+    &.Active{
+      color: var(--text);
+      border-bottom-color: var(--text);
+    }
+  }
+}
+
+.Record_Page_Main{ min-width: 0; }
+
+.Record_Section{
+  padding: 20px 0 20px;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+
+  // Os campos já vivem dentro da secção, que dá o espaço à volta
+  .Form_Page_Body{
+    padding: 0;
+    gap: 16px 28px;
+  }
+}
+
+.Record_Section_Title{
+  margin-bottom: 16px;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+// Apagar. O contorno serve de travão visual, como na zona perigosa das
+// definições da empresa.
+.Record_Danger{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--danger-color);
+  border-radius: var(--radius-sm);
+}
+
+.Record_Danger_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Record_Danger_Title{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--danger-color);
+}
+
+// As secções são um <fieldset> para se desligarem todas de uma vez (só leitura);
+// sem a moldura nem os espaços que o browser lhe dá
+.Record_Fieldset{
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}

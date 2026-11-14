@@ -1,0 +1,25 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Company_Dashboard{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// A tabela das secções usa o estilo partilhado do Styles/Cards.scss —
+// aqui só o que a distingue
+.Sections_Body{
+  display: flex;
+  flex-direction: column;
+}
+
+.Section_Row{
+  cursor: pointer;
+}
+
+.Section_Name a{
+  font-family: Font.$font_family_sans;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+}

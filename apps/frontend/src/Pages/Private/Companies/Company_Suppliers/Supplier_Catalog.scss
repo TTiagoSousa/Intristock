@@ -1,0 +1,195 @@
+// O catálogo (as prop firms…) dos fornecedores e dos itens novos, e o Novo | Do catálogo
+.Supplier_Form_Mode{ align-self: flex-start; margin-bottom: 16px; }
+
+.Supplier_Catalog{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Supplier_Catalog_Hint,
+.Supplier_Catalog_Empty{
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.Supplier_Catalog_Error{
+  font-size: 13px;
+  color: var(--loss);
+}
+
+.Supplier_Catalog_Categories{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 480px){ grid-template-columns: 1fr; }
+}
+
+.Supplier_Catalog_Category{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast), background-color var(--dur-fast);
+
+  &:hover:not(:disabled){ border-color: var(--line-strong); background-color: var(--surface-2); }
+  &:disabled{ opacity: .5; cursor: not-allowed; }
+}
+
+.Supplier_Catalog_Category_Name{
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Supplier_Catalog_Category_Text{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Supplier_Catalog_Bar{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.Supplier_Catalog_Back{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+
+  svg{ width: 16px; height: 16px; }
+  &:hover{ color: var(--text); background-color: var(--surface-2); }
+}
+
+.Supplier_Catalog_Search{
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+
+  &:focus{ outline: none; border-color: var(--accent); }
+}
+
+.Supplier_Catalog_List{
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+
+  &[aria-busy='true']{ min-height: 120px; }
+}
+
+.Supplier_Catalog_Row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background-color: transparent;
+  text-align: left;
+  cursor: pointer;
+
+  &:last-child{ border-bottom: none; }
+  &:hover:not(:disabled){ background-color: var(--surface-2); }
+  &:disabled{ cursor: wait; }
+}
+
+.Supplier_Catalog_Logo{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background-color: var(--surface-3);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  overflow: hidden;
+
+  img{ width: 100%; height: 100%; object-fit: contain; }
+}
+
+.Supplier_Catalog_Row_Text{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.Supplier_Catalog_Row_Name{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Supplier_Catalog_Row_Meta{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Supplier_Catalog_Row_State{
+  flex: none;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Na página avançada a lista tem mais altura
+.Supplier_Catalog_Page{
+  max-width: 720px;
+
+  .Supplier_Catalog_List{ max-height: 60vh; }
+}
+
+// --- os planos de uma firma, para virarem itens ---
+.Item_Catalog_All{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.Item_Catalog_Row{
+  input{ flex: none; }
+  &.Taken{ cursor: default; opacity: .6; }
+}
+
+.Item_Catalog_Price{
+  flex: none;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Item_Catalog_Actions{
+  display: flex;
+  justify-content: flex-end;
+}

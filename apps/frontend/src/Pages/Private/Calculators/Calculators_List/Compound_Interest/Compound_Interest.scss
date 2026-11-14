@@ -1,0 +1,459 @@
+@use '../../../../../Styles/Fonts.scss' as Font;
+
+.Compound_Interest{
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: Font.$font_family_sans;
+
+  .Compound_Interest_Tiles{
+    margin-bottom: 0;
+  }
+
+  // Tudo em coluna, a toda a largura: o formulário em cima e o resultado
+  // por baixo. O formulário rola com a página como o resto — não cola ao topo.
+  .Compound_Interest_Content{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    > *{ min-width: 0; }
+
+    .Simulation_Placeholder{ min-height: 260px; }
+  }
+
+  .Simulation_Form{
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    background-color: var(--cards-background);
+    border: var(--card-border);
+    box-shadow: var(--card-box-shadow);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+
+    .Calculator_Header{
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 16px 12px;
+      border-bottom: 1px solid var(--line);
+      background-color: var(--card-global-header-background);
+
+      .Calculator_Title{
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--card-global-header-title-color);
+      }
+
+      .Calculator_Subtitle{
+        font-size: 12px;
+        color: var(--cards-base-letter-color);
+      }
+    }
+
+    .Simulation_Form_Body{
+      display: grid;
+      // Os campos enchem a largura toda: numa linha num ecrã largo, e a
+      // partir daí vão passando para baixo à medida que o espaço aperta
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      align-items: end;
+      gap: 12px 12px;
+      padding: 16px 16px 16px;
+      box-sizing: border-box;
+
+      .Form_Field{
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+
+        label{
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1.3;
+          color: var(--simple-input-label-color);
+        }
+
+        // O campo encosta-se sempre ao fundo da célula: assim os rótulos de
+        // uma e de duas linhas deixam de desalinhar os inputs da mesma linha
+        .Global_Input,
+        .Dropdown_Field,
+        .Fee_Field{
+          margin-top: auto;
+        }
+
+        .Fee_Field{
+          display: flex;
+          gap: 8px;
+
+          .Global_Input{ flex: 2; }
+          .Dropdown_Field{ flex: 1; min-width: 74px; }
+        }
+      }
+
+      // As comissões levam valor e unidade lado a lado, por isso precisam do
+      // dobro da largura de um campo normal
+      .Form_Field:has(.Fee_Field){
+        grid-column: span 2;
+      }
+
+      // Os botões acompanham a última linha de campos em vez de ocuparem
+      // uma faixa própria a toda a largura
+      .Simulate_Button{
+        display: flex;
+        gap: 8px;
+        grid-column: span 2;
+
+        .Simulate_Button_Item{ flex: 1; }
+      }
+    }
+  }
+
+  .Granularity_Tabs{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+    box-sizing: border-box;
+    background-color: var(--card-global-header-background);
+    border: var(--card-border);
+    box-shadow: var(--card-box-shadow);
+    border-radius: var(--border-radius);
+
+    // Pastilha segmentada, a mesma dos separadores do resto da app
+    .Tab_Buttons{
+      display: inline-flex;
+      gap: 2px;
+      padding: 2.4px;
+      border-radius: 8px;
+      background-color: var(--surface-3);
+    }
+
+    .Tab_Button{
+      cursor: pointer;
+      border: none;
+      background-color: transparent;
+      padding: 4px 12px;
+      border-radius: var(--radius-xs);
+      font-family: Font.$font_family_sans;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      color: var(--text-2);
+      transition: background-color var(--dur-fast), color var(--dur-fast);
+
+      &:hover{ color: var(--text); }
+
+      &.active{
+        background-color: var(--cards-background);
+        color: var(--text);
+        box-shadow: var(--card-box-shadow);
+      }
+    }
+
+    .Interpolated_Hint{
+      font-size: 12px;
+      color: var(--text-3);
+    }
+  }
+
+  .Results_Overview{
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+
+    .Overview_Chart_Card{
+      display: flex;
+      flex: 2;
+
+      .Line_Chart{
+        flex: 1;
+      }
+    }
+
+    .Overview_Summary_Card{
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      box-sizing: border-box;
+      background-color: var(--cards-background);
+      border: var(--card-border);
+      box-shadow: var(--card-box-shadow);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+
+      .Calculator_Header{
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 16px 12px;
+        border-bottom: 1px solid var(--line);
+        background-color: var(--card-global-header-background);
+
+        .Calculator_Title{
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--card-global-header-title-color);
+        }
+      }
+
+      .Overview_Summary_Body{
+        display: flex;
+        flex-direction: column;
+        padding: 8px 16px;
+        box-sizing: border-box;
+
+        .Summary_Row{
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid var(--line);
+          font-size: 12px;
+          color: var(--text-2);
+
+          &:last-child{
+            border-bottom: none;
+          }
+
+          span:last-child{
+            font-family: Font.$font_family_sans;
+            font-variant-numeric: tabular-nums;
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+            color: var(--text);
+          }
+        }
+      }
+    }
+  }
+
+  .Results_Section{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .Results_Card{
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      background-color: var(--cards-background);
+      border: var(--card-border);
+      box-shadow: var(--card-box-shadow);
+      border-radius: var(--border-radius);
+      overflow: hidden;
+
+      .Calculator_Header{
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 16px 12px;
+        border-bottom: 1px solid var(--line);
+        background-color: var(--card-global-header-background);
+
+        .Calculator_Title{
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--card-global-header-title-color);
+        }
+      }
+
+      .Results_Body{
+        padding: 16px;
+        box-sizing: border-box;
+
+        .Results_Empty_State{
+          font-size: 13px;
+          color: var(--cards-base-letter-color);
+        }
+      }
+
+      .Results_Table_Scroll{
+        max-height: 400px;
+        overflow-y: auto;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--compound-interest-scrollbar-color) transparent;
+
+        &::-webkit-scrollbar{
+          width: 8px;
+          height: 8px;
+        }
+
+        &::-webkit-scrollbar-track{
+          background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb{
+          background-color: var(--compound-interest-scrollbar-color);
+          border-radius: var(--border-radius);
+        }
+
+        &::-webkit-scrollbar-thumb:hover{
+          background-color: var(--compound-interest-scrollbar-hover-color);
+        }
+      }
+
+      .Results_Table{
+        width: 100%;
+        border-collapse: collapse;
+
+        th,
+        td{
+          text-align: left;
+          padding: 8px 12px;
+          font-size: 13px;
+          color: var(--cards-base-letter-color);
+          white-space: nowrap;
+        }
+
+        th{
+          font-weight: 500;
+          border-bottom: var(--card-border);
+        }
+
+        tbody tr{
+          border-bottom: var(--card-border);
+
+          &:last-child{
+            border-bottom: none;
+          }
+        }
+
+        tbody tr.Saved_Simulation_Row{
+          cursor: pointer;
+          transition: background-color var(--dur-fast);
+
+          &:hover{
+            background-color: var(--card-global-header-background);
+          }
+        }
+
+        .Delete_Simulation_Button{
+          cursor: pointer;
+          border: none;
+          background-color: transparent;
+          padding: 8px 12px;
+          border-radius: var(--border-radius);
+          font-family: Font.$font_family_sans;
+          font-size: 12px;
+          font-weight: 500;
+          color: var(--danger-color);
+          transition: background-color var(--dur-fast);
+
+          &:hover{
+            background-color: var(--danger-color-soft);
+          }
+
+          &:disabled{
+            opacity: 0.5;
+            cursor: default;
+          }
+        }
+      }
+    }
+  }
+
+  // Abaixo disto as duas colunas deixam de caber: tudo empilha e o
+  // formulário deixa de colar
+  // Abaixo disto o gráfico e o resumo deixam de caber lado a lado
+  @media (max-width: 1100px){
+    .Results_Overview{
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 768px){
+    .Compound_Interest_Content{
+      flex-direction: column;
+    }
+
+    .Simulation_Form{
+      .Simulation_Form_Body{
+        grid-template-columns: 1fr;
+
+        .Simulate_Button{
+          flex-direction: column;
+        }
+      }
+    }
+
+    .Granularity_Tabs{
+      flex-wrap: wrap;
+
+      .Tab_Buttons{
+        width: 100%;
+
+        .Tab_Button{
+          flex: 1;
+          text-align: center;
+          padding: 8px 12px;
+        }
+      }
+
+      .Interpolated_Hint{
+        width: 100%;
+      }
+    }
+
+    .Results_Overview{
+      flex-direction: column;
+    }
+
+    .Results_Section{
+      .Results_Card{
+        .Results_Table{
+          th,
+          td{
+            padding: 8px 8px;
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Estado à espera da primeira simulação. Ocupa a coluna da direita inteira,
+// para o formulário não ficar sozinho ao lado de um vazio.
+.Simulation_Placeholder{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 24px;
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--border-radius);
+  background-color: var(--cards-background);
+}
+
+.Simulation_Placeholder_Icon{
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: var(--module-icon-background);
+  color: var(--module-icon-color);
+
+  svg{ width: 20px; height: 20px; }
+}
+
+.Simulation_Placeholder_Title{
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Simulation_Placeholder_Text{
+  max-width: 42ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}

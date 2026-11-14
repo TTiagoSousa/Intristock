@@ -1,0 +1,147 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// Os portefólios e os tipos de ativo do popover de adicionar uma transação
+.Portfolio_Choices{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Portfolio_Assets{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 480px){ grid-template-columns: 1fr; }
+}
+
+.Portfolio_Choice{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast), border-color var(--dur-fast);
+
+  &:hover:not(:disabled){
+    background-color: var(--surface-2);
+    border-color: var(--line-strong);
+  }
+
+  &:disabled{
+    cursor: default;
+    opacity: .55;
+  }
+}
+
+.Portfolio_Choice_Name{
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.Portfolio_Choice_Meta{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Portfolio_New{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+
+  label{
+    font-size: 13px;
+    color: var(--text-2);
+  }
+}
+
+.Portfolio_New_Row{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .Global_Input{ flex: 1; }
+}
+
+.Portfolio_Pair{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 480px){ grid-template-columns: 1fr; }
+}
+
+.Portfolio_Error{ color: var(--loss); }
+
+// --- o resumo: o gráfico estica até ao fundo da página ---
+// A vista da app só cresce nesta página, para as outras não mudarem
+.Shell_View:has(> .Portfolio_Dashboard){
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.Portfolio_Dashboard{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.Portfolio_Chart_Card{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+
+  .Card_Header{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+}
+
+.Portfolio_Chart_Head,
+.Portfolio_Chart_Now{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.Portfolio_Chart_Now{ align-items: flex-end; }
+
+.Portfolio_Chart_Sub,
+.Portfolio_Chart_Now_Label{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Portfolio_Chart_Now_Value{
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.Portfolio_Chart_Body{
+  flex: 1;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  display: flex;
+}
+
+.Portfolio_Chart{
+  flex: 1;
+  min-height: 0;
+}

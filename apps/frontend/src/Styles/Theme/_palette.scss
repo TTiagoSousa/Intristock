@@ -1,0 +1,78 @@
+// ============================================================
+// CAMADA 1 — PALETA
+// Cores em bruto. Nada aqui sabe o que é "fundo" ou "texto",
+// nem sabe se estamos em claro ou escuro. Só nomes de cor.
+// Ninguém fora de _core.scss deve usar estas variáveis.
+// ============================================================
+
+// Neutros do claro: o papel de um livro-razão, um cinzento com um fio de verde
+// (nem creme, nem azul). O texto apagado (500) e o secundário (600) passam os 4,5:1.
+$gray-50:   #f8f9f7;
+$gray-100:  #f1f2ef;
+$gray-200:  #e9ebe7;
+$gray-300:  #dfe2dd;
+$gray-400:  #c9cdc6;
+$gray-500:  #5f6561;
+$gray-600:  #444a46;
+$gray-text: #161917;
+
+// Neutros do escuro: o mesmo papel à noite. Degraus visíveis entre o fundo, o
+// cartão e o que está por cima, porque no escuro a profundidade vem daí
+$ink-1000: #111312;
+$ink-950:  #191b1a;
+$ink-900:  #1f2220;
+$ink-850:  #272a28;
+$ink-800:  #2e322f;
+$ink-700:  #3c413d;
+$ink-text:   #e8ebe8;
+$ink-text-2: #a7aea9;
+$ink-text-3: #8c938e;
+// tinta escura por cima das cores claras do escuro (o acento, o verde, o vermelho)
+$ink-on-light: #111312;
+
+$white: #ffffff;
+
+// Azul da marca — muda por tema: o mais escuro lê-se melhor sobre branco,
+// o mais claro respira sobre o azul-noite
+$blue-light: #2258c4;
+$blue-light-hover: #1c49a6;
+$blue-dark: #7ea3f3;
+$blue-dark-hover: #9bb8f6;
+
+// Laranja da marca — reservado a "capital / retorno", nunca a ações
+$orange-light: #a8531a;
+$orange-dark:  #f08b4c;
+
+// Linhas de séries (indicadores nos gráficos): longe do azul, do verde e do vermelho
+$violet-light: #7c4dcc;
+$violet-dark:  #a98bf5;
+$teal-light:   #0b7a7e;
+$teal-dark:    #3cc6c9;
+$pink-light:   #c2407e;
+$pink-dark:    #f07aae;
+
+// Estado (semântico de mercado, separado do azul da marca)
+$green-light: #087a4d;
+$green-dark:  #35c98d;
+$red-light:   #c62f3b;
+$red-dark:    #f2585f;
+$amber-light: #96600f;
+$amber-dark:  #e0973a;
+
+// Sombras: os cartões já têm borda, por isso a sombra é só um assento. No escuro a
+// profundidade vem dos degraus das superfícies; só o que flutua (menus, popovers) leva sombra
+$shadow-light:      0 1px 2px rgba(0, 0, 0, .04);
+$shadow-light-lift: 0 8px 24px rgba(0, 0, 0, .06);
+$shadow-light-pop:  0 2px 6px rgba(0, 0, 0, .05), 0 12px 32px rgba(0, 0, 0, .10);
+
+$shadow-dark:       none;
+$shadow-dark-lift:  0 8px 24px rgba(0, 0, 0, .4);
+$shadow-dark-pop:   0 12px 32px rgba(0, 0, 0, .5);
+
+// Véus por trás dos popovers e a grelha dos gráficos
+$scrim-light:        rgba(24, 24, 27, .44);
+$scrim-dark:         rgba(4, 6, 10, .66);
+$scrim-strong-light: rgba(14, 14, 16, .64);
+$scrim-strong-dark:  rgba(2, 3, 6, .82);
+$grid-light:         rgba(24, 24, 27, .07);
+$grid-dark:          rgba(236, 236, 238, .07);

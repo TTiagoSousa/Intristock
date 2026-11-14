@@ -1,0 +1,154 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão e a tabela vêm do Styles/Cards.scss. Aqui fica só o que é
+// da lista de simulações.
+.Trading_Simulations{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// A linha inteira abre a simulação
+.Simulation_Row{ cursor: pointer; }
+
+// A caixa para escolher as simulações a comparar
+.Simulation_Pick{
+  width: 28px;
+  cursor: default;
+
+  input{ cursor: pointer; }
+}
+
+// O cancelar (na fila ou a correr) e o caixote do lixo de cada linha
+.Simulation_Actions{
+  width: 36px;
+  cursor: default;
+  white-space: nowrap;
+
+  .Simulation_Delete{ display: inline-grid; vertical-align: middle; }
+}
+
+.Simulation_Delete{
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  color: var(--text-3);
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  svg{ width: 14px; height: 14px; }
+
+  &:hover:not(:disabled){
+    background-color: var(--danger-color-soft);
+    color: var(--danger-color);
+  }
+
+  &:disabled{
+    opacity: .4;
+    cursor: not-allowed;
+  }
+}
+
+.Simulation_Market{
+  display: block;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.Simulation_Market_Detail{
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.Simulation_Result{ font-weight: 500; }
+
+.Trading_Simulations .Amount{
+  &.Gain{ color: var(--trading-gain-color); }
+  &.Loss{ color: var(--trading-loss-color); }
+}
+
+// O estado de uma que corre: a fase, uma barra fina e o que falta
+.Simulation_Run_Live{
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+}
+
+.Simulation_Run_Bar{
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: var(--trading-progress-track);
+}
+
+.Simulation_Run_Bar_Fill{
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--trading-progress-fill);
+  transition: width .4s ease;
+
+  &.Candles{ background-color: var(--trading-progress-candles-fill); }
+}
+
+.Simulation_Run_Left{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Estado da simulação: acabada lê-se como bom, falhada como mau, a correr
+// com a cor da marca
+.Simulation_Run_Status{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--trading-runs-status-background);
+  color: var(--trading-runs-status-color);
+
+  &::before{
+    content: '';
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.done{
+    background-color: var(--trading-runs-done-background);
+    color: var(--trading-runs-done-color);
+  }
+
+  &.running,
+  &.queued,
+  &.cancelling{
+    background-color: var(--trading-runs-active-background);
+    color: var(--trading-runs-active-color);
+  }
+
+  &.failed{
+    background-color: var(--trading-failed-background);
+    color: var(--trading-failed-color);
+  }
+
+  // A cancelada fica com o tom neutro (o de base): não falhou, parou-se
+}
+
+// Com o «Comparar» ao lado do «Nova simulação»
+.Trading_Simulations .Card_Header_Action{
+  display: flex;
+  gap: 8px;
+}

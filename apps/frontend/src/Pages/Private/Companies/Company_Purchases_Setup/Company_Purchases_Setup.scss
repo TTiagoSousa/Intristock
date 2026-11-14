@@ -1,0 +1,64 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Company_Purchases_Setup{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.Setup_Header{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.Setup_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+
+.Setup_Company{
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Setup_Grid{
+  display: grid;
+  // auto-fill: com três páginas de configuração, auto-fit esticava cada
+  // cartão para um terço do ecrã
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+
+  > *{ min-width: 0; }
+}
+
+// Estes cartões são o próprio menu da configuração — vivem aqui e não na
+// sidebar, para o menu não crescer a cada coisa nova que se configura
+.Setup_Card{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--dur-fast);
+
+  &:hover{ border-color: var(--accent); }
+}
+
+.Setup_Card_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Setup_Card_Description{
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-2);
+}

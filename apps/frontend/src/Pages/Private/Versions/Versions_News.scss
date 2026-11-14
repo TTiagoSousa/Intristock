@@ -1,0 +1,13 @@
+// A página das novidades usa a lista da página de Versões do admin; aqui só o
+// que é dela: a versão vinda de um aviso fica realçada
+.Versions_News{
+  .Versions_Item.Focused{
+    border-color: var(--versions-news-focus-border);
+    box-shadow: 0 0 0 3px var(--versions-news-focus-ring);
+  }
+
+  .Versions_News_Hint{
+    font-size: 13px;
+    color: var(--text-3);
+  }
+}

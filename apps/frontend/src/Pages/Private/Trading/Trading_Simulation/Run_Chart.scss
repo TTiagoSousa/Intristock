@@ -1,0 +1,508 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// O card ocupa a área toda: a altura vem do Run_Chart (até ao fundo da janela)
+// e o gráfico estica para o que sobra depois do cabeçalho
+.Run_Chart {
+  display: flex;
+  flex-direction: column;
+
+  .Run_Chart_Body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .Run_Chart_Canvas {
+    height: 100%;
+    border: 1px solid var(--trading-chart-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+
+    // O que o tema da biblioteca não cobre: os botões e os menus da barra dos desenhos
+    .tc-terminal {
+      --tc-hover: var(--trading-chart-hover);
+      --tc-panel-2: var(--trading-chart-panel);
+    }
+  }
+
+  .Run_Chart_Actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  // Por cima do gráfico, em cima ao centro: as velas que já vieram continuam à vista
+  .Run_Chart_Message {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100% - 48px);
+    padding: 8px 8px 8px 16px;
+    border: 1px solid var(--trading-chart-settings-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--trading-chart-settings-background);
+    box-shadow: var(--trading-chart-settings-shadow);
+    color: var(--trading-chart-text-strong);
+    font-size: 13px;
+    transform: translateX(-50%);
+  }
+
+  .Run_Chart_Retry {
+    flex: none;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    color: var(--trading-chart-settings-icon-active);
+    font-size: 13px;
+    font-weight: 500;
+
+    &:hover {
+      background-color: var(--trading-chart-settings-hover);
+    }
+  }
+
+  // --- definições do gráfico --------------------------------------------------
+  .Chart_Settings {
+    position: relative;
+  }
+
+  .Chart_Settings_Button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    color: var(--trading-chart-settings-icon);
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover,
+    &.Open {
+      background-color: var(--trading-chart-settings-hover);
+      color: var(--trading-chart-settings-icon-active);
+    }
+  }
+
+  .Chart_Settings_Menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 260px;
+    padding: 8px;
+    border: 1px solid var(--trading-chart-settings-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--trading-chart-settings-background);
+    box-shadow: var(--trading-chart-settings-shadow);
+  }
+
+  .Chart_Settings_Title {
+    padding: 2px 8px 8px;
+    color: var(--trading-chart-muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .Chart_Settings_Row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+
+    &:hover {
+      background-color: var(--trading-chart-settings-hover);
+    }
+  }
+
+  .Chart_Settings_Row.Disabled {
+    opacity: .45;
+
+    &:hover {
+      background-color: transparent;
+    }
+
+    button {
+      cursor: default;
+    }
+  }
+
+  .Chart_Settings_Label {
+    flex: 1;
+    text-align: left;
+    color: var(--trading-chart-text-strong);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  // --- indicadores --------------------------------------------------------------
+  .Chart_Indicators_Button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    color: var(--trading-chart-settings-icon);
+    font-size: 13px;
+    font-weight: 500;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover,
+    &.Open {
+      background-color: var(--trading-chart-settings-hover);
+      color: var(--trading-chart-settings-icon-active);
+    }
+  }
+
+  .Chart_Indicators_Menu {
+    min-width: 280px;
+  }
+
+  .Chart_Indicators_Free {
+    margin-top: 8px;
+  }
+
+  .Chart_Indicators_Swatch {
+    flex: none;
+    width: 10px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .Chart_Indicators_Add {
+    width: 100%;
+  }
+
+  .Chart_Indicators_Plus {
+    display: flex;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: var(--trading-chart-settings-icon-active);
+  }
+
+  .Chart_Indicators_Hint {
+    padding: 8px 8px 2px;
+    color: var(--trading-chart-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 280px;
+  }
+
+  // --- filtro dos trades (no painel do seletor) ---------------------------------
+  .Trade_Filter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--trading-chart-settings-border);
+  }
+
+  .Trade_Filter_Group {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .Trade_Filter_Summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--trading-chart-muted);
+    font-size: 12px;
+  }
+
+  .Trade_Filter_Clear {
+    color: var(--trading-chart-settings-icon-active);
+    font-size: 12px;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // --- seletor dos trades -----------------------------------------------------
+  .Trade_Picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .Trade_Picker_Step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    color: var(--trading-chart-settings-icon);
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    &:hover:not(:disabled) {
+      background-color: var(--trading-chart-settings-hover);
+      color: var(--trading-chart-settings-icon-active);
+    }
+
+    &:disabled {
+      opacity: .35;
+      cursor: default;
+    }
+  }
+
+  .Trade_Picker_Field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 280px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--trading-picker-field-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--trading-picker-field-background);
+    color: var(--trading-chart-muted);
+    transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+
+    > svg {
+      flex: none;
+      width: 14px;
+      height: 14px;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--trading-chart-text-strong);
+      font-size: 13px;
+
+      &::placeholder {
+        color: var(--trading-chart-text);
+      }
+    }
+
+    &.Open,
+    &:focus-within {
+      border-color: var(--trading-picker-field-focus);
+      box-shadow: var(--trading-picker-field-ring);
+    }
+  }
+
+  // Os filtros estão a esconder trades
+  .Trade_Picker_Dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--trading-picker-chip-active-color);
+  }
+
+  .Trade_Picker_Panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    width: 620px;
+    max-width: calc(100vw - 32px);
+    border: 1px solid var(--trading-chart-settings-border);
+    border-radius: var(--radius);
+    background-color: var(--trading-chart-settings-background);
+    box-shadow: var(--trading-chart-settings-shadow);
+    overflow: hidden;
+  }
+
+  .Trade_Picker_Group_Title {
+    flex: none;
+    width: 64px;
+    padding-top: 4px;
+    color: var(--trading-chart-muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .Trade_Picker_Chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .Trade_Picker_Chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 26px;
+    padding: 0 12px;
+    border: 1px solid var(--trading-chart-settings-border);
+    border-radius: 999px;
+    color: var(--trading-chart-text);
+    font-size: 12px;
+    font-weight: 500;
+    transition: background-color var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
+
+    &:hover {
+      background-color: var(--trading-chart-settings-hover);
+      color: var(--trading-chart-text-strong);
+    }
+
+    &.Active {
+      border-color: var(--trading-picker-chip-active-border);
+      background-color: var(--trading-picker-chip-active-background);
+      color: var(--trading-picker-chip-active-color);
+    }
+  }
+
+  .Trade_Picker_Chip_Count {
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    opacity: .7;
+  }
+
+  .Trade_Picker_List {
+    display: flex;
+    flex-direction: column;
+    max-height: min(380px, 50vh);
+    padding: 8px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .Trade_Picker_Row {
+    display: grid;
+    grid-template-columns: 44px minmax(90px, auto) 1fr auto 76px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px;
+    border-radius: var(--radius-sm);
+    text-align: left;
+    font-size: 13px;
+    color: var(--trading-chart-text-strong);
+
+    &.Active {
+      background-color: var(--trading-chart-settings-hover);
+    }
+
+    &.Selected {
+      background-color: var(--trading-row-active-background);
+    }
+  }
+
+  .Trade_Picker_Index,
+  .Trade_Picker_Dates,
+  .Trade_Picker_Pct {
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .Trade_Picker_Index {
+    color: var(--trading-chart-muted);
+  }
+
+  // Os distintivos ficam do tamanho do texto, não da coluna
+  .Trade_Picker_Row .Side_Badge,
+  .Trade_Picker_Row .Exit_Badge {
+    justify-self: start;
+  }
+
+  .Trade_Picker_Dates {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--trading-chart-text);
+    font-size: 12px;
+  }
+
+  .Trade_Picker_Arrow {
+    color: var(--trading-chart-muted);
+  }
+
+  .Trade_Picker_Pct {
+    text-align: right;
+    font-weight: 500;
+
+    &.Gain { color: var(--trading-gain-color); }
+    &.Loss { color: var(--trading-loss-color); }
+  }
+
+  .Trade_Picker_Empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--trading-chart-muted);
+    font-size: 13px;
+  }
+
+  .Trade_Picker_Footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--trading-chart-settings-border);
+    color: var(--trading-chart-muted);
+    font-size: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .Run_Chart_Body {
+      padding: 8px;
+    }
+
+    .Run_Chart_Actions {
+      width: 100%;
+    }
+
+    .Trade_Picker {
+      flex: 1;
+    }
+
+    .Trade_Picker_Field {
+      flex: 1;
+      width: auto;
+    }
+
+    .Trade_Picker_Row {
+      grid-template-columns: 40px 1fr auto;
+
+      .Trade_Picker_Dates,
+      .Exit_Badge {
+        display: none;
+      }
+    }
+
+    .Trade_Picker_Keys {
+      display: none;
+    }
+  }
+}

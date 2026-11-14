@@ -1,0 +1,17 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+.Finances{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Os cartões que abrem a sua área
+.Finances_Tile{
+  cursor: pointer;
+  transition: border-color var(--dur-fast);
+
+  &:hover{ border-color: var(--accent); }
+}

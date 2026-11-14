@@ -1,0 +1,476 @@
+{
+  "info": {
+    "name": "IntriStock Backend",
+    "description": "Todos os endpoints do intristock-backend. Os endpoints com guard de cookie (Employee ou User) funcionam automaticamente depois de correres o login correspondente nesta mesma collection — o Postman guarda o cookie httpOnly sozinho.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "App",
+      "item": [
+        {
+          "name": "Hello World",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth Employee (staff)",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@intristock.com\",\n  \"password\": \"admin123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth-employee/login", "host": ["{{baseUrl}}"], "path": ["auth-employee", "login"] },
+            "description": "Público. Guarda o cookie access_token."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth-employee/logout", "host": ["{{baseUrl}}"], "path": ["auth-employee", "logout"] },
+            "description": "Guard: JwtAuthGuard (cookie access_token)"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth-employee/me", "host": ["{{baseUrl}}"], "path": ["auth-employee", "me"] },
+            "description": "Guard: JwtAuthGuard (cookie access_token)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth User (clientes)",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nome Exemplo\",\n  \"email\": \"exemplo@email.com\",\n  \"password\": \"Password123\",\n  \"confirmPassword\": \"Password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth-user/register", "host": ["{{baseUrl}}"], "path": ["auth-user", "register"] },
+            "description": "Público. Cria user com active=false e dispara email de ativação."
+          }
+        },
+        {
+          "name": "Activate Account",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth-user/activate-account/:token", "host": ["{{baseUrl}}"], "path": ["auth-user", "activate-account", ":token"], "variable": [{ "key": "token", "value": "" }] },
+            "description": "Público. Token vem do link do email de ativação."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"exemplo@email.com\",\n  \"password\": \"Password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth-user/login", "host": ["{{baseUrl}}"], "path": ["auth-user", "login"] },
+            "description": "Público. Falha com 400 se active=false. Guarda o cookie user_access_token."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth-user/logout", "host": ["{{baseUrl}}"], "path": ["auth-user", "logout"] },
+            "description": "Guard: JwtUserAuthGuard (cookie user_access_token)"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth-user/me", "host": ["{{baseUrl}}"], "path": ["auth-user", "me"] },
+            "description": "Guard: JwtUserAuthGuard (cookie user_access_token)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee",
+      "item": [
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ana Silva\",\n  \"employeeNumber\": \"EMP-002\",\n  \"email\": \"ana.silva@intristock.com\",\n  \"password\": \"Password123\",\n  \"jobTypeId\": \"\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/employee", "host": ["{{baseUrl}}"], "path": ["employee"] },
+            "description": "Guard: JwtAuthGuard. jobTypeId vem do GET /job-type."
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/employee/me", "host": ["{{baseUrl}}"], "path": ["employee", "me"] },
+            "description": "Guard: JwtAuthGuard"
+          }
+        },
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/employee", "host": ["{{baseUrl}}"], "path": ["employee"] },
+            "description": "Guard: JwtAuthGuard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Job Type",
+      "item": [
+        {
+          "name": "Create Job Type",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Suporte\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/job-type", "host": ["{{baseUrl}}"], "path": ["job-type"] },
+            "description": "Guard: JwtAuthGuard"
+          }
+        },
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/job-type", "host": ["{{baseUrl}}"], "path": ["job-type"] },
+            "description": "Guard: JwtAuthGuard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/user/me", "host": ["{{baseUrl}}"], "path": ["user", "me"] },
+            "description": "Guard: JwtUserAuthGuard"
+          }
+        },
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/user", "host": ["{{baseUrl}}"], "path": ["user"] },
+            "description": "Guard: JwtUserAuthGuard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calculator (catálogo)",
+      "item": [
+        {
+          "name": "Create Calculator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Juros Compostos\",\n  \"abbreviation\": \"compound-interest\",\n  \"description\": \"Simulador de juro composto\",\n  \"active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/calculator", "host": ["{{baseUrl}}"], "path": ["calculator"] },
+            "description": "Guard: JwtAuthGuard + AdminGuard"
+          }
+        },
+        {
+          "name": "List Active",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/calculator", "host": ["{{baseUrl}}"], "path": ["calculator"] },
+            "description": "Guard: JwtUserAuthGuard"
+          }
+        },
+        {
+          "name": "Get One",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/calculator/:id", "host": ["{{baseUrl}}"], "path": ["calculator", ":id"], "variable": [{ "key": "id", "value": "" }] },
+            "description": "Guard: JwtUserAuthGuard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calculators (simulações)",
+      "item": [
+        {
+          "name": "Simulate Compound Interest",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initialInvestment\": 1000,\n  \"term\": 10,\n  \"additionalInvestment\": 100,\n  \"compoundingFrequency\": 12,\n  \"interestRate\": 5,\n  \"interestRatePeriod\": \"annual\",\n  \"transactionFeeType\": \"percentage\",\n  \"transactionFeeValue\": 0.5,\n  \"maintenanceFeeType\": \"fixed\",\n  \"maintenanceFeeValue\": 2,\n  \"missedPeriods\": 0,\n  \"inflationRate\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/calculators/compound-interest", "host": ["{{baseUrl}}"], "path": ["calculators", "compound-interest"] },
+            "description": "Guard: JwtUserAuthGuard. Só calcula, não grava."
+          }
+        },
+        {
+          "name": "Save Compound Interest Simulation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initialInvestment\": 1000,\n  \"term\": 10,\n  \"additionalInvestment\": 100,\n  \"compoundingFrequency\": 12,\n  \"interestRate\": 5,\n  \"interestRatePeriod\": \"annual\",\n  \"transactionFeeType\": \"percentage\",\n  \"transactionFeeValue\": 0.5,\n  \"maintenanceFeeType\": \"fixed\",\n  \"maintenanceFeeValue\": 2,\n  \"missedPeriods\": 0,\n  \"inflationRate\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/calculators/compound-interest/save", "host": ["{{baseUrl}}"], "path": ["calculators", "compound-interest", "save"] },
+            "description": "Guard: JwtUserAuthGuard. Recalcula e grava para o user autenticado."
+          }
+        },
+        {
+          "name": "Get Saved Simulations",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/calculators/compound-interest/saved", "host": ["{{baseUrl}}"], "path": ["calculators", "compound-interest", "saved"] },
+            "description": "Guard: JwtUserAuthGuard"
+          }
+        },
+        {
+          "name": "Delete Saved Simulation",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/calculators/compound-interest/saved/:id", "host": ["{{baseUrl}}"], "path": ["calculators", "compound-interest", "saved", ":id"], "variable": [{ "key": "id", "value": "" }] },
+            "description": "Guard: JwtUserAuthGuard"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Currency",
+      "item": [
+        {
+          "name": "Create Currency (uma)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shortCode\": \"GBP\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/currency", "host": ["{{baseUrl}}"], "path": ["currency"] },
+            "description": "Guard: JwtAuthGuard + AdminGuard"
+          }
+        },
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/currency", "host": ["{{baseUrl}}"], "path": ["currency"] }
+          }
+        },
+        {
+          "name": "Update Rates",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/currency/update-rates", "host": ["{{baseUrl}}"], "path": ["currency", "update-rates"] },
+            "description": "Guard: JwtAuthGuard + AdminGuard. Só atualiza as que já existem na BD."
+          }
+        },
+        {
+          "name": "Sync All (upload/update)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/currency/sync", "host": ["{{baseUrl}}"], "path": ["currency", "sync"] },
+            "description": "Guard: JwtAuthGuard + AdminGuard. Busca as 161 moedas da CurrencyBeacon e faz upsert de todas."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Country",
+      "item": [
+        {
+          "name": "Sync All (upload/update)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/country/sync", "host": ["{{baseUrl}}"], "path": ["country", "sync"] },
+            "description": "Guard: JwtAuthGuard + AdminGuard. Busca os 250 países da countrystatecity.in e faz upsert de todos."
+          }
+        },
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/country", "host": ["{{baseUrl}}"], "path": ["country"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Platform",
+      "item": [
+        {
+          "name": "Create Platform",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Millennium BCP\",\n  \"type\": \"bank\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/platform", "host": ["{{baseUrl}}"], "path": ["platform"] },
+            "description": "Guard: JwtAuthGuard + AdminGuard. type tem de ser um de: bank, broker, exchange, postal. logo, website, countryId e isActive são opcionais."
+          }
+        },
+        {
+          "name": "List All (ativas)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/platform", "host": ["{{baseUrl}}"], "path": ["platform"] },
+            "description": "Público."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Company",
+      "item": [
+        {
+          "name": "Create Company",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"FlowData\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/company", "host": ["{{baseUrl}}"], "path": ["company"] },
+            "description": "Guard: JwtUserAuthGuard. parentId e countryId são opcionais — parentId tem de ser uma empresa tua, countryId vem do GET /country.\n\nExemplo com sub-empresa:\n{\n  \"name\": \"FlowData Portugal\",\n  \"parentId\": \"<id da empresa-mãe>\",\n  \"countryId\": \"<id do país>\"\n}"
+          }
+        },
+        {
+          "name": "Create Company + Bank Accounts (junto)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"FlowData\",\n  \"bankAccounts\": [\n    {\n      \"name\": \"Conta Principal EUR\",\n      \"currencyId\": \"\",\n      \"platformId\": \"\",\n      \"iban\": \"PT50000000000000000000001\",\n      \"initialBalance\": 5000\n    },\n    {\n      \"name\": \"Conta Poupança\",\n      \"currencyId\": \"\",\n      \"platformId\": \"\",\n      \"iban\": \"PT50000000000000000000002\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/company", "host": ["{{baseUrl}}"], "path": ["company"] },
+            "description": "Guard: JwtUserAuthGuard. bankAccounts é opcional — se vier, cria a empresa e todas as contas de uma vez, numa transação (tudo ou nada: se uma moeda, plataforma ou IBAN for inválido/repetido, nada é criado). currencyId vem do GET /currency, platformId vem do GET /platform. Podes ter mais que uma conta na mesma plataforma (basta o IBAN ser diferente). As contas ficam automaticamente ligadas à empresa (companyId), não ao user."
+          }
+        },
+        {
+          "name": "List All (minhas)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/company", "host": ["{{baseUrl}}"], "path": ["company"] },
+            "description": "Guard: JwtUserAuthGuard. Devolve as empresas que criaste (role: \"owner\") + as empresas onde estás como trabalhador (role: \"member\")."
+          }
+        },
+        {
+          "name": "Add Member (trabalhador)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"trabalhador@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/company/:id/members", "host": ["{{baseUrl}}"], "path": ["company", ":id", "members"], "variable": [{ "key": "id", "value": "" }] },
+            "description": "Guard: JwtUserAuthGuard. Só quem criou a empresa (createdById) pode chamar isto. email tem de ser de um user já registado. Dá 403 se não fores o dono, 404 se o email não existir, 409 se já for trabalhador, 400 se tentares adicionar o próprio dono."
+          }
+        },
+        {
+          "name": "List Members (trabalhadores)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/company/:id/members", "host": ["{{baseUrl}}"], "path": ["company", ":id", "members"], "variable": [{ "key": "id", "value": "" }] },
+            "description": "Guard: JwtUserAuthGuard. Só o dono da empresa pode ver a lista de trabalhadores."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bank Account",
+      "item": [
+        {
+          "name": "Create Bank Account (pessoal)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Conta Principal\",\n  \"iban\": \"PT50000000000000000000000\",\n  \"currencyId\": \"\",\n  \"platformId\": \"\",\n  \"initialBalance\": 1000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/bank-account", "host": ["{{baseUrl}}"], "path": ["bank-account"] },
+            "description": "Guard: JwtUserAuthGuard. currencyId vem do GET /currency, platformId vem do GET /platform. iban é opcional mas único (não pode repetir-se noutra conta). Sem companyId, a conta fica ligada diretamente a ti (userId)."
+          }
+        },
+        {
+          "name": "Create Bank Account (de uma empresa)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Conta FlowData\",\n  \"currencyId\": \"\",\n  \"platformId\": \"\",\n  \"companyId\": \"\",\n  \"initialBalance\": 0\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/bank-account", "host": ["{{baseUrl}}"], "path": ["bank-account"] },
+            "description": "Guard: JwtUserAuthGuard. companyId tem de ser uma empresa tua (vem do POST/GET /company). Quando companyId vem preenchido, a conta fica ligada à empresa, não diretamente a ti."
+          }
+        },
+        {
+          "name": "List All (minhas, pessoais)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/bank-account", "host": ["{{baseUrl}}"], "path": ["bank-account"] },
+            "description": "Guard: JwtUserAuthGuard. Só lista as contas ligadas diretamente a ti (userId) — não inclui as das tuas empresas."
+          }
+        }
+      ]
+    }
+  ]
+}

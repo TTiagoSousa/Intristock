@@ -1,0 +1,85 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+// Rodapé da tabela. Fecha o cartão do mesmo modo que o cabeçalho o abre —
+// mesmo recuo lateral, mesmo fundo, e uma linha a separar da tabela. Estava
+// encostado às margens do cartão, com o resumo à esquerda a começar antes do
+// título do cabeçalho.
+.Global_Pagination{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background-color: var(--card-global-header-background);
+  flex-wrap: wrap;
+
+  .Pagination_Summary{
+    font-size: 12px;
+    color: var(--pagination-summary-color);
+
+    b{
+      font-family: Font.$font_family_sans;
+      font-variant-numeric: tabular-nums;
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+      color: var(--text-2);
+    }
+  }
+
+  .Pagination_Controls{
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .Pagination_Pages{
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .Pagination_Arrow,
+  .Pagination_Page{
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--pagination-button-color);
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    svg{ width: 14px; height: 14px; }
+
+    &:hover:not(:disabled){
+      background-color: var(--pagination-button-hover-background);
+      color: var(--text);
+    }
+
+    &:disabled{
+      color: var(--pagination-button-disabled-color);
+      opacity: .5;
+      cursor: not-allowed;
+    }
+  }
+
+  .Pagination_Page.Active{
+    background-color: var(--pagination-button-active-background);
+    color: var(--pagination-button-active-color);
+    font-weight: 500;
+  }
+
+  .Pagination_Gap{
+    min-width: 20px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    color: var(--pagination-summary-color);
+  }
+}

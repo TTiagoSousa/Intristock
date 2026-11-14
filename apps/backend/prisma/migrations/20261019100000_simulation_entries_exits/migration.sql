@@ -1,0 +1,16 @@
+-- AlterTable
+ALTER TABLE "SimulationRun" ADD COLUMN     "afterExit" JSONB,
+ADD COLUMN     "durationBuckets" JSONB,
+ADD COLUMN     "entryCards" JSONB,
+ADD COLUMN     "entryCorrelation" JSONB,
+ADD COLUMN     "entryEquity" JSONB,
+ADD COLUMN     "entryExitMatrix" JSONB,
+ADD COLUMN     "entryKelly" JSONB,
+ADD COLUMN     "entryPerformance" JSONB,
+ADD COLUMN     "exitMix" JSONB,
+ADD COLUMN     "exitReasons" JSONB,
+ADD COLUMN     "maeScatter" JSONB,
+ADD COLUMN     "rDistribution" JSONB,
+ADD COLUMN     "sizingSchemes" JSONB,
+ADD COLUMN     "stopCards" JSONB,
+ADD COLUMN     "stopsByMonth" JSONB;

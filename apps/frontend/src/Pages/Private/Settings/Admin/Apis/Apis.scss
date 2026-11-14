@@ -1,0 +1,303 @@
+// A página das APIs: os números do catálogo por cima e um cartão por API, com o
+// estado da ligação, os campos, os dados que vêm dela e o guardar no rodapé.
+// As letras e os espaços são os da tabela dos Impostos.
+
+// --- resumo do topo ---------------------------------------------------------
+.Apis_Stats{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+
+  @media (max-width: 900px){ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.Apis_Stat{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+}
+
+.Apis_Stat_Value{
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+
+  &.Ok{ color: var(--gain); }
+  &.Bad{ color: var(--loss); }
+  &.Warn{ color: var(--warn); }
+}
+
+// --- cartões: um por API, uns por baixo dos outros ---------------------------
+.Apis_List{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Dentro do cartão, a ligação à esquerda e os dados à direita; em ecrãs
+// estreitos, um por baixo do outro
+.Api_Card_Body{
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+
+  @media (max-width: 1000px){ grid-template-columns: minmax(0, 1fr); }
+}
+
+.Api_Card{
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.Api_Card_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--card-global-header-background);
+}
+
+// Neutro: o estado da ligação já se lê no estado ao lado do nome
+.Api_Card_Icon{
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background-color: var(--module-icon-background);
+  color: var(--module-icon-color);
+
+  svg{ width: 16px; height: 16px; }
+}
+
+.Api_Card_Title{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.Api_Card_Provider{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Api_Card_Status{
+  flex: none;
+
+  .Dot.Pulse{ animation: Api_Pulse 1s ease-in-out infinite; }
+}
+
+@keyframes Api_Pulse{
+  50%{ opacity: .25; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .Api_Card_Status .Dot.Pulse{ animation: none; }
+}
+
+.Api_Card_Section{
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 4px;
+
+  & + &{
+    border-left: 1px solid var(--line);
+
+    @media (max-width: 1000px){
+      border-left: none;
+      border-top: 1px solid var(--line);
+    }
+  }
+
+  > .Eyebrow{
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+// Um campo por linha: o nome à esquerda como uma célula, o campo à direita
+.Api_Field{
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+
+  > label{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  @media (max-width: 560px){
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+}
+
+.Api_Field_Hint{
+  grid-column: 2;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+
+  @media (max-width: 560px){ grid-column: 1; margin-top: 0; }
+}
+
+.Api_Field_Value{
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Api_Sync_Empty{
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Api_Card_Link{
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover{ text-decoration: underline; }
+}
+
+.Api_Sync_Row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+}
+
+.Api_Sync_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Api_Sync_Label{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Api_Sync_Detail{
+  font-size: 12px;
+  color: var(--text-3);
+
+  &.Ok{ color: var(--gain); }
+  &.Bad{ color: var(--loss); }
+  &.Warn{ color: var(--warn); }
+}
+
+// O guardar no rodapé, como o cabeçalho mas em baixo
+.Api_Card_Foot{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--line);
+  background-color: var(--card-global-header-background);
+}
+
+.Api_Card_Foot_Hint{
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-3);
+
+  &.Dirty{ color: var(--warn); }
+}
+
+// --- prop firms: o progresso do atualizar e o comparar ----------------------
+.Prop_Firms_Progress{
+  height: 4px;
+  margin: 2px 0 8px;
+  border-radius: 999px;
+  background-color: var(--surface-3);
+  overflow: hidden;
+
+  span{
+    display: block;
+    height: 100%;
+    background-color: var(--accent);
+    transition: width .4s;
+  }
+}
+
+.Prop_Firms_Filters{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Prop_Firms_Search{
+  margin-left: auto;
+  width: 220px;
+
+  @media (max-width: 700px){ margin-left: 0; width: 100%; }
+}
+
+.Prop_Firm_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Prop_Firm_Facts{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+
+  > div{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  @media (max-width: 800px){ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.Prop_Firm_Rules{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+
+  @media (max-width: 700px){ grid-template-columns: minmax(0, 1fr); }
+}
+
+.Prop_Firm_Rule{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text);
+
+  > span:first-child{ color: var(--text-2); }
+
+  // As regras em texto ocupam a linha toda
+  &.Text{
+    grid-column: 1 / -1;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
