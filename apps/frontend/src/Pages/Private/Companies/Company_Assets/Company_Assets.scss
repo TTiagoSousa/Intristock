@@ -1,0 +1,27 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Company_Assets{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.Assets_Header{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.Assets_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+
+.Assets_Company{
+  font-size: 13px;
+  color: var(--text-2);
+}

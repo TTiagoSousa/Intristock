@@ -1,0 +1,90 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão, o cabeçalho, a tabela e as ações por linha vêm do
+// Styles/Cards.scss. Aqui fica só o que é dos grupos.
+.Company_Supplier_Groups{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Group_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Suppliers_Count{
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+// Coluna estreita, só para a seta de abrir o grupo
+.Expand_Column{
+  width: 34px;
+  padding-right: 0 !important;
+}
+
+// Seta de abrir o grupo. Roda meia volta quando está aberto — a mesma
+// linguagem do chevron dos dropdowns.
+.Expand_Toggle{
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  svg{
+    width: 14px;
+    height: 14px;
+    transition: transform var(--dur-fast);
+  }
+
+  &:hover:not(:disabled){
+    background-color: var(--surface-3);
+    color: var(--text);
+  }
+
+  &.Open svg{ transform: rotate(180deg); }
+
+  &:disabled{
+    opacity: .3;
+    cursor: not-allowed;
+  }
+}
+
+// Sub-linhas com os fornecedores do grupo: recuadas e num fundo mais fundo,
+// para se perceber que pertencem à linha de cima
+.Supplier_Row{
+  background-color: var(--surface-2);
+
+  td{
+    padding-top: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  &:hover{ background-color: var(--surface-3); }
+}
+
+.Supplier_Row_Name{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--text-2);
+
+  // Linha vertical a ligar ao grupo, como nos submenus da sidebar
+  &::before{
+    content: '';
+    width: 1px;
+    height: 14px;
+    flex: none;
+    background-color: var(--navbar-vertical-submenu-line);
+  }
+}

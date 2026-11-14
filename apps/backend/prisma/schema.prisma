@@ -1,0 +1,1938 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Currency {
+  id                 String   @id @default(uuid())
+  name               String
+  shortCode          String   @unique
+  code               String
+  precision          Int
+  subunit            Int
+  symbol             String
+  symbolFirst        Boolean
+  decimalMark        String
+  thousandsSeparator String
+  rate               Float
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  bankAccounts          BankAccount[]
+  companies             Company[]
+  companySuppliers      CompanySupplier[]
+  companyMembers        CompanyMember[]
+  companyPayments       CompanyPayment[]
+  companyAssets         CompanyAsset[]
+  ratesFrom             CurrencyRate[]                 @relation("CurrencyRateBase")
+  ratesTo               CurrencyRate[]                 @relation("CurrencyRateQuote")
+  incomeSources         PersonalIncomeSource[]
+  incomes               PersonalIncome[]
+  expenses              PersonalExpense[]
+  subscriptions         PersonalSubscription[]
+  debts                 PersonalDebt[]
+  portfolioTransactions PersonalPortfolioTransaction[]
+  /// O ativo de dinheiro desta moeda
+  cashAsset             Asset?
+  hourRates             CurrencyHourRate[]
+
+  @@index([shortCode])
+}
+
+/// A cotação de mercado de um dia: 1 `base` = `rate` `quote`. Serve para propor a
+/// taxa de um pagamento noutra moeda e para não pedir a mesma cotação duas vezes à
+/// API — enche-se à medida que as datas são pedidas, sem histórico carregado de
+/// uma vez. O pagamento guarda a sua própria taxa: corrigir uma linha daqui não
+/// mexe em pagamentos já gravados.
+model CurrencyRate {
+  date            DateTime @db.Date
+  baseCurrencyId  String
+  baseCurrency    Currency @relation("CurrencyRateBase", fields: [baseCurrencyId], references: [id], onDelete: Cascade)
+  quoteCurrencyId String
+  quoteCurrency   Currency @relation("CurrencyRateQuote", fields: [quoteCurrencyId], references: [id], onDelete: Cascade)
+  rate            Decimal
+  createdAt       DateTime @default(now())
+
+  @@id([date, baseCurrencyId, quoteCurrencyId])
+}
+
+/// A cotação de cada moeda do site de hora a hora (o `latest` da CurrencyBeacon, base USD),
+/// em unidades por 1 USD. Uma linha por hora e moeda (EUR, USD e BRL: 3 por hora). Os
+/// registos das finanças pessoais guardam a hora com que se convertem (`rateHour`).
+model CurrencyHourRate {
+  /// A hora certa, em UTC (14:00:00)
+  hour       DateTime @db.Timestamptz
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  rate       Decimal
+  createdAt  DateTime @default(now())
+
+  @@id([hour, currencyId])
+  @@index([currencyId])
+}
+
+model Country {
+  id        String   @id @default(uuid())
+  apiId     String   @unique
+  name      String
+  iso2      String   @unique
+  iso3      String   @unique
+  phonecode String
+  capital   String?
+  currency  String
+  native    String?
+  emoji     String?
+  createdAt DateTime @default(now())
+
+  users            User[]
+  employees        Employee[]
+  companies        Company[]
+  platforms        Platform[]
+  companySuppliers CompanySupplier[]
+  companyMembers   CompanyMember[]
+  taxes            Tax[]
+
+  @@index([iso2])
+  @@index([iso3])
+}
+
+model JobType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employees Employee[]
+
+  @@index([name])
+}
+
+model Employee {
+  id             String   @id @default(uuid())
+  employeeNumber String   @unique
+  email          String   @unique
+  firstName      String
+  lastName       String
+  fullName       String
+  hashedPassword String
+  countryId      String?
+  country        Country? @relation(fields: [countryId], references: [id])
+  jobTypeId      String
+  jobType        JobType  @relation(fields: [jobTypeId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([email])
+  @@index([employeeNumber])
+  @@index([jobTypeId])
+  @@index([countryId])
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  firstName      String
+  lastName       String
+  fullName       String
+  hashedPassword String
+  active         Boolean   @default(false)
+  /// ADMIN gere a instalação (utilizadores, APIs, versões, catálogo) · USER usa a app
+  role           String    @default("USER")
+  /// Bloqueado pelo admin até esta data (não entra nem usa a sessão); nulo = livre. Para sempre é `active` falso
+  blockedUntil   DateTime?
+  blockedReason  String?
+  countryId      String?
+  country        Country?  @relation(fields: [countryId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  simulations           CalculatorSimulation[]
+  createdCompanies      Company[]
+  passwordResetRequests PasswordResetRequest[]
+  bankAccounts          BankAccount[]
+  companyMemberships    CompanyMember[]
+  assets                Asset[]
+  marketDataDownloads   MarketDataDownload[]
+  simulationRuns        SimulationRun[]
+  liveTests             LiveTest[]
+  notifications         Notification[]
+  incomeSources         PersonalIncomeSource[]
+  incomes               PersonalIncome[]
+  expenses              PersonalExpense[]
+  expenseCategories     PersonalExpenseCategory[]
+  itemCategories        PersonalItemCategory[]
+  products              PersonalProduct[]
+  subscriptions         PersonalSubscription[]
+  debts                 PersonalDebt[]
+  portfolios            PersonalPortfolio[]
+
+  @@index([email])
+  @@index([countryId])
+}
+
+/// Configuração da instalação que o admin edita na app (APIs externas e afins).
+/// Os valores sensíveis (chaves de API) vão cifrados com a ENCRYPTION_KEY do ambiente —
+/// quem tiver só a base de dados não as consegue ler.
+model AppSetting {
+  key       String   @id
+  value     String
+  encrypted Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model PasswordResetRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Calculator {
+  id           String   @id @default(uuid())
+  name         String
+  abbreviation String   @unique
+  description  String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  simulations CalculatorSimulation[]
+
+  @@index([abbreviation])
+}
+
+model CalculatorSimulation {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  calculatorId String
+  calculator   Calculator @relation(fields: [calculatorId], references: [id])
+  inputs       Json
+  result       Json
+  createdAt    DateTime   @default(now())
+
+  @@index([userId])
+  @@index([calculatorId])
+}
+
+model Company {
+  id          String    @id @default(uuid())
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  parentId    String?
+  parent      Company?  @relation("CompanyHierarchy", fields: [parentId], references: [id])
+  children    Company[] @relation("CompanyHierarchy")
+  name        String
+  slug        String    @unique
+  countryId   String?
+  country     Country?  @relation(fields: [countryId], references: [id])
+
+  /// A moeda da empresa: os totais, os itens, o stock e os ativos contam-se
+  /// nesta. Um pagamento pode ser noutra moeda, e guarda a taxa com que passa
+  /// para esta (`CompanyPayment.exchangeRate`).
+  ///
+  /// Não se herda da empresa-mãe: uma filial em França fecha em euros mesmo
+  /// que a mãe feche em dólares — a mesma regra dos fornecedores e pagamentos.
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
+
+  /// active   — a trabalhar normalmente
+  /// inactive — parada por escolha do dono: continua à vista e abre-se, mas
+  ///            não aceita registos novos. Reativa-se num clique.
+  /// deleted  — apagada pelo dono: desaparece da lista e das rotas como se não
+  ///            existisse, mas fica cá. Só volta por pedido ao suporte, que é o
+  ///            que impede um clique errado de levar anos de contabilidade.
+  status    String    @default("active")
+  /// Quando foi apagada. Serve ao suporte para saber o que está a repor.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bankAccounts   BankAccount[]
+  members        CompanyMember[]
+  roles          CompanyRole[]
+  suppliers      CompanySupplier[]
+  supplierGroups CompanySupplierGroup[]
+  payments       CompanyPayment[]
+  modules        CompanyModule[]
+  items          CompanyItem[]
+  assets         CompanyAsset[]
+  stockMovements CompanyStockMovement[]
+  incomeSources  PersonalIncomeSource[]
+  expenses       PersonalExpense[]
+
+  @@index([createdById])
+  @@index([parentId])
+  @@index([countryId])
+  @@index([currencyId])
+  @@index([slug])
+  @@index([status])
+}
+
+/// Uma pessoa da empresa. Com `userId` é uma conta que entra na app (com cargo e
+/// permissões); sem ele é só um registo, para os salários, os contratos e os
+/// dados dela — não entra nem tem cargo.
+model CompanyMember {
+  id                String       @id @default(uuid())
+  companyId         String
+  company           Company      @relation(fields: [companyId], references: [id])
+  userId            String?
+  user              User?        @relation(fields: [userId], references: [id])
+  /// O cargo; sem cargo só vê a visão geral da empresa
+  roleId            String?
+  role              CompanyRole? @relation(fields: [roleId], references: [id])
+  /// Ajustes deste membro ao cargo: o que tem a mais e o que lhe é tirado
+  /// (`COMPANY_PERMISSIONS`). Conta: cargo + extra − negadas.
+  extraPermissions  String[]     @default([])
+  deniedPermissions String[]     @default([])
+
+  /// Os dados da pessoa, todos opcionais. O nome é obrigatório no ecrã só sem
+  /// conta (com conta mostra-se o do utilizador, se este ficar vazio).
+  name                 String?
+  email                String?
+  phone                String?
+  jobTitle             String?
+  /// NIF
+  taxNumber            String?
+  /// Número da Segurança Social
+  socialSecurityNumber String?
+  /// Cartão de cidadão / passaporte
+  idDocumentNumber     String?
+  birthDate            DateTime? @db.Date
+  addressLine          String?
+  postalCode           String?
+  city                 String?
+  countryId            String?
+  country              Country?  @relation(fields: [countryId], references: [id])
+  /// Para onde se transfere o salário
+  iban                 String?
+  notes                String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  pays          CompanyMemberPay[]
+  contracts     CompanyMemberContract[]
+  documents     CompanyMemberDocument[]
+  payments      CompanyPayment[]
+  /// A moeda em que se lhe paga (sem ela, a da empresa): os salários e os recibos
+  /// verdes dele estão nela
+  currencyId    String?
+  currency      Currency?               @relation(fields: [currencyId], references: [id])
+  /// A conta da empresa de onde se lhe paga, a que os próximos pagamentos propõem
+  bankAccountId String?
+  bankAccount   BankAccount?            @relation(fields: [bankAccountId], references: [id])
+
+  /// Uma conta só é membro uma vez por empresa (os sem conta, `userId` nulo, não contam)
+  @@unique([companyId, userId])
+  @@index([companyId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([countryId])
+  @@index([currencyId])
+  @@index([bankAccountId])
+}
+
+/// O que se paga a um membro, na moeda dele (`CompanyMember.currencyId`, ou a da empresa):
+/// - `salary`    — salário mensal: `grossAmount` por mês, `paymentsPerYear` vezes
+///                 (14 com os subsídios de férias e de Natal), no dia `payDay`, de
+///                 `startDate` até `endDate` (nulo = sem fim). Uma mudança de salário
+///                 fecha esta e abre outra, para ficar o histórico.
+/// - `freelance` — recibo verde, um pagamento único: `grossAmount` em `dueDate`,
+///                 com a retenção na fonte (`withholdingPct`) se houver.
+/// Os próximos pagamentos calculam-se daqui ao ler; quando um é pago, o
+/// `CompanyPayment` fica ligado (`memberPayId`, e o mês pela data).
+model CompanyMemberPay {
+  id              String                 @id @default(uuid())
+  memberId        String
+  member          CompanyMember          @relation(fields: [memberId], references: [id])
+  /// O contrato de onde vem, se houver
+  contractId      String?
+  contract        CompanyMemberContract? @relation(fields: [contractId], references: [id])
+  kind            String
+  description     String?
+  grossAmount     Decimal
+  /// salary
+  paymentsPerYear Int?
+  payDay          Int?
+  startDate       DateTime?              @db.Date
+  endDate         DateTime?              @db.Date
+  /// freelance
+  dueDate         DateTime?              @db.Date
+  withholdingPct  Decimal?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  payments CompanyPayment[]
+  incomes  PersonalIncome[]
+
+  @@index([memberId])
+  @@index([contractId])
+}
+
+/// Um contrato de um membro (trabalho, prestação de serviços, estágio…), com os
+/// ficheiros dele em `CompanyMemberDocument`.
+model CompanyMemberContract {
+  id        String        @id @default(uuid())
+  memberId  String
+  member    CompanyMember @relation(fields: [memberId], references: [id])
+  /// permanent | fixed_term | services | internship | other
+  type      String
+  title     String?
+  startDate DateTime      @db.Date
+  endDate   DateTime?     @db.Date
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  pays      CompanyMemberPay[]
+  documents CompanyMemberDocument[]
+
+  @@index([memberId])
+}
+
+/// Um ficheiro de um membro: de um contrato (`contractId`) ou solto (o cartão de
+/// cidadão, um certificado…). Guarda-se como os dos pagamentos: a chave no
+/// bucket, nunca um URL.
+model CompanyMemberDocument {
+  id              String                 @id @default(uuid())
+  memberId        String
+  member          CompanyMember          @relation(fields: [memberId], references: [id])
+  contractId      String?
+  contract        CompanyMemberContract? @relation(fields: [contractId], references: [id])
+  fileName        String
+  mimeType        String
+  size            Int
+  storageKey      String                 @unique
+  storageProvider String
+  createdAt       DateTime               @default(now())
+
+  @@index([memberId])
+  @@index([contractId])
+}
+
+/// Um cargo de uma empresa, criado por ela, com as permissões que dá
+/// (`COMPANY_PERMISSIONS` no backend, como "payments.create").
+model CompanyRole {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  description String?
+  permissions String[] @default([])
+  /// O modelo predefinido de onde veio (mais tarde); nulo = criado pela empresa
+  templateKey String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members CompanyMember[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model Platform {
+  id         String    @id @default(uuid())
+  name       String
+  type       String
+  logo       String?
+  website    String?
+  countryId  String?
+  country    Country?  @relation(fields: [countryId], references: [id])
+  isActive   Boolean   @default(true)
+  /// De onde veio: `system` (catálogo pré-definido), `manual` (o admin) ou o fornecedor
+  /// da API que a mantém (`propfirmmap`); com `externalId`, o atualizar encontra-a outra vez
+  source     String    @default("manual")
+  externalId String?
+  syncedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  bankAccounts BankAccount[]
+  plans        PlatformPlan[]
+  debts        PersonalDebt[]
+  portfolios   PersonalPortfolio[]
+  suppliers    CompanySupplier[]
+  propFirm     PropFirmDetail?
+
+  @@unique([source, externalId])
+  @@index([type])
+  @@index([countryId])
+}
+
+/// Um plano de uma plataforma (numa prop firm, um desafio: tamanho da conta, preço e as
+/// regras com número). Os que vêm de uma API refazem-se a cada atualizar dela.
+/// O que uma prop firm tem para lá da tabela base (1:1 com a `Platform` de `type` `prop_firm`):
+/// o resumo, os payouts e as regras. Vem da API que a mantém (PropFirmMap) ou do admin.
+model PropFirmDetail {
+  platformId           String    @id
+  platform             Platform  @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  /// CFD, Futures, Crypto, Stocks (como a API o escreve)
+  assetType            String?
+  established          String?
+  /// O país como a API o escreve (o `Platform.countryId` só quando o encontramos)
+  countryName          String?
+  /// Nota da PropFirmMap (0–10) e nota de segurança (A+ a F)
+  score                Decimal?  @db.Decimal(4, 1)
+  safetyGrade          String?
+  trustpilotRating     Decimal?  @db.Decimal(3, 1)
+  trustpilotReviews    Int?
+  trustpilotSuspended  Boolean   @default(false)
+  directFunding        Boolean?
+  /// Textos livres da API (servem para mostrar, não para contas)
+  profitSplit          String?
+  payoutFrequency      String?
+  dailyDrawdown        String?
+  tradingPlatforms     String[]  @default([])
+  payoutMethods        String[]  @default([])
+  firstPayoutDays      Int?
+  payoutProcessing     String?
+  payoutOnDemand       Boolean?
+  minWithdrawal        Decimal?  @db.Decimal(12, 2)
+  /// As regras sim/não (nulo = a firma não diz)
+  newsTrading          Boolean?
+  weekendHolding       Boolean?
+  overnightHolding     Boolean?
+  eaAllowed            Boolean?
+  copyTrading          Boolean?
+  hedging              Boolean?
+  martingale           Boolean?
+  scalping             Boolean?
+  stopLossRequired     Boolean?
+  resetAllowed         Boolean?
+  /// As regras em texto
+  consistencyChallenge String?
+  consistencyFunded    String?
+  allowedInstruments   String?
+  prohibitedStrategies String?
+  rulesSourceUrl       String?
+  rulesVerifiedAt      DateTime?
+  /// Quando veio a ficha (as regras, os payouts e os planos); nulo = só o resumo da lista
+  detailsSyncedAt      DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model PlatformPlan {
+  id                  String   @id @default(uuid())
+  platformId          String
+  platform            Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  /// A chave do plano na API (com ela o atualizar encontra-o); nula nos criados à mão
+  externalKey         String?
+  step                String?
+  name                String?
+  accountSize         Decimal? @db.Decimal(14, 2)
+  price               Decimal? @db.Decimal(12, 2)
+  currency            String?
+  activationFee       Decimal? @db.Decimal(12, 2)
+  profitTargetPct     Decimal? @db.Decimal(6, 2)
+  maxDailyLossPct     Decimal? @db.Decimal(6, 2)
+  maxTotalDrawdownPct Decimal? @db.Decimal(6, 2)
+  /// static | trailing | trailing_eod (como a API o diz)
+  drawdownModel       String?
+  minTradeDays        Int?
+  consistencyPct      Decimal? @db.Decimal(6, 2)
+  profitSplitPct      Decimal? @db.Decimal(6, 2)
+  /// O estado que a API dá ao plano (`unverified`…) e se está desatualizado
+  status              String?
+  stale               Boolean  @default(false)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  items CompanyItem[]
+
+  @@unique([platformId, externalKey])
+  @@index([platformId])
+}
+
+model BankAccount {
+  id             String   @id @default(uuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  companyId      String?
+  company        Company? @relation(fields: [companyId], references: [id])
+  platformId     String
+  platform       Platform @relation(fields: [platformId], references: [id])
+  name           String
+  iban           String?  @unique
+  currencyId     String
+  currency       Currency @relation(fields: [currencyId], references: [id])
+  initialBalance Decimal  @default(0)
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  companySuppliers      CompanySupplier[]
+  companyMembers        CompanyMember[]
+  paymentsSentFrom      CompanyPayment[]               @relation("CompanyPaymentFromBankAccount")
+  paymentsSentTo        CompanyPayment[]               @relation("CompanyPaymentToBankAccount")
+  incomes               PersonalIncome[]
+  expenses              PersonalExpense[]
+  subscriptions         PersonalSubscription[]
+  debts                 PersonalDebt[]
+  debtMovements         PersonalDebtMovement[]
+  portfolioTransactions PersonalPortfolioTransaction[]
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([platformId])
+  @@index([currencyId])
+}
+
+// type: company, individual, partnership
+model CompanySupplier {
+  id            String                @id @default(uuid())
+  companyId     String
+  company       Company               @relation(fields: [companyId], references: [id])
+  groupId       String?
+  group         CompanySupplierGroup? @relation(fields: [groupId], references: [id])
+  name          String
+  /// "iq-capital" — feito a partir do nome, único dentro da empresa. É o que
+  /// aparece no URL da página do fornecedor (…/fornecedores/iq-capital).
+  slug          String
+  type          String
+  alias         String?
+  addressLine   String? // rua, número, andar
+  postalCode    String?
+  city          String?
+  countryId     String?
+  country       Country?              @relation(fields: [countryId], references: [id])
+  /// A moeda em que este fornecedor fatura. É a que o formulário de pagamento
+  /// propõe quando ele é escolhido.
+  currencyId    String?
+  currency      Currency?             @relation(fields: [currencyId], references: [id])
+  // bank_account = paga-se por transferência da conta indicada em bankAccountId
+  // direct = pagamento direto (subscrição, cartão, plataforma) — sem conta associada
+  paymentMethod String                @default("bank_account")
+  bankAccountId String?
+  bankAccount   BankAccount?          @relation(fields: [bankAccountId], references: [id])
+  /// Número de contribuinte do fornecedor (NIF/VAT). Chamava-se `taxId` e não
+  /// é FK nenhuma — ao lado do `CompanyPaymentTax.taxId`, que é FK a sério,
+  /// eram dois campos com o mesmo nome e significados diferentes.
+  taxNumber     String?
+  contact       String? // pessoa de contacto / telefone
+  email         String?
+  website       String?
+  details       String?
+  isActive      Boolean               @default(true)
+  /// O fornecedor do catálogo de onde veio (uma prop firm da PropFirmMap, mais tarde
+  /// bancos, corretoras…). Vazio nos criados à mão. Uma vez por empresa.
+  platformId    String?
+  platform      Platform?             @relation(fields: [platformId], references: [id])
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  payments  CompanyPayment[]
+  itemLinks CompanyItemSupplier[]
+  phones    CompanySupplierPhone[]
+
+  @@unique([companyId, slug])
+  @@unique([companyId, platformId])
+  @@index([companyId])
+  @@index([platformId])
+  @@index([groupId])
+  @@index([countryId])
+  @@index([currencyId])
+  @@index([bankAccountId])
+}
+
+// Telefones extra do fornecedor ("Comercial", "Faturação", …). O principal
+// continua no `contact` do fornecedor.
+model CompanySupplierPhone {
+  id         String          @id @default(uuid())
+  supplierId String
+  supplier   CompanySupplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  label      String?
+  number     String
+  createdAt  DateTime        @default(now())
+
+  @@index([supplierId])
+}
+
+model CompanySupplierGroup {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  suppliers CompanySupplier[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+// category: purchase_tax, vat, social_security, etc. | type: system, custom
+model Tax {
+  id          String   @id @default(uuid())
+  countryId   String
+  country     Country  @relation(fields: [countryId], references: [id])
+  name        String
+  description String?
+  rate        Float
+  category    String
+  type        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  paymentTaxes CompanyPaymentTax[]
+
+  @@index([countryId])
+  @@index([category])
+  @@index([type])
+}
+
+// paymentType: pay, receive, internal_transfer
+// partyType: supplier, shareholder, customer
+// status: draft, completed, cancelled
+model CompanyPayment {
+  id                String            @id @default(uuid())
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id])
+  paymentType       String
+  partyType         String
+  supplierId        String?
+  supplier          CompanySupplier?  @relation(fields: [supplierId], references: [id])
+  /// Com `partyType` member: a quem se pagou e, se veio dos próximos
+  /// pagamentos, de que salário ou recibo verde
+  memberId          String?
+  member            CompanyMember?    @relation(fields: [memberId], references: [id])
+  memberPayId       String?
+  memberPay         CompanyMemberPay? @relation(fields: [memberPayId], references: [id])
+  /// O que este pagamento paga desse salário: `YYYY-MM` (o mês), `YYYY-MM:holiday`
+  /// ou `YYYY-MM:christmas` (os subsídios); `once` num recibo verde
+  memberPayPeriod   String?
+  fromBankAccountId String?
+  fromBankAccount   BankAccount?      @relation("CompanyPaymentFromBankAccount", fields: [fromBankAccountId], references: [id])
+  toBankAccountId   String?
+  toBankAccount     BankAccount?      @relation("CompanyPaymentToBankAccount", fields: [toBankAccountId], references: [id])
+  /// Na moeda do pagamento (`currencyId`), já com impostos. As linhas e os
+  /// impostos estão também nela.
+  amount            Decimal
+  currencyId        String
+  currency          Currency          @relation(fields: [currencyId], references: [id])
+  /// 1 na moeda do pagamento = `exchangeRate` na moeda da empresa, fixada ao
+  /// gravar. O valor na moeda da empresa é sempre `amount × exchangeRate`, e o
+  /// stock e os ativos que o pagamento cria usam a mesma taxa.
+  exchangeRate      Decimal           @default(1)
+  /// same (a moeda é a da empresa) | market (cotação do dia, da `CurrencyRate`)
+  /// | manual (escreveu-se o valor na moeda da empresa, o que o banco cobrou)
+  rateSource        String            @default("same")
+  description       String?
+  reference         String?
+  paymentDate       DateTime          @db.Date
+  status            String            @default("completed")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  taxes           CompanyPaymentTax[]
+  items           CompanyPaymentItem[]
+  documents       CompanyPaymentDocument[]
+  assets          CompanyAsset[]
+  stockMovements  CompanyStockMovement[]
+  personalExpense PersonalExpense?
+
+  @@index([companyId])
+  @@index([supplierId])
+  @@index([memberId])
+  @@index([memberPayId, memberPayPeriod])
+  @@index([fromBankAccountId])
+  @@index([toBankAccountId])
+  @@index([currencyId])
+  @@index([paymentDate])
+}
+
+// calculationType: real, on_paid_amount, on_previous_row_amount, on_previous_row_total
+model CompanyPaymentTax {
+  id              String         @id @default(uuid())
+  paymentId       String
+  payment         CompanyPayment @relation(fields: [paymentId], references: [id])
+  taxId           String
+  tax             Tax            @relation(fields: [taxId], references: [id])
+  calculationType String
+  rate            Float
+  netAmount       Decimal        @default(0)
+  taxAmount       Decimal        @default(0)
+  totalAmount     Decimal        @default(0)
+  createdAt       DateTime       @default(now())
+
+  @@index([paymentId])
+  @@index([taxId])
+}
+
+// Módulos disponíveis no sistema (catálogo gerido por Admin)
+model Module {
+  id          String   @id @default(uuid())
+  name        String   @unique // ex: "reservations", "stock", "hr"
+  label       String // ex: "Alojamento Local", "Stock", "Recursos Humanos"
+  description String?
+  icon        String? // para o frontend
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  companyModules CompanyModule[]
+
+  @@index([name])
+}
+
+// Módulos ativos por empresa
+model CompanyModule {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, moduleId])
+  @@index([companyId])
+  @@index([moduleId])
+}
+
+// Catálogo de itens/serviços que a empresa compra.
+// O item pertence à EMPRESA e o fornecedor é opcional — assim "garrafa de água"
+// comprada a dois fornecedores continua a ser o mesmo item, e o total gasto
+// nesse artigo é somável.
+// type: product | service · recurrencePeriod: monthly | yearly
+model CompanyItem {
+  id               String   @id @default(uuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id])
+  name             String
+  /// "filamento-pla" — feito a partir do nome, único dentro da empresa. É o que
+  /// aparece no URL da página do item (…/itens/filamento-pla).
+  slug             String
+  description      String?
+  type             String
+  unit             String?
+  /// Na moeda da empresa, como tudo o resto. O item tinha `currencyId` próprio,
+  /// que só podia ter um valor desde que a empresa passou a ser mono-moeda.
+  defaultPrice     Decimal?
+  isRecurring      Boolean  @default(false)
+  recurrencePeriod String?
+  isActive         Boolean  @default(true)
+
+  // O que este item é, do ponto de vista do que acontece quando o compras:
+  //   expense — consome-se de imediato (avença, eletricidade). Não deixa rasto.
+  //   stock   — passa a ter quantidade em mão (filamento). Gera movimentos.
+  //   asset   — é imobilizado (a impressora). Gera um registo de ativo.
+  // A linha de um pagamento decide o que fazer olhando para aqui.
+  kind String @default("expense")
+
+  // Só para `kind: stock`. Compras bobines mas gastas gramas: o stock conta-se
+  // em `stockUnit`, e cada unidade comprada traz `stockPerUnit` dessas.
+  // Uma bobine de 1 kg é stockUnit "g" com stockPerUnit 1000.
+  stockUnit    String?
+  stockPerUnit Decimal?
+
+  /// O plano do catálogo de onde veio (numa prop firm, um desafio: FTMO 100k 2-Step).
+  /// Vazio nos criados à mão. Uma vez por empresa.
+  platformPlanId String?
+  platformPlan   PlatformPlan? @relation(fields: [platformPlanId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  paymentItems   CompanyPaymentItem[]
+  stockMovements CompanyStockMovement[]
+  assets         CompanyAsset[]
+  suppliers      CompanyItemSupplier[]
+
+  @@unique([companyId, name])
+  @@unique([companyId, slug])
+  @@unique([companyId, platformPlanId])
+  @@index([companyId])
+  @@index([platformPlanId])
+}
+
+// Que fornecedores vendem cada item — um item pode ter vários e um fornecedor
+// vários itens. Nos pagamentos, escolher o fornecedor põe os itens dele primeiro.
+model CompanyItemSupplier {
+  itemId     String
+  item       CompanyItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier   CompanySupplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+
+  @@id([itemId, supplierId])
+  @@index([supplierId])
+}
+
+// Imobilizado: o que se compra para usar durante anos, não para revender.
+// Uma impressora, um portátil, uma secretária.
+model CompanyAsset {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // De onde veio. Ambos opcionais: um ativo pode ser registado à mão, sem
+  // compra associada (o portátil que já tinhas antes de abrir a empresa).
+  paymentId String?
+  payment   CompanyPayment? @relation(fields: [paymentId], references: [id])
+  itemId    String?
+  item      CompanyItem?    @relation(fields: [itemId], references: [id])
+
+  name     String
+  category String
+
+  acquisitionDate  DateTime @db.Date
+  // Sem imposto: o IVA dedutível não é custo, logo não faz parte do valor
+  acquisitionValue Decimal
+  currencyId       String
+  currency         Currency @relation(fields: [currencyId], references: [id])
+
+  // Duas vidas úteis de propósito, para dois fins diferentes:
+  //   depreciationRate — % ao ano, para a contabilidade
+  //   usefulLifeHours  — horas, para o custo por hora de máquina
+  depreciationRate Decimal
+  usefulLifeHours  Int?
+  residualValue    Decimal?
+
+  // em_uso | manutencao | abatido | vendido
+  status        String    @default("em_uso")
+  disposedAt    DateTime? @db.Date
+  disposalValue Decimal?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([paymentId])
+  @@index([itemId])
+  @@index([currencyId])
+}
+
+// Stock por movimentos, não por contador.
+// A quantidade em mão é a soma das entradas menos as saídas — assim há sempre
+// resposta para "porque tenho 12 bobines", que um campo `quantity` não dá.
+model CompanyStockMovement {
+  id        String      @id @default(uuid())
+  companyId String
+  company   Company     @relation(fields: [companyId], references: [id])
+  itemId    String
+  item      CompanyItem @relation(fields: [itemId], references: [id])
+
+  // in | out | adjustment
+  type     String
+  // Sempre positivo — é o `type` que dá o sinal. Na unidade de stock do item.
+  quantity Decimal
+  // Custo unitário à entrada, congelado. Nas saídas fica nulo: o custo de saída
+  // é o médio calculado a partir das entradas.
+  unitCost Decimal?
+
+  // payment | manual | production
+  sourceType String          @default("manual")
+  // Preenchido quando `sourceType` é "payment". FK a sério, para o stock não
+  // poder ficar a apontar para uma compra que já não existe.
+  paymentId  String?
+  payment    CompanyPayment? @relation(fields: [paymentId], references: [id])
+
+  occurredAt DateTime @db.Date
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId])
+  @@index([itemId])
+  @@index([paymentId])
+}
+
+model CompanyPaymentDocument {
+  id        String         @id @default(uuid())
+  paymentId String
+  payment   CompanyPayment @relation(fields: [paymentId], references: [id])
+
+  // Nome com que o ficheiro foi enviado, só para mostrar e para o download
+  fileName String
+  mimeType String
+  // Bytes
+  size     Int
+
+  // A chave no bucket — nunca um URL. O URL muda quando se troca de fornecedor
+  // e ficavam centenas de links mortos gravados.
+  storageKey      String @unique
+  // Onde este ficheiro em concreto vive. Permite ligar um fornecedor novo sem
+  // migrar nada: os antigos continuam a ser lidos de onde estão.
+  storageProvider String
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+}
+
+model CompanyPaymentItem {
+  id         String         @id @default(uuid())
+  paymentId  String
+  payment    CompanyPayment @relation(fields: [paymentId], references: [id])
+  itemId     String
+  item       CompanyItem    @relation(fields: [itemId], references: [id])
+  quantity   Decimal        @default(1)
+  unitPrice  Decimal
+  totalPrice Decimal
+  createdAt  DateTime       @default(now())
+
+  @@index([paymentId])
+  @@index([itemId])
+}
+
+/// A coisa em si: Bitcoin, Apple, S&P 500, uma casa, um carro. Os preços não vivem
+/// aqui mas nos Instrument (cada mercado onde o ativo negoceia tem o seu preço).
+model Asset {
+  id          String    @id @default(uuid())
+  /// equity | fixed_income | commodity | real_estate | liquidity | alternative
+  assetClass  String
+  /// crypto | stock | etf | index | fund | bond | cash | commodity | precious_metal | vehicle | property | collectible | other
+  subClass    String
+  name        String
+  /// 'BTC', 'AAPL' — só nos ativos de mercado
+  ticker      String?
+  isin        String?
+  country     String?
+  /// null = catálogo partilhado por toda a instalação; preenchido = só deste utilizador
+  ownerUserId String?
+  owner       User?     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  /// Só no ativo de dinheiro (liquidity/cash): a moeda que ele é, um por moeda
+  currencyId  String?   @unique
+  currency    Currency? @relation(fields: [currencyId], references: [id])
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  instruments           Instrument[]
+  portfolioTransactions PersonalPortfolioTransaction[]
+
+  @@index([assetClass, subClass])
+  @@index([subClass, ticker])
+  @@index([ownerUserId])
+}
+
+/// Um mercado concreto onde um ativo tem preço (o BTCUSDT spot da Binance e o
+/// perpétuo BTCUSDT são dois). As velas, no ClickHouse, ligam-se pelo id daqui.
+model Instrument {
+  id        String    @id @default(uuid())
+  assetId   String
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// de onde vêm os dados: 'binance'
+  source    String
+  /// spot | perpetual | future | option | cfd | index
+  type      String
+  /// como a fonte lhe chama: 'BTCUSDT'
+  symbol    String
+  /// onde negoceia, quando não é a própria fonte: 'NASDAQ'
+  venue     String?
+  /// moeda do preço: 'USDT'
+  quote     String
+  /// futuros com data e opções
+  expiresAt DateTime?
+  /// trading | halted | delisted
+  status    String
+  /// o específico da fonte (passo de preço, tamanho do contrato…)
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  months      MarketDataMonth[]
+  downloads   MarketDataDownload[]
+  simulations SimulationRun[]
+  liveTests   LiveTest[]
+
+  @@unique([source, type, symbol])
+  @@index([assetId])
+  @@index([status, type, quote])
+}
+
+/// Que meses de velas de um instrumento já estão no ClickHouse. Escrita pelo
+/// downloader (Python): é daqui que sabe o que falta e que dois pedidos não descarregam
+/// o mesmo mês ao mesmo tempo.
+model MarketDataMonth {
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  /// 1.º dia do mês, UTC
+  month        DateTime
+  /// loading | loaded | failed
+  status       String
+  candles      Int?
+  error        String?
+  updatedAt    DateTime   @updatedAt
+
+  @@id([instrumentId, month])
+}
+
+/// Um pedido de velas de um instrumento (cada simulação cria o seu).
+/// Fila entre o Nest, que cria, e o downloader (Python), que executa.
+model MarketDataDownload {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  /// intervalo pedido, em UTC; o fim é exclusivo
+  fromDate     DateTime
+  toDate       DateTime
+  /// queued | running | done | failed
+  status       String     @default("queued")
+  monthsTotal  Int        @default(0)
+  monthsDone   Int        @default(0)
+  /// mês a ser descarregado agora, para o progresso
+  currentMonth DateTime?
+  candles      Int        @default(0)
+  error        String?
+  createdAt    DateTime   @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  simulations SimulationRun[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Uma simulação de uma estratégia num instrumento. Fila entre o Nest, que
+/// cria, e o simulador (Python), que só pega nela depois de o download das
+/// velas acabar.
+model SimulationRun {
+  id                  String             @id @default(uuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrumentId        String
+  instrument          Instrument         @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  /// as velas de que precisa, já com as de aquecimento dos indicadores
+  downloadId          String
+  download            MarketDataDownload @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+  /// 1m | 3m | 5m | 15m | 30m | 1h | 4h | 1d
+  timeframe           String
+  /// intervalo simulado, em UTC; o fim é exclusivo
+  fromDate            DateTime
+  toDate              DateTime
+  /// capital, comissão, stop, take profit e condições de entrada
+  strategy            Json
+  /// queued | running | done | failed
+  status              String             @default("queued")
+  /// 0 a 100, só a simulação (o download tem o seu progresso)
+  progress            Int                @default(0)
+  /// onde vai a simulação a correr (o simulador grava-o): a fase (loading, simulating,
+  /// report, saving), a secção do relatório, as variantes feitas e as previstas, as velas, os
+  /// trades e a hora prevista do fim (ms UTC); nulo antes de começar
+  progressInfo        Json?
+  /// resumo: capital final, lucro, drawdown, taxa de acerto…
+  result              Json?
+  /// 1.1 · Resumo e nota da estratégia — os 12 cartões (capital final, retorno líquido,
+  /// buy & hold, Sharpe, max drawdown, volatilidade, trades, win rate, profit factor,
+  /// custos, tempo no mercado, dias positivos)
+  summaryMetrics      Json?
+  /// 1.1 · Nota da estratégia — de 0 a 100, o rótulo e as 6 partes (rentabilidade, risco,
+  /// fora da amostra, significância, estabilidade, custos), cada uma com os números da fórmula
+  strategyScore       Json?
+  /// 1.2 · Equity e drawdown — um ponto por dia: o capital da estratégia, o de comprar e manter
+  /// e o drawdown da estratégia em %, com os valores finais e a maior queda
+  equityCurve         Json?
+  /// 1.2 · Equity no ativo — um ponto por dia: o capital dividido pelo preço do ativo, com a
+  /// quantidade inicial e a final
+  equityInBase        Json?
+  /// 1.2 · Underwater — um ponto por dia: a distância ao máximo anterior do índice de
+  /// performance em % (sem depósitos), com a maior queda e o período mais longo abaixo dele
+  underwater          Json?
+  /// 1.3 · Retornos — a tabela dos retornos em % (índice de performance, sem depósitos) por
+  /// mês, trimestre e ano, cada um marcado se for parcial, e o do período todo
+  periodReturns       Json?
+  /// 1.3 · Por horizonte — nos últimos 1, 3 e 6 meses, 1, 3 e 5 anos e no período todo: a
+  /// estratégia, o comprar e manter, a diferença, a maior queda e os trades
+  horizonReturns      Json?
+  /// 1.3 · Distribuição dos retornos diários — o histograma (dias em cada barra) e a normal com
+  /// a mesma média e desvio, o intervalo, a média e o desvio
+  dailyDistribution   Json?
+  /// 1.3 · Sharpe em janela móvel — o Sharpe dos últimos 60 dias em cada dia, o mínimo e o máximo
+  rollingSharpe       Json?
+  /// 1.3 · Mês a mês — por mês: trades, win rate, stops, takes, P&L bruto, comissões, funding,
+  /// P&L líquido, retorno, maior queda do mês e capital no fim
+  monthlyDetail       Json?
+  /// 1.4 · Riscos — os 10 cartões nos retornos diários: VaR 95 e 99, CVaR 95, skewness,
+  /// kurtosis, Ulcer e Pain index, tail ratio, pior e melhor dia e episódios de drawdown
+  riskMetrics         Json?
+  /// 1.4 · Os piores drawdowns — todos os episódios abaixo do pico (início, fundo, recuperação,
+  /// profundidade e dias), do mais fundo para o menos fundo
+  drawdownEpisodes    Json?
+  /// 1.5 · Rácios ajustados ao risco — Sharpe, Sortino, Calmar (com o buy & hold), Omega,
+  /// Gain-to-Pain, profit factor, SQN e Kelly, cada um com a leitura
+  riskRatios          Json?
+  /// 1.6 · Captura de subidas e descidas — face ao ativo da simulação, nos retornos diários:
+  /// up e down capture, beta, alpha anual, correlação e batting average
+  captureRatios       Json?
+  /// 1.6 · Retornos diários: ativo vs estratégia — um ponto por dia e a reta dos mínimos
+  /// quadrados (a inclinação é o beta)
+  returnsScatter      Json?
+  /// 2.1 · Qualidade dos dados — as velas que a corrida usou: simuladas, de aquecimento, em falta,
+  /// gaps de abertura, amplitude média e maior vela, preço inicial e final, volatilidade do ativo
+  dataQuality         Json?
+  /// 2.2 Funil de sinais: velas simuladas, sinais, os bloqueados por motivo, ordens num nível
+  /// (postas e caídas), rejeitadas pelo mínimo e os trades (todos e com lucro)
+  signalFunnel        Json?
+  /// 2.2 Por entrada: sinais, trades, % executados, win rate, P&L líquido e expectancy em R
+  entryBreakdown      Json?
+  /// 2.2 A preparação de cada entrada: armou, cumpriu-se outra vez, acabou, cancelada, deu sinal e a espera
+  setupFunnel         Json?
+  /// 2.2 Cada condição da conta («só entra se»): os sinais que parou e a estratégia corrida sem ela
+  contextRules        Json?
+  /// 2.3 Ordens por nível: postas, executadas, caídas, canceladas, espera média e slippage poupado
+  orderExecution      Json?
+  /// 2.3 Resultado por tipo de ordem (a mercado, limite, stop)
+  orderTypes          Json?
+  /// 2.3 Variantes da ordem de cada entrada por nível (a estratégia corrida outra vez)
+  orderVariants       Json?
+  /// 2.3 Preço de execução das ordens a mercado: a estratégia com cada preço (abertura, fecho anterior, 1.º minuto)
+  executionVariants   Json?
+  /// 3.1 Dentro vs fora da amostra: as métricas de cada parte e a degradação
+  sampleSplit         Json?
+  /// 3.1 Equity com a divisão: o capital de cada dia e o dia em que o período se divide
+  sampleEquity        Json?
+  /// 4.1 Por entrada: os 6 cartões (melhor e pior, deficitárias, mudam de sinal fora, longs/shorts, desligar a pior)
+  entryCards          Json?
+  /// 4.1 Por entrada: a tabela, com o R dentro/fora da amostra e o retorno sem cada entrada
+  entryPerformance    Json?
+  /// 4.1 Equity por entrada: o P&L acumulado de cada entrada
+  entryEquity         Json?
+  /// 4.2 Entrada → saída: trades, win rate e P&L de cada par
+  entryExitMatrix     Json?
+  /// 4.2 Como sai cada entrada: a % dos trades por saída
+  exitMix             Json?
+  /// 4.3 Stops e tipos de saída: os 8 cartões
+  stopCards           Json?
+  /// 4.3 Por motivo de saída: trades, P&L, velas e o deixado na mesa
+  exitReasons         Json?
+  /// 4.3 Stops por mês e sequências de stops seguidos
+  stopsByMonth        Json?
+  /// 4.4 Depois da saída: o preço depois do take, do stop e do trailing
+  afterExit           Json?
+  /// 4.5 Resultado por trade em R: o histograma
+  rDistribution       Json?
+  /// 4.5 MAE vs resultado: um ponto por trade
+  maeScatter          Json?
+  /// 4.5 Duração × resultado: por intervalo de velas
+  durationBuckets     Json?
+  /// 4.6 Capital por tipo de entrada: os esquemas de risco corridos no motor
+  sizingSchemes       Json?
+  /// 4.6 Kelly e tamanho sugerido por entrada (dentro da amostra)
+  entryKelly          Json?
+  /// 4.6 Correlação entre entradas: o P&L semanal
+  entryCorrelation    Json?
+  /// 4.8 Anatomia do trade: os 6 cartões (captura do MFE, velas até ao melhor ponto, depois de uma perda/ganho, curvas, pirâmide)
+  tradeAnatomy        Json?
+  /// 4.8 Caminho médio do trade em R desde a entrada (ganhos, perdidos e todos)
+  tradePath           Json?
+  /// 4.8 Eficiência da saída por grupo: MFE, MAE, captura e velas até ao melhor e ao pior ponto
+  exitEfficiency      Json?
+  /// 4.8 O trade seguinte, depois de um ganho, de uma perda, de um stop e de dois seguidos
+  nextTrade           Json?
+  /// 4.8 Pirâmide, tipo de ordem e ordem no dia
+  tradeGroups         Json?
+  /// 4.9 Cada ajuste do stop: em quantos trades aconteceu, as saídas no stop dele e a estratégia sem ele
+  stopRuleStats       Json?
+  /// 4.9 Cada reforço: alcançados, entrados, sem capital, com vs sem reforço e a estratégia sem ele
+  scaleInStats        Json?
+  /// 4.10 O perfil de volume: as sessões, como abrem face à área de valor anterior, os POC virgens e as entradas dentro dela
+  profileCards        Json?
+  /// 4.10 Os trades por onde entraram face à área de valor da sessão anterior (acima do VAH, dentro, abaixo do VAL)
+  profilePosition     Json?
+  /// 4.10 Os trades pela distância (em %) do preço de entrada ao POC da sessão anterior
+  profileDistance     Json?
+  /// Gráfico · A máxima/mínima de N velas e os níveis do dia e da semana que a estratégia viu, nos pontos em que mudam
+  chartLevels         Json?
+  /// 5.1 Horas de entrada: os 6 cartões
+  hourCards           Json?
+  /// 5.1 Trades abertos em cada hora, por entrada
+  hourEntries         Json?
+  /// 5.1 Stops por hora de entrada
+  hourStops           Json?
+  /// 5.1 P&L por hora de entrada
+  hourPnl             Json?
+  /// 5.1 A tabela por hora de entrada (sessão, trades, stops, P&L, R, velas, entrada mais frequente)
+  hourTable           Json?
+  /// 5.2 Trades fechados em cada hora, por motivo de saída
+  exitHours           Json?
+  /// 5.2 Stops atingidos por hora de saída
+  exitHourStops       Json?
+  /// 5.2 Take profits e trailing (a ganhar) por hora de saída
+  exitHourWins        Json?
+  /// 5.2 Entrada → hora de saída: onde cai o stop de cada entrada
+  exitHourEntries     Json?
+  /// 5.3 Os 6 cartões dos dias da semana
+  weekdayCards        Json?
+  /// 5.3 Trades abertos em cada dia da semana, por entrada
+  weekdayEntries      Json?
+  /// 5.3 Stops por dia: pelo dia de entrada e pelo de saída
+  weekdayStops        Json?
+  /// 5.3 P&L líquido por dia da semana
+  weekdayPnl          Json?
+  /// 5.3 A tabela por dia da semana
+  weekdayTable        Json?
+  /// 5.3 Stops por dia e entrada
+  weekdayEntryStops   Json?
+  /// 5.3 Ganhos por dia e entrada
+  weekdayEntryWins    Json?
+  /// 5.3 P&L por dia e entrada
+  weekdayEntryPnl     Json?
+  /// 5.4 Trades por dia × hora de entrada
+  weekdayHourTrades   Json?
+  /// 5.4 Stops por dia × hora de entrada
+  weekdayHourStops    Json?
+  /// 5.4 Win rate por dia × hora de entrada
+  weekdayHourWinRate  Json?
+  /// 5.4 P&L médio por dia × hora de entrada
+  weekdayHourPnl      Json?
+  /// 5.5 Os 6 cartões do calendário
+  calendarCards       Json?
+  /// 5.5 O P&L de cada dia
+  calendarDaily       Json?
+  /// 5.5 Os dias com mais stops
+  calendarStopDays    Json?
+  /// 5.5 Os melhores dias
+  calendarBestDays    Json?
+  /// 5.5 O P&L por dia do mês
+  calendarMonthDay    Json?
+  /// 5.5 O P&L de cada semana
+  calendarWeeks       Json?
+  /// 5.6 Cada entrada por hora
+  entryHourProfiles   Json?
+  /// 5.6 Entrada × bloco de 4 horas
+  entryHourBlocks     Json?
+  /// 5.7 Duração média por hora de entrada
+  positionDuration    Json?
+  /// 5.7 Posições abertas por hora do dia
+  positionHours       Json?
+  /// 5.7 Momentos-chave da sessão
+  sessionMoments      Json?
+  /// 5.7 Horas de funding
+  fundingHours        Json?
+  /// 5.7 Duração por dia da semana e por saída
+  durationByWeekday   Json?
+  /// 5.8 Filtros de horário corridos no motor
+  hourFilters         Json?
+  /// 5.8 Piores horas dentro vs fora da amostra
+  hourFilterWorst     Json?
+  /// 5.8 Melhores horas dentro vs fora da amostra
+  hourFilterBest      Json?
+  /// 5.9 Os 6 cartões dos gaps
+  gapCards            Json?
+  /// 5.9 Variação na vela das 00h UTC
+  gapDaily            Json?
+  /// 5.9 Trades por tipo de passagem
+  passageGroups       Json?
+  /// 5.9 Regras de sessão corridas no motor
+  sessionRules        Json?
+  /// 5.10 Por sessão mundial
+  worldSessions       Json?
+  /// 5.10 Horário de trabalho vs fora de horas
+  workHours           Json?
+  /// 5.10 Primeira e última hora de cada sessão
+  sessionEdges        Json?
+  /// 3.2 Os cartões do Monte Carlo
+  monteCarloCards     Json?
+  /// 3.2 O leque do capital (percentis)
+  monteCarloFan       Json?
+  /// 3.2 A distribuição da maior queda
+  monteCarloDrawdowns Json?
+  /// 3.3 Os cartões do walk-forward
+  walkForwardCards    Json?
+  /// 3.3 As janelas do walk-forward
+  walkForward         Json?
+  /// 3.4 Cada parâmetro × os passos
+  sensitivityParams   Json?
+  /// 3.4 O mapa dos dois parâmetros que mais mexem
+  sensitivityGrid     Json?
+  /// 3.5 Os custos mais altos
+  costStress          Json?
+  /// 3.6 Por regime de mercado
+  regimeTable         Json?
+  /// 3.6 Tendência × volatilidade
+  regimeGrid          Json?
+  /// Comparar simulações: o retorno acumulado de cada dia
+  performanceCurve    Json?
+  /// O veredicto e as conclusões de cada ecrã
+  verdicts            Json?
+  /// 3.8 · Desafio de prop firm — as regras, o período todo como um desafio (passou, chumbou ou
+  /// por decidir, quando e porquê, a pior perda num dia e a maior queda) e o resumo das janelas
+  propChallenge       Json?
+  /// 3.8 · As janelas do desafio — um desafio a começar em cada segunda-feira: o resultado, os
+  /// dias até ele e a regra que o chumbou
+  propWindows         Json?
+  error               String?
+  createdAt           DateTime           @default(now())
+  startedAt           DateTime?
+  finishedAt          DateTime?
+
+  /// A simulação de onde esta veio: a mesma estratégia corrida noutro mercado (3.7); nula = a original
+  sourceRunId String?
+  sourceRun   SimulationRun?  @relation("SimulationMarkets", fields: [sourceRunId], references: [id], onDelete: SetNull)
+  marketRuns  SimulationRun[] @relation("SimulationMarkets")
+
+  trades    SimulationTrade[]
+  liveTests LiveTest[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([sourceRunId])
+}
+
+/// Um trade de uma simulação, gravado pelo simulador no fim.
+model SimulationTrade {
+  runId      String
+  run        SimulationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  /// 1, 2, 3… pela ordem de entrada
+  index      Int
+  /// que entrada da estratégia abriu o trade (1, 2…)
+  entryRule  Int           @default(1)
+  /// long | short
+  side       String
+  entryTime  DateTime
+  entryPrice Float
+  exitTime   DateTime
+  exitPrice  Float
+  /// stop_loss | take_profit | signal (condição de saída) | liquidation | opposite (sinal
+  /// contrário) | excluded (período excluído) | end (fim do período)
+  exitReason String
+  /// com signal: que saída da entrada fechou o trade (1, 2…); num stop, o ajuste do stop (stopRules) que o pôs lá
+  exitRule   Int?
+  quantity   Float
+  /// em moeda de cotação, já sem as comissões
+  pnl        Float
+  pnlPct     Float
+  fees       Float
+  /// capital depois deste trade
+  equity     Float
+  /// funding pago (negativo = recebido), já descontado no pnl
+  funding    Float         @default(0)
+  /// 4.7 excursão adversa máxima em % do preço de entrada (0 ou negativa); nula nas antigas
+  maePct     Float?
+  /// 4.7 excursão favorável máxima em % do preço de entrada (0 ou positiva)
+  mfePct     Float?
+  /// 4.7 velas (do tempo gráfico) em que esteve aberto
+  bars       Int?
+  /// as saídas parciais antes da final: [{time (ms UTC), price, quantity, pnl}]; nulo sem elas
+  partials   Json?
+  /// os reforços (juntos à posição): [{time (ms UTC), price, quantity, n (o n.º do reforço)}]; nulo sem eles. A quantity do trade é a inicial
+  adds       Json?
+  /// por onde andou o stop (ajustes e passagem à entrada): [{time (ms UTC), level}], a começar no da entrada; nulo se não mexeu
+  stopMoves  Json?
+
+  @@id([runId, index])
+}
+
+/// Um teste ao vivo: a estratégia de uma simulação a correr com as velas da corretora em tempo
+/// real, com ordens a fingir. Quem o corre é o simulador (o processo `live`), que grava o estado
+/// e os registos; o backend só o cria, para e mostra.
+model LiveTest {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// a simulação de onde veio a estratégia
+  runId        String
+  run          SimulationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  instrumentId String
+  instrument   Instrument    @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  timeframe    String
+  /// a estratégia da simulação, copiada ao criar (com o capital do teste)
+  strategy     Json
+  /// quando começa a decidir e quando acaba (nulo = sem fim, até o parar)
+  startAt      DateTime
+  endAt        DateTime?
+  /// o início das velas de que precisa: o aquecimento dos indicadores antes do startAt
+  dataFromDate DateTime
+  /// waiting (antes do início) | running | stopping (mandado parar) | stopped | finished | failed
+  status       String        @default("waiting")
+  /// o que se vê agora: o preço, o capital e a equity, as posições abertas, os trades fechados,
+  /// as ordens à espera, a pausa e o estado de cada condição (o simulador grava-o a cada minuto)
+  state        Json?
+  /// o que o simulador já registou (para continuar sem repetir depois de um reinício)
+  memory       Json?
+  error        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  events LiveTestEvent[]
+
+  @@index([userId, createdAt])
+  @@index([runId, createdAt])
+  @@index([status])
+}
+
+/// Um registo de um teste ao vivo: uma condição que mudou, um sinal e o que lhe aconteceu, uma
+/// ordem, uma posição aberta ou fechada, uma parcial, um reforço, um passo do stop, um depósito,
+/// uma pausa ou a ligação à corretora.
+model LiveTestEvent {
+  id        BigInt   @id @default(autoincrement())
+  testId    String
+  test      LiveTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  /// quando aconteceu (no mercado), em UTC
+  time      DateTime
+  /// system | condition | conditionsMet | conditionsSnapshot | setup | signal | order | opened |
+  /// partial | add | stopMove | closed | touch | deposit | pause
+  kind      String
+  /// o que aconteceu (os números e a que entrada, saída ou condição se refere)
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@index([testId, time])
+  @@index([testId, kind, time])
+}
+
+/// Os avisos de cada utilizador (o sino no topo). O texto faz-se no ecrã, na língua de quem lê,
+/// a partir do `kind` e dos números em `data`.
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// version_installed (todos: entrou uma versão nova) | version_available (admins: há uma para instalar)
+  kind      String
+  /// os números do aviso (a versão, a anterior…)
+  data      Json
+  /// a página que abre ao clicar
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+// --- Finanças pessoais: ganhos ------------------------------------------------
+
+/// De onde vêm os ganhos de uma pessoa: um empregador (uma empresa só para
+/// registo, ou ligada a uma da base com `companyId`), um cliente dos recibos
+/// verdes, as raspadinhas e jogos, ou outro. Com o salário preenchido
+/// (`grossAmount`, `payDay`…) gera os ganhos esperados de cada mês, como os
+/// salários dos membros; recebê-los grava um `PersonalIncome` com o período.
+model PersonalIncomeSource {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  /// employer | client | lottery | other
+  kind            String
+  name            String
+  /// Uma empresa da base (das que a pessoa vê): só para mostrar a ligação
+  companyId       String?
+  company         Company?  @relation(fields: [companyId], references: [id])
+  /// O salário fixo, opcional: bruto e líquido por mês, 12 ou 14 vezes, o dia,
+  /// de quando a quando
+  grossAmount     Decimal?
+  netAmount       Decimal?
+  currencyId      String?
+  currency        Currency? @relation(fields: [currencyId], references: [id])
+  payDay          Int?
+  paymentsPerYear Int?
+  startDate       DateTime? @db.Date
+  endDate         DateTime? @db.Date
+  notes           String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  incomes PersonalIncome[]
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([currencyId])
+}
+
+/// Um ganho de uma pessoa: o que recebeu (ou ainda vai receber, `pending`).
+/// Os salários que uma empresa da base paga a esta pessoa (um `CompanyMemberPay`
+/// de um membro com o `userId` dela) aparecem sozinhos, calculados ao ler; dizer
+/// que já recebeu grava aqui com `memberPayId` e o período. O mesmo com os
+/// salários fixos de uma fonte (`sourceId` + `period`).
+model PersonalIncome {
+  id             String                @id @default(uuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id])
+  /// salary | freelance | lottery | other
+  kind           String
+  sourceId       String?
+  source         PersonalIncomeSource? @relation(fields: [sourceId], references: [id])
+  /// Vindo do salário de uma empresa da base
+  memberPayId    String?
+  memberPay      CompanyMemberPay?     @relation(fields: [memberPayId], references: [id])
+  /// O que paga de um salário: `YYYY-MM`, `YYYY-MM:holiday`, `YYYY-MM:christmas`;
+  /// `once` num recibo verde de uma empresa; nulo num ganho solto
+  period         String?
+  description    String?
+  /// O bruto, se se souber (um salário, um recibo verde antes da retenção)
+  grossAmount    Decimal?
+  /// O que entrou (o líquido)
+  amount         Decimal
+  withholdingPct Decimal?
+  currencyId     String
+  currency       Currency              @relation(fields: [currencyId], references: [id])
+  /// Quando entrou, ou quando se espera
+  date           DateTime              @db.Date
+  /// received | pending
+  status         String                @default("received")
+  /// A conta pessoal onde entrou
+  bankAccountId  String?
+  bankAccount    BankAccount?          @relation(fields: [bankAccountId], references: [id])
+  /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
+  /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
+  rateHour       DateTime?             @db.Timestamptz
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  /// Cada período de um salário recebe-se uma vez
+  @@unique([memberPayId, period])
+  @@unique([sourceId, period])
+  @@index([userId, date])
+  @@index([currencyId])
+  @@index([bankAccountId])
+}
+
+// --- Finanças pessoais: despesas -----------------------------------------------
+
+/// As categorias das despesas de cada pessoa, em dois níveis: uma categoria
+/// (Alimentação) e as subcategorias dela (`parentId`: Supermercado, Restaurantes).
+/// Na primeira vez entram umas por omissão, que a pessoa muda à vontade.
+model PersonalExpenseCategory {
+  id        String                    @id @default(uuid())
+  userId    String
+  user      User                      @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    PersonalExpenseCategory?  @relation("PersonalExpenseSubcategories", fields: [parentId], references: [id])
+  children  PersonalExpenseCategory[] @relation("PersonalExpenseSubcategories")
+  name      String
+  isActive  Boolean                   @default(true)
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+
+  expenses      PersonalExpense[]
+  subscriptions PersonalSubscription[]
+
+  @@index([userId])
+  @@index([parentId])
+}
+
+/// As categorias dos itens (o que se comprou), à parte das das despesas: em
+/// árvore, sem limite de níveis (Bebidas › Vinhos › Tinto).
+model PersonalItemCategory {
+  id        String                 @id @default(uuid())
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    PersonalItemCategory?  @relation("PersonalItemSubcategories", fields: [parentId], references: [id])
+  children  PersonalItemCategory[] @relation("PersonalItemSubcategories")
+  name      String
+  isActive  Boolean                @default(true)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  products PersonalProduct[]
+
+  @@index([userId])
+  @@index([parentId])
+}
+
+/// Um produto que a pessoa compra (Leite Mimosa 1L): o nome, a marca e a
+/// categoria de item. Repete-se de compra em compra, por isso dá o
+/// histórico do preço.
+model PersonalProduct {
+  id         String                @id @default(uuid())
+  userId     String
+  user       User                  @relation(fields: [userId], references: [id])
+  name       String
+  brand      String?
+  /// kg, l, un…
+  unit       String?
+  categoryId String?
+  category   PersonalItemCategory? @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  items PersonalExpenseItem[]
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+/// Uma despesa: uma compra (o mercado, com as linhas de cada produto), dinheiro
+/// posto numa empresa da base (`company`, com `companyId`) ou outra. O total é
+/// a soma das linhas, ou o valor escrito quando não as tem.
+model PersonalExpense {
+  id               String                   @id @default(uuid())
+  userId           String
+  user             User                     @relation(fields: [userId], references: [id])
+  /// purchase | company | other
+  kind             String                   @default("purchase")
+  date             DateTime                 @db.Date
+  /// Onde se gastou (Continente, Galp…)
+  merchant         String?
+  description      String?
+  /// A categoria ou subcategoria da despesa (as linhas têm a do produto)
+  categoryId       String?
+  category         PersonalExpenseCategory? @relation(fields: [categoryId], references: [id])
+  /// O dinheiro posto numa empresa (só no `company`)
+  companyId        String?
+  company          Company?                 @relation(fields: [companyId], references: [id])
+  /// O recebimento do sócio que isto criou na empresa
+  companyPaymentId String?                  @unique
+  companyPayment   CompanyPayment?          @relation(fields: [companyPaymentId], references: [id], onDelete: SetNull)
+  amount           Decimal
+  currencyId       String
+  currency         Currency                 @relation(fields: [currencyId], references: [id])
+  /// paid | pending
+  status           String                   @default("paid")
+  bankAccountId    String?
+  bankAccount      BankAccount?             @relation(fields: [bankAccountId], references: [id])
+  /// O pagamento de uma subscrição e o período que paga (`YYYY-MM`, o mês em que
+  /// começa; `once` numa não recorrente)
+  subscriptionId   String?
+  subscription     PersonalSubscription?    @relation(fields: [subscriptionId], references: [id])
+  period           String?
+  notes            String?
+  /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
+  /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
+  rateHour         DateTime?                @db.Timestamptz
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  items PersonalExpenseItem[]
+
+  /// Cada período de uma subscrição paga-se uma vez
+  @@unique([subscriptionId, period])
+  @@index([userId, date])
+  @@index([categoryId])
+  @@index([companyId])
+  @@index([currencyId])
+  @@index([bankAccountId])
+}
+
+/// Uma linha de uma compra: o produto (do catálogo da pessoa, ou só o nome), a
+/// quantidade, o preço e a subcategoria (por omissão a do produto).
+model PersonalExpenseItem {
+  id        String           @id @default(uuid())
+  expenseId String
+  expense   PersonalExpense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  productId String?
+  product   PersonalProduct? @relation(fields: [productId], references: [id])
+  name      String
+  quantity  Decimal          @default(1)
+  unitPrice Decimal
+  amount    Decimal
+  position  Int              @default(0)
+
+  @@index([expenseId])
+  @@index([productId])
+}
+
+// --- Finanças pessoais: subscrições --------------------------------------------
+
+/// Uma subscrição da pessoa (Netflix, Xbox Game Pass, um passe de jogo): o que
+/// custa, de quanto em quanto tempo e de quando a quando. Os pagamentos por
+/// fazer calculam-se ao ler, um por período; dizer que um está pago (também um
+/// mês à frente) grava uma `PersonalExpense` com `subscriptionId` e o `period`.
+model PersonalSubscription {
+  id             String                   @id @default(uuid())
+  userId         String
+  user           User                     @relation(fields: [userId], references: [id])
+  /// video | music | gaming | software | news | other
+  kind           String                   @default("other")
+  name           String
+  /// Quem cobra (Netflix, Microsoft…), vai para a loja da despesa
+  merchant       String?
+  amount         Decimal
+  currencyId     String
+  currency       Currency                 @relation(fields: [currencyId], references: [id])
+  /// Recorrente: renova-se sozinha até ao `endDate` (ou sem fim); não
+  /// recorrente: um só pagamento que cobre de `startDate` a `endDate`
+  recurring      Boolean                  @default(true)
+  /// De quantos em quantos meses se paga: 1 mensal, 3 trimestral, 12 anual
+  intervalMonths Int                      @default(1)
+  /// O dia do mês em que cobra (por omissão o do `startDate`)
+  billingDay     Int?
+  startDate      DateTime                 @db.Date
+  endDate        DateTime?                @db.Date
+  /// active | paused | cancelled
+  status         String                   @default("active")
+  /// A categoria das despesas que grava (por omissão, nenhuma)
+  categoryId     String?
+  category       PersonalExpenseCategory? @relation(fields: [categoryId], references: [id])
+  /// A conta de onde sai, proposta ao marcar como paga
+  bankAccountId  String?
+  bankAccount    BankAccount?             @relation(fields: [bankAccountId], references: [id])
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  expenses PersonalExpense[]
+
+  @@index([userId])
+  @@index([currencyId])
+  @@index([categoryId])
+  @@index([bankAccountId])
+}
+
+/// Uma dívida da pessoa: o que deve (um crédito, um cartão, um empréstimo de
+/// alguém) ou o que lhe devem (emprestou). O saldo calcula-se ao ler: o
+/// `openingBalance` na `openingDate` menos o capital pago e mais o que se
+/// acrescentou depois.
+model PersonalDebt {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  /// owe (devo) | lent (devem-me)
+  direction      String       @default("owe")
+  /// mortgage (habitação) | car (automóvel) | personal (pessoal) | credit_card
+  /// | student (estudos) | consumer (compra a prestações) | family (família ou
+  /// amigos) | tax (Estado, Finanças/Seg. Social) | other
+  kind           String
+  /// O nome que a pessoa lhe dá (Casa de Braga, Cartão Visa…)
+  name           String
+  /// A quem se deve, ou quem deve (banco, pessoa)
+  counterparty   String?
+  /// O banco da base, se for um (só para mostrar)
+  platformId     String?
+  platform       Platform?    @relation(fields: [platformId], references: [id])
+  currencyId     String
+  currency       Currency     @relation(fields: [currencyId], references: [id])
+  /// O montante pedido no início (ou o limite, num cartão)
+  principal      Decimal
+  /// O que faltava pagar quando se registou (uma dívida antiga entra a meio)
+  openingBalance Decimal
+  openingDate    DateTime     @db.Date
+  /// A taxa anual (TAN, %) e se é fixa ou variável
+  interestRate   Decimal?
+  /// fixed | variable
+  rateType       String?
+  /// A prestação, o dia do mês e até quando (sem prestação: sem plano, como um
+  /// empréstimo de família ou um cartão)
+  installment    Decimal?
+  paymentDay     Int?
+  startDate      DateTime     @db.Date
+  endDate        DateTime?    @db.Date
+  /// A conta pessoal de onde sai (ou para onde entra, num `lent`)
+  bankAccountId  String?
+  bankAccount    BankAccount? @relation(fields: [bankAccountId], references: [id])
+  /// active | paid_off | closed
+  status         String       @default("active")
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  movements PersonalDebtMovement[]
+
+  @@index([userId, status])
+  @@index([currencyId])
+  @@index([platformId])
+  @@index([bankAccountId])
+}
+
+/// Um movimento de uma dívida: o pagamento de uma prestação (com o capital, os
+/// juros e os encargos separados), uma amortização antecipada, ou o que a faz
+/// crescer (uma compra no cartão, mais dinheiro emprestado).
+model PersonalDebtMovement {
+  id            String       @id @default(uuid())
+  debtId        String
+  debt          PersonalDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  /// installment | extra (amortização) | charge (aumenta a dívida)
+  kind          String
+  date          DateTime     @db.Date
+  /// O total, na moeda da dívida
+  amount        Decimal
+  /// A parte que abate o saldo; o resto é juros e encargos (sem ela, tudo capital)
+  principalPart Decimal?
+  interestPart  Decimal?
+  feesPart      Decimal?
+  /// YYYY-MM da prestação paga: uma vez por mês, e sai dos «por pagar»
+  period        String?
+  bankAccountId String?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  notes         String?
+  /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
+  /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
+  rateHour      DateTime?    @db.Timestamptz
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([debtId, period])
+  @@index([debtId, date])
+  @@index([bankAccountId])
+}
+
+// --- Finanças pessoais: portefólios --------------------------------------------
+
+/// Um portefólio de uma pessoa (Dividendos, Poupanças, Carros…). Os manuais cria-os a
+/// pessoa; os de uma corretora (`source` api) vão ser criados ao ligá-la, um por conta
+/// dela (`platformId` + `externalId`), e as transações entram com o `externalId` delas.
+model PersonalPortfolio {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  /// manual | api
+  source     String    @default("manual")
+  /// A corretora de onde vem (só nos de `api`)
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  /// O id da conta na corretora
+  externalId String?
+  /// A última vez que se foi buscar à corretora
+  syncedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  transactions PersonalPortfolioTransaction[]
+
+  @@unique([userId, name])
+  @@unique([userId, platformId, externalId])
+  @@index([platformId])
+}
+
+/// Cada movimento de um ativo num portefólio. Para já só o dinheiro passivo: o ativo
+/// é o dinheiro da moeda (Asset liquidity/cash com o `currencyId`).
+model PersonalPortfolioTransaction {
+  id            String            @id @default(uuid())
+  portfolioId   String
+  portfolio     PersonalPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  assetId       String
+  asset         Asset             @relation(fields: [assetId], references: [id])
+  /// Dinheiro: deposit | withdrawal | interest | fee | tax
+  /// (mais tarde: buy, sell, dividend, split, transfer…)
+  kind          String
+  date          DateTime          @db.Date
+  /// Quanto do ativo; no dinheiro é o próprio valor
+  quantity      Decimal
+  /// Preço por unidade na moeda da transação; vazio no dinheiro
+  price         Decimal?
+  /// O total, na moeda da transação
+  amount        Decimal
+  currencyId    String
+  currency      Currency          @relation(fields: [currencyId], references: [id])
+  /// A conta pessoal (a poupança) onde está, se for uma delas
+  bankAccountId String?
+  bankAccount   BankAccount?      @relation(fields: [bankAccountId], references: [id])
+  notes         String?
+  /// O id na corretora, para não importar duas vezes
+  externalId    String?
+  /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
+  /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
+  rateHour      DateTime?         @db.Timestamptz
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([portfolioId, externalId])
+  @@index([portfolioId, date])
+  @@index([assetId])
+  @@index([currencyId])
+  @@index([bankAccountId])
+}

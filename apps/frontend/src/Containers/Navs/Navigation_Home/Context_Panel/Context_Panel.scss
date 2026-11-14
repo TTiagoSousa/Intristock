@@ -1,0 +1,205 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Context_Panel{
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--navbar-vertical-card-bg-color);
+  border-right: 1px solid var(--line);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+
+  &::-webkit-scrollbar{ width: 7px; }
+  &::-webkit-scrollbar-track{ background: transparent; }
+  &::-webkit-scrollbar-thumb{
+    background-color: var(--line-strong);
+    border-radius: 4px;
+  }
+
+  .Panel_Head{
+    padding: 0 8px 8px;
+  }
+
+  .Panel_Title{
+    display: block;
+    font-family: Font.$font_family_sans;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--text);
+  }
+
+  .Panel_Hint{
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .Panel_Back{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 8px;
+    margin-bottom: 4px;
+    border-radius: var(--radius-sm);
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    svg{ width: 14px; height: 14px; }
+
+    &:hover{
+      background-color: var(--navbar-vertical-item-hover-background);
+      color: var(--text);
+    }
+  }
+
+  // Cartão da empresa aberta — deixa sempre claro onde estamos
+  .Panel_Company{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+  }
+
+  .Panel_Company_Mark{
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    background-color: var(--company-mark-background);
+    color: var(--company-mark-text);
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  .Panel_Company_Text{
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .Panel_Company_Name{
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .Panel_Company_Tax{
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .Panel_Group{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    &.Panel_Group_Spaced{ margin-top: 12px; }
+  }
+
+  // Apagar a simulação aberta, separado das vistas
+  .Panel_Danger{
+    margin-top: 12px;
+    padding: 0 2px;
+  }
+
+  .Panel_Group_Label{
+    padding: 0 8px 4px;
+  }
+
+  .Panel_Item{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 400;
+    text-align: left;
+    color: var(--navbar-vertical-default-link-color);
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    &:hover{
+      background-color: var(--navbar-vertical-item-hover-background);
+      color: var(--navbar-vertical-card-link-hover-color);
+    }
+
+    &.Active{
+      background-color: var(--navbar-vertical-item-active-background);
+      color: var(--navbar-vertical-card-link-active-color);
+      font-weight: 500;
+    }
+
+    // Secções recuadas, ligadas por uma linha vertical ao item pai.
+    // O `top`/`bottom` negativos cobrem o gap de 2px entre itens: sem isso a
+    // linha aparecia partida em traços, um por cada sub-item.
+    &.Nested,
+    &.Sub{
+      position: relative;
+
+      &::before{
+        content: '';
+        position: absolute;
+        top: -1px;
+        bottom: -1px;
+        width: 1px;
+        background-color: var(--navbar-vertical-submenu-line);
+      }
+
+      &.Active::before{ background-color: var(--accent); }
+    }
+
+    // Pai sem ícone (secção de um módulo pessoal): o texto dele começa no
+    // padding, por isso basta recuar o filho
+    &.Nested{
+      padding-left: 24px;
+
+      &::before{ left: 15px; }
+    }
+
+    // Pai com ícone (área de uma empresa): o texto dele começa depois do
+    // ícone — 9 de padding + 15 do ícone + 8 de gap — e o filho alinha por aí
+    &.Sub{
+      padding-left: 32px;
+
+      &::before{ left: 16px; }
+    }
+  }
+
+  .Panel_Item_Icon{
+    display: flex;
+    width: 15px;
+    height: 15px;
+    flex: none;
+  }
+
+  .Panel_Item_Label{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

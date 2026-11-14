@@ -1,0 +1,102 @@
+@use 'palette' as P;
+
+// ============================================================
+// CAMADA 2 — TOKENS SEMÂNTICOS
+// O único sítio do projeto onde existe um valor por tema.
+// Cada token diz o PAPEL que a cor tem, não onde é usada.
+//
+// Formato: 'nome': (light: <valor>, dark: <valor>)
+// As duas chaves são obrigatórias e nomeadas — antes isto era
+// uma lista `(dark, light)` e bastava trocar a ordem para o
+// tema sair ao contrário sem ninguém dar por isso.
+// ============================================================
+
+$core: (
+  // --- superfícies, da mais funda para a mais saliente ---
+  'bg':          (light: P.$gray-100,  dark: P.$ink-1000),
+  'surface':     (light: P.$white,     dark: P.$ink-950),
+  'surface-2':   (light: P.$gray-50,   dark: P.$ink-900),
+  'surface-3':   (light: P.$gray-200,  dark: P.$ink-850),
+
+  // --- linhas ---
+  'line':        (light: P.$gray-300,  dark: P.$ink-800),
+  'line-strong': (light: P.$gray-400,  dark: P.$ink-700),
+
+  // --- texto, do mais forte para o mais apagado ---
+  'text':        (light: P.$gray-text, dark: P.$ink-text),
+  'text-2':      (light: P.$gray-600,  dark: P.$ink-text-2),
+  'text-3':      (light: P.$gray-500,  dark: P.$ink-text-3),
+
+  // --- azul da marca ---
+  'accent':       (light: P.$blue-light,       dark: P.$blue-dark),
+  'accent-hover': (light: P.$blue-light-hover, dark: P.$blue-dark-hover),
+  'accent-soft':  (light: rgba(P.$blue-light, .10), dark: rgba(P.$blue-dark, .14)),
+  'accent-line':  (light: rgba(P.$blue-light, .30), dark: rgba(P.$blue-dark, .36)),
+  // cor do texto POR CIMA do azul — no escuro o azul é claro, por isso é tinta escura
+  'accent-ink':   (light: P.$white,    dark: P.$ink-on-light),
+  // texto por cima do verde ou do vermelho cheios (alertas, botão de apagar)
+  'solid-ink':    (light: P.$white,    dark: P.$ink-on-light),
+
+  // --- estado ---
+  'gain':      (light: P.$green-light, dark: P.$green-dark),
+  'gain-soft': (light: rgba(P.$green-light, .12), dark: rgba(P.$green-dark, .15)),
+  'loss':      (light: P.$red-light,   dark: P.$red-dark),
+  'loss-soft': (light: rgba(P.$red-light, .12), dark: rgba(P.$red-dark, .15)),
+  'warn':      (light: P.$amber-light, dark: P.$amber-dark),
+  'warn-soft': (light: rgba(P.$amber-light, .14), dark: rgba(P.$amber-dark, .16)),
+  'gold':      (light: P.$orange-light, dark: P.$orange-dark),
+  'gold-soft': (light: rgba(P.$orange-light, .12), dark: rgba(P.$orange-dark, .15)),
+  // barras de um histograma por cima das velas (o perfil de volume): fora e dentro do destaque
+  'accent-faint': (light: rgba(P.$blue-light, .22), dark: rgba(P.$blue-dark, .26)),
+  'accent-mid':   (light: rgba(P.$blue-light, .55), dark: rgba(P.$blue-dark, .6)),
+  'gold-faint':   (light: rgba(P.$orange-light, .22), dark: rgba(P.$orange-dark, .26)),
+  'gold-mid':     (light: rgba(P.$orange-light, .55), dark: rgba(P.$orange-dark, .6)),
+
+  // --- séries (linhas de indicadores) ---
+  'violet':    (light: P.$violet-light, dark: P.$violet-dark),
+  'teal':      (light: P.$teal-light,   dark: P.$teal-dark),
+  'pink':      (light: P.$pink-light,   dark: P.$pink-dark),
+
+  // --- profundidade e foco ---
+  'shadow':      (light: P.$shadow-light,      dark: P.$shadow-dark),
+  'shadow-lift': (light: P.$shadow-light-lift, dark: P.$shadow-dark-lift),
+  'shadow-pop':  (light: P.$shadow-light-pop,  dark: P.$shadow-dark-pop),
+  'ring':        (light: 0 0 0 3px rgba(P.$blue-light, .30), dark: 0 0 0 3px rgba(P.$blue-dark, .34)),
+  'scrim':       (light: P.$scrim-light, dark: P.$scrim-dark),
+  'scrim-strong': (light: P.$scrim-strong-light, dark: P.$scrim-strong-dark),
+  'grid-line':   (light: P.$grid-light, dark: P.$grid-dark)
+);
+
+// ============================================================
+// Tokens que NÃO mudam com o tema.
+// Ficam à parte precisamente para não dar a ideia de que há
+// uma versão clara e uma escura de cada um.
+// ============================================================
+
+$constants: (
+  // cantos na grelha de 4: um cartão (12) com um controlo dentro (8), as etiquetas (6)
+  'radius':    12px,
+  'radius-sm': 8px,
+  'radius-lg': 16px,
+  'radius-xs': 6px,
+
+  // escala de texto (tamanho / altura da linha)
+  'text-xs':      12px,
+  'text-sm':      12px,
+  'text-base':    13px,
+  'text-md':      14px,
+  'text-lg':      16px,
+  'text-xl':      20px,
+
+  // movimento: uma curva e poucas durações
+  'ease-out':  cubic-bezier(.23, 1, .32, 1),
+  'dur-fast':  140ms,
+  'dur-menu':  180ms,
+  'dur-panel': 220ms,
+
+  // texto que assenta sempre sobre cor forte (azul, verde, vermelho)
+  'on-solid':      #ffffff,
+  // a bolinha de um interruptor, por cima da cor dele
+  'thumb-shadow':  0 1px 2px rgba(0, 0, 0, .24),
+  'on-solid-soft': rgba(255, 255, 255, .86)
+);

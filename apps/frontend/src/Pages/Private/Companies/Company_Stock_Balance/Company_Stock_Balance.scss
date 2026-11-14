@@ -1,0 +1,35 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão e a tabela vêm do Styles/Cards.scss. Aqui fica só o que é
+// das existências.
+.Company_Stock_Balance{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Stock_Item_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+// A linha inteira leva aos movimentos do item
+.Stock_Row{
+  cursor: pointer;
+
+  &:hover .Stock_Expand{ opacity: 1; }
+}
+
+.Stock_Expand{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--dur-fast);
+}
+
+// Stock negativo é sempre um erro de registo — tem de saltar à vista
+.Stock_Negative{ color: var(--loss); }
+.Stock_Value{ font-weight: 500; }

@@ -1,0 +1,311 @@
+// Ganhos (finanças pessoais): o dashboard e o registo. A casca dos cartões, as
+// tabelas, os separadores e os cartões de números vêm do Styles/.
+.Earnings{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+
+  .Page_Head{ margin-bottom: 0; }
+
+  // A moeda e os botões lado a lado (o botão ocupa a largura toda sem isto)
+  .Page_Head_Actions{
+    align-items: center;
+
+    .Simple_Button{ width: auto; }
+  }
+}
+
+// Os cartões de baixo do dashboard: esticam até encher a linha
+.Earnings_Panels{
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+
+  > *{ min-width: 0; }
+}
+
+.Earnings_Card{
+  padding: 0;
+  overflow: hidden;
+}
+
+.Earnings_Controls{
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// O cartão esticado por cima do gráfico: os filtros dele e, à direita, o registo
+.Earnings_Toolbar{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding: 12px 16px;
+}
+
+.Earnings_Range{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input{ width: 150px; }
+}
+
+.Earnings_Range_Sep{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// O botão do registo à altura das abas
+.Earnings_Register{ margin-left: auto; }
+
+.Earnings_Register .Simple_Button{
+  width: auto;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.Earnings_Body{
+  padding: 12px 16px 16px;
+
+  .Earnings_Col_Action{ width: 110px; }
+  .Earnings_Col_Icons{ width: 70px; }
+}
+
+.Earnings_Filters{
+  display: flex;
+  align-items: flex-end;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--surface-2);
+}
+
+// Os filtros num cartão próprio, por cima da tabela
+.Earnings_Filter_Card .Earnings_Filters{
+  // Os campos todos da mesma largura, numa grelha; o limpar no fim
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: none;
+  background-color: transparent;
+
+  .Earnings_Filter,
+  .Earnings_Filter.Wide{ width: auto; min-width: 0; }
+
+  .Earnings_Filter > :not(.Eyebrow),
+  .Earnings_Filter input{ width: 100%; }
+
+  .Earnings_Clear{ margin-left: 0; padding-bottom: 8px; }
+
+  @media (max-width: 900px){
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.Earnings_Filter{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  input{ width: 160px; }
+
+  &.Wide{ width: 200px; }
+
+  // A etiqueta ao lado das abas, numa linha só
+  &.Inline{
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.Earnings_Clear{
+  margin-left: auto;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+
+  &:hover{ color: var(--accent-hover); }
+}
+
+.Earnings_Chart{
+  height: 280px;
+  padding: 12px 16px 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.Earnings_Message{
+  display: block;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--text-2);
+
+  &.Bad{ color: var(--loss); }
+}
+
+.Earnings_Error{ color: var(--loss); }
+
+.Earnings_Strong{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Earnings_Sub{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Earnings_Paid{ color: var(--gain); }
+
+.Earnings_Pill{ margin-left: 8px; }
+
+.Earnings_Inactive td{ color: var(--text-3); }
+
+.Earnings_Link{
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+
+  &:hover{ color: var(--accent-hover); }
+}
+
+// "Recebido": o botão de cada esperado
+.Earnings_Action{
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background-color: var(--surface);
+
+  &:hover{
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+  }
+}
+
+// Por tipo e por fonte: uma barra por linha, à escala da maior
+.Earnings_Shares{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Earnings_Share_Head{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+
+  .Num{
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+.Earnings_Share_Track{
+  height: 6px;
+  border-radius: 4px;
+  background-color: var(--surface-3);
+  overflow: hidden;
+}
+
+.Earnings_Share_Fill{
+  height: 100%;
+  border-radius: 4px;
+  background-color: var(--gain);
+
+  &.Accent{ background-color: var(--accent); }
+}
+
+.Earnings_Upcoming{
+  display: flex;
+  flex-direction: column;
+}
+
+.Earnings_Upcoming_Row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+}
+
+.Earnings_Upcoming_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.Earnings_Upcoming_Value{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Earnings_Tooltip{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  box-shadow: var(--shadow-pop);
+
+  .Earnings_Tooltip_Label{
+    font-size: 12px;
+    color: var(--text-3);
+
+    &::first-letter{ text-transform: uppercase; }
+  }
+
+  .Earnings_Tooltip_Row{
+    display: grid;
+    grid-template-columns: 8px auto auto;
+    align-items: center;
+    column-gap: 8px;
+  }
+
+  .Earnings_Tooltip_Dot{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .Earnings_Tooltip_Name{
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .Earnings_Tooltip_Value{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+  }
+}

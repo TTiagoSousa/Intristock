@@ -1,0 +1,136 @@
+@use '../../Styles/Fonts.scss' as Font;
+
+// O sino do topo e a lista dos avisos que abre por baixo dele
+.Notifications_Menu{
+  position: relative;
+
+  .Notifications_Bell{ position: relative; }
+
+  .Notifications_Badge{
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background-color: var(--notifications-badge-background);
+    color: var(--notifications-badge-text);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    pointer-events: none;
+  }
+}
+
+.Notifications_Dropdown{
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--notifications-dropdown-background);
+  border: 1px solid var(--notifications-dropdown-border);
+  border-radius: var(--radius);
+  box-shadow: var(--notifications-dropdown-shadow);
+  transform-origin: top right;
+  animation: Menu_In var(--dur-menu) var(--ease-out);
+  z-index: 60;
+  overflow: hidden;
+}
+
+.Notifications_Head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--notifications-dropdown-line);
+}
+
+.Notifications_Title{
+  font-family: Font.$font_family_sans;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.Notifications_Read_All{
+  font-size: 12px;
+  color: var(--notifications-link);
+
+  &:hover{ text-decoration: underline; }
+}
+
+.Notifications_Empty{
+  padding: 20px 12px;
+  font-size: 13px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.Notifications_List{
+  max-height: 420px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.Notifications_Item{
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 8px;
+  border-radius: 8px;
+  text-align: left;
+  transition: background-color var(--dur-fast);
+
+  &:hover{ background-color: var(--notifications-item-hover); }
+
+  &.Unread{
+    background-color: var(--notifications-unread-background);
+
+    &:hover{ background-color: var(--notifications-item-hover); }
+
+    .Notifications_Dot{ background-color: var(--notifications-unread-dot); }
+    .Notifications_Item_Title{ font-weight: 500; }
+  }
+}
+
+.Notifications_Dot{
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+.Notifications_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.Notifications_Item_Title{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Notifications_Item_Body{
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Notifications_Item_Time{
+  font-size: 12px;
+  color: var(--text-3);
+}

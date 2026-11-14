@@ -1,0 +1,82 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+.Line_Chart{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+  background-color: var(--cards-background);
+  border: var(--card-border);
+  box-shadow: var(--card-box-shadow);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  font-family: Font.$font_family_sans;
+
+  .Line_Chart_Header{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    background-color: var(--card-global-header-background);
+
+    .Line_Chart_Title{
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--card-global-header-title-color);
+    }
+
+    .Line_Chart_Subtitle{
+      font-size: 12px;
+      color: var(--cards-base-letter-color);
+    }
+  }
+
+  .Line_Chart_Body{
+    height: 300px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+}
+
+.LC_Tooltip{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 12px;
+  background-color: var(--cards-background);
+  border: var(--card-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-box-shadow);
+
+  .LC_Tooltip_Label{
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cards-base-letter-color);
+    margin-bottom: 2px;
+  }
+
+  .LC_Tooltip_Row{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .LC_Tooltip_Dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .LC_Tooltip_Name{
+      font-size: 12px;
+      color: var(--cards-base-letter-color);
+    }
+
+    .LC_Tooltip_Value{
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--cards-base-letter-color);
+      margin-left: auto;
+    }
+  }
+}

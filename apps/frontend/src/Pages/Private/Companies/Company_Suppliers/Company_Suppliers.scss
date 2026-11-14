@@ -1,0 +1,83 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão, o cabeçalho, a tabela e as ações por linha vêm do
+// Styles/Cards.scss. Aqui fica só o que é dos fornecedores.
+.Company_Suppliers{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Supplier_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+// Telefones extra: para quê + número + apagar, numa linha
+.Supplier_Phones{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Supplier_Phone{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  > :first-child{ flex: 1; }
+  > :nth-child(2){ flex: 1.4; }
+  > .Row_Action{ flex: none; }
+}
+
+.Supplier_Phone_Add{ margin-top: 4px; }
+
+// O nome comercial vive debaixo do nome fiscal, mais apagado
+.Supplier_Alias{
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Estado do fornecedor: pastilha, para se ler de relance numa coluna
+.Supplier_Status{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--supplier-status-inactive-background);
+  color: var(--supplier-status-inactive-color);
+
+  &::before{
+    content: '';
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.Active{
+    background-color: var(--supplier-status-active-background);
+    color: var(--supplier-status-active-color);
+  }
+}
+
+// O logótipo de um fornecedor que veio do catálogo, ao lado do nome
+.Supplier_Name_Line{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Supplier_Logo{
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-xs);
+  object-fit: contain;
+}

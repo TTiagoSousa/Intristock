@@ -1,0 +1,88 @@
+@use '../../Styles/Fonts.scss' as Font;
+
+.Update_Popover{
+  .Update_Headline{
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: var(--text);
+
+    &.Ok{ color: var(--gain); }
+    &.Bad{ color: var(--loss); }
+  }
+
+  // Um passo por linha, com o círculo a dizer o estado. O tamanho de cada linha
+  // não muda entre estados: só a cor do círculo e do texto.
+  .Update_Steps{
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    li{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-3);
+
+      i{
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--line-strong);
+        flex: 0 0 auto;
+      }
+
+      &.Live{
+        color: var(--text);
+        i{ border-color: var(--accent); background-color: var(--accent-soft); }
+      }
+      &.Ok{
+        color: var(--text-2);
+        i{ border-color: var(--gain); background-color: var(--gain); }
+      }
+      &.Bad{
+        color: var(--loss);
+        i{ border-color: var(--loss); background-color: var(--loss); }
+      }
+    }
+  }
+
+  .Update_Error{
+    margin: 12px 0 0;
+    padding: 12px 12px;
+    border-radius: var(--radius-sm);
+    background-color: var(--loss-soft);
+    color: var(--loss);
+    font-size: 13px;
+  }
+
+  .Update_Log{
+    margin-top: 12px;
+
+    button{
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    pre{
+      margin: 8px 0 0;
+      max-height: 220px;
+      overflow: auto;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      background-color: var(--surface-2);
+      color: var(--text-2);
+      font-family: Font.$font_family_sans;
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+  }
+}

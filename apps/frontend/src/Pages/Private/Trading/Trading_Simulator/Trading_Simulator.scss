@@ -1,0 +1,2076 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão, o cabeçalho e a tabela vêm do Styles/Cards.scss. Aqui
+// tudo fica um pouco mais pequeno (cartões, campos), para caber mais no ecrã.
+.Trading_Simulator{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+
+  .Card_Header{ padding: 8px 16px 8px; }
+  .Card_Title{ font-size: 13px; }
+  .Card_Subtitle{ font-size: 12px; }
+
+  .Card_Body{
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .Global_Input input,
+  .Dropdown_Field .Dropdown_Field_Trigger{
+    height: 30px;
+    font-size: 12px;
+  }
+}
+
+// Ações à direita no cabeçalho de um cartão (a moeda do resultado)
+.Card_Header_Actions{ margin-left: auto; }
+
+// --- a ficha ----------------------------------------------------------------
+// Ao jeito das fichas do ERPNext (Record_Page): o mercado numa linha, os
+// separadores sublinhados e, ao lado do conteúdo, o resumo com o Simular.
+.Sim_Page{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// Separadores em texto, com o ativo sublinhado (como no Record_Page)
+.Sim_Tabs{
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar{ display: none; }
+
+  button{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+    margin-bottom: -1px;
+    padding: 12px 0 8px;
+    border-bottom: 2px solid transparent;
+    background: none;
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    white-space: nowrap;
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+
+    &:hover{ color: var(--text); }
+
+    &.Active{
+      color: var(--text);
+      border-bottom-color: var(--text);
+    }
+
+    // Um separador com alguma coisa por resolver leva um ponto vermelho
+    &.Has_Problem::after{
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--trading-failed-color);
+    }
+  }
+}
+
+.Sim_Tab_Count{
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background-color: var(--trading-filter-active-background);
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--trading-filter-active-color);
+}
+
+.Sim_Layout{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: start;
+  gap: 16px;
+
+  &.Full{ grid-template-columns: minmax(0, 1fr); }
+
+  @media (max-width: 1100px){ grid-template-columns: minmax(0, 1fr); }
+}
+
+.Sim_Main{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+// Um separador de definições: secções com título e uma linha entre elas
+.Sim_Panel{ padding: 0 16px; }
+
+.Sim_Section{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+}
+
+.Sim_Section_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Sim_Fields{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px 16px;
+
+  @media (max-width: 900px){ grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  @media (max-width: 600px){ grid-template-columns: minmax(0, 1fr); }
+
+  .Sim_Field_Wide{ grid-column: 1 / -1; }
+}
+
+// O resumo fica à vista enquanto se desce a página
+.Sim_Summary{
+  position: sticky;
+  top: 12px;
+
+  @media (max-width: 1100px){ position: static; }
+}
+
+.Sim_Summary_Body{ gap: 12px; }
+
+.Sim_Summary_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Sim_Summary_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.Sim_Summary_Item{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+
+  dt{ color: var(--text-3); }
+
+  dd{
+    margin: 0;
+    font-weight: 500;
+    text-align: right;
+    color: var(--text);
+  }
+}
+
+.Sim_Summary_Options{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.Sim_Summary_Label{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Sim_Summary_Chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.Sim_Summary_Chip{
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background-color: var(--trading-filter-active-background);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--trading-filter-active-color);
+
+  &:hover{ text-decoration: underline; }
+}
+
+// O que falta para simular; cada linha leva ao separador onde se resolve
+.Sim_Problems{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  button{
+    padding: 0;
+    background: none;
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    text-align: left;
+    color: var(--trading-failed-color);
+
+    &:hover{ text-decoration: underline; }
+  }
+}
+
+// A comissão de entrada e a de saída lado a lado, no mesmo campo
+.Fee_Inputs{
+  display: flex;
+  gap: 8px;
+}
+
+.Simulator_Field{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  label,
+  .Simulator_Label{
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+
+    em{ font-style: normal; color: var(--text-3); }
+  }
+}
+
+.Simulator_Hint,
+.Simulator_Error{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+}
+
+.Simulator_Hint{ color: var(--text-3); }
+.Simulator_Error{ color: var(--trading-failed-color); }
+
+// --- compra / venda --------------------------------------------------------
+.Side_Switch{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 30px;
+  padding: 2px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--input-global-background-color);
+}
+
+.Side_Option{
+  border-radius: var(--radius-xs);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  &:hover:not(:disabled){ color: var(--text); }
+  &:disabled{ opacity: .45; cursor: not-allowed; }
+
+  &.long.Active{
+    background-color: var(--trading-long-background);
+    color: var(--trading-long-color);
+  }
+
+  &.short.Active{
+    background-color: var(--trading-short-background);
+    color: var(--trading-short-color);
+  }
+}
+
+// --- condições --------------------------------------------------------------
+.Candle_Rule{
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--trading-rule-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--trading-rule-background);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.Conditions_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Os campos de números têm todos a mesma largura (valor fixo, ± %, velas, % das saídas)
+$number-field-width: 72px;
+// A coluna do "quando conta" (a lista e as velas), igual em todas as condições
+$within-width: 296px;
+
+// Uma condição em colunas fixas — a frase, quando conta e o caixote —, para as
+// condições ficarem alinhadas umas por baixo das outras; o cabeçalho de um grupo
+// usa as mesmas colunas. Em ecrãs mais estreitos o "quando conta" desce.
+.Condition_Row,
+.Condition_Group_Head{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) $within-width 28px;
+  grid-template-areas: "sentence within remove";
+  align-items: center;
+  gap: 8px 12px;
+
+  > .Within_Field{ grid-area: within; }
+  > .Condition_Remove{ grid-area: remove; margin-left: 0; }
+
+  @media (max-width: 1600px){
+    grid-template-columns: minmax(0, 1fr) 28px;
+    grid-template-areas: "sentence remove" "within .";
+  }
+}
+
+// [valor] comparação [valor]: os dois valores com a mesma largura, a comparação ao meio
+.Condition_Sentence{
+  grid-area: sentence;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  > .Operand_Box{ flex: 1 1 330px; }
+  > .Condition_Operator{ flex: 0 0 124px; }
+}
+
+// Quando conta a condição: agora ou nas últimas N velas (a lista e as velas)
+.Within_Field{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Mini_Field.Within_Mode{ flex: 0 0 178px; width: 178px; }
+
+.Mini_Field.Within_Bars{
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+
+  .Global_Input{ width: $number-field-width; }
+}
+
+.Within_Unit{
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+// Um grupo de condições: conta como uma só, com o "e"/"ou" dele lá dentro
+.Condition_Group{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.Condition_Group_Tag{
+  grid-area: sentence;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.Condition_Adds{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+// O "e" de "entre X e Y", no meio dos dois limites
+.Between_Joiner{
+  align-self: center;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+// Um valor (preço, média, número) num bloco, para os dois lados não se misturarem
+.Operand_Box{
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+
+  // Na frase de uma condição, as listas esticam até à largura do bloco
+  .Condition_Sentence > & > .Value_Editor{ flex: 1 1 200px; }
+}
+
+// "e" entre condições, "ou" entre saídas
+.Flow_Joiner{
+  align-self: flex-start;
+  margin-left: 16px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: var(--surface-3);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--text-2);
+
+  &.Or{
+    background-color: var(--trading-joiner-or-background);
+    color: var(--trading-joiner-or-color);
+  }
+}
+
+.Operand_Editor{
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.Mini_Field{
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 4px;
+  width: 132px;
+
+  label{
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  &.Mini_Field_Number,
+  &.Mini_Field_Value{ width: $number-field-width; }
+}
+
+// Rótulo só para o leitor de ecrã: nas condições a frase lê-se sem eles
+.Hidden_Label{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// Um valor: a lista (vela, indicador, valor fixo) e, se for preciso, o resto
+.Value_Editor{
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.Mini_Field.Value_Main{ width: 140px; }
+.Mini_Field.Value_Main.Wide{ width: 200px; }
+.Mini_Field.Value_Back{ width: 132px; }
+.Mini_Field.Value_Timeframe{ width: 104px; }
+.Mini_Field.Value_Profile_Level{ width: 140px; }
+.Mini_Field.Value_Profile_Source{ width: 180px; }
+.Mini_Field.Mini_Field_Kind{ width: 180px; }
+.Mini_Field.Right_Pct{ width: $number-field-width; flex: none; }
+
+// Na frase de uma condição as listas esticam, para os dois lados terem a mesma largura
+.Condition_Sentence .Value_Editor{
+  gap: 4px;
+
+  // Sem min-width a lista não encolhe abaixo do texto e a linha parte-se antes de tempo
+  > .Value_Main{ flex: 1 1 96px; min-width: 0; }
+  > .Value_Main.Wide{ flex: 1 1 190px; }
+  > .Value_Back{ flex: 1 0 128px; }
+  > .Value_Timeframe{ flex: 1 0 96px; }
+  > .Value_Profile_Level{ flex: 1 0 96px; }
+  > .Value_Profile_Source{ flex: 1 0 140px; }
+  > .Mini_Field_Value{ flex: 0 0 $number-field-width; }
+}
+
+// O "e"/"ou" entre condições troca as duas
+.Flow_Joiner.Joiner_Toggle{
+  border: none;
+  cursor: pointer;
+
+  &:hover{ color: var(--text); }
+}
+
+.Row_Action.Flip svg{ transform: rotate(180deg); }
+
+// As saídas desligadas: um botão para cada, em linha
+.Exit_Adds{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.Exit_Add{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px 4px 8px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+
+  svg{ width: 13px; height: 13px; }
+
+  &:hover:not(:disabled){
+    border-style: solid;
+    color: var(--text);
+    background-color: var(--surface-2);
+  }
+
+  &:disabled{ opacity: .5; cursor: not-allowed; }
+}
+
+.Risk_Remove{ margin-left: auto; }
+
+// Numa saída, o × fica sempre no canto, mesmo quando a explicação desce para outra linha
+.Risk_Tile_Line{
+  position: relative;
+  padding-right: 36px;
+
+  > .Risk_Remove{
+    position: absolute;
+    top: 1px;
+    right: 0;
+  }
+}
+
+// --- indicadores -------------------------------------------------------------
+.Indicators_Card{
+  .Card_Body[hidden]{ display: none; }
+  &.Closed .Card_Header{ border-bottom: none; }
+}
+
+.Indicator_Row{
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+}
+
+.Mini_Field.Indicator_Name{ width: 200px; }
+
+.Indicator_Remove{
+  align-self: center;
+  margin-left: auto;
+}
+
+.Indicator_Error{ flex-basis: 100%; }
+.Mini_Field.Indicator_Profile_Session{ width: 300px; }
+.Mini_Field.Indicator_Profile_Exchange{ width: 240px; }
+.Mini_Field.Indicator_Profile_Number{ width: 130px; }
+// O que o perfil de volume faz (as velas da simulação, as horas da bolsa), por baixo das opções
+.Indicator_Hint{
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Condition_Operator{ width: 150px; }
+
+.Condition_Remove{
+  align-self: center;
+  margin-left: auto;
+}
+
+.Conditions_Empty{
+  padding: 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Add_Condition{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 2px;
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+
+  svg{ width: 14px; height: 14px; }
+
+  align-self: flex-start;
+
+  &:hover{ color: var(--text); }
+  &:disabled{ opacity: .5; cursor: not-allowed; }
+}
+
+// --- entradas ---------------------------------------------------------------
+// Uma risca à esquerda com a cor da direção, para distinguir compras de vendas
+.Entry_Card{
+  border-left: 3px solid var(--trading-long-color);
+
+  &.short{ border-left-color: var(--trading-short-color); }
+}
+
+.Entry_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+// "Entrada 1" com a cor da direção, como as etiquetas das saídas
+.Entry_Tag{
+  flex: none;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  background-color: var(--trading-long-background);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--trading-long-color);
+
+  .short &{
+    background-color: var(--trading-short-background);
+    color: var(--trading-short-color);
+  }
+}
+
+// Um nome que se escreve no próprio título: parece texto até se passar por cima
+.Inline_Name{
+  min-width: 0;
+  flex: 1;
+  max-width: 320px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+
+  &::placeholder{ color: var(--text-3); font-weight: 500; }
+  &:hover{ border-color: var(--line); }
+  &:focus{ outline: none; border-color: var(--accent-line); background-color: var(--input-global-background-color); }
+
+  &.Entry_Name{
+    font-family: Font.$font_family_sans;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+// A seta para abrir e fechar: para baixo aberto, para o lado fechado
+.Collapse_Button{
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+
+  svg{
+    width: 14px;
+    height: 14px;
+    transform: rotate(-90deg);
+    transition: transform var(--dur-fast);
+  }
+
+  &.Open svg{ transform: none; }
+  &:hover{ background-color: var(--surface-2); color: var(--text); }
+}
+
+// O que o cartão tem, numa linha, quando está fechado
+.Collapsed_Summary{
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.Entry_Card.Closed .Entry_Head{ border-bottom: none; }
+
+.Entry_Header_Actions{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+
+  .Side_Switch{ width: 180px; }
+}
+
+.Entry_Flow{
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+
+  &[hidden]{ display: none; }
+}
+
+// Os passos: a bolinha com o número e uma linha até ao passo seguinte
+.Flow_Step{
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 12px;
+}
+
+.Flow_Step_Rail{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  &::after{
+    content: '';
+    flex: 1;
+    width: 2px;
+    margin: 8px 0;
+    border-radius: 1px;
+    background-color: var(--line);
+  }
+
+  .Flow_Step:last-child &::after{ display: none; }
+}
+
+.Flow_Step_Number{
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  background-color: var(--accent-soft);
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.Flow_Step_Body{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding-bottom: 16px;
+
+  .Flow_Step:last-child &{ padding-bottom: 0; }
+}
+
+.Flow_Step_Header{
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 26px;
+  padding-top: 4px;
+  box-sizing: border-box;
+}
+
+.Flow_Step_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Flow_Step_Hint{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// O preço (de entrada ou de uma saída) e a explicação ao lado
+.Price_Row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .Simulator_Hint{
+    flex: 1;
+    min-width: 220px;
+  }
+}
+
+.Add_Entry{ font-size: 13px; }
+
+// --- saídas de uma entrada --------------------------------------------------
+.Exit_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Cada saída num bloco com a risca da sua cor: stop vermelho, take profit
+// verde, com condição azul
+.Exit_Tile{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--trading-exit-signal-color);
+  border-radius: var(--radius-sm);
+
+  &.stop_loss,
+  &.trailing_stop,
+  &.break_even{ border-left-color: var(--trading-exit-stop-color); }
+  &.take_profit,
+  &.partial{ border-left-color: var(--trading-exit-target-color); }
+  &.time{ border-left-color: var(--trading-exit-end-color); }
+
+  // Sem % o stop ou o take profit não contam: fica apagado
+  &.Off{
+    border-left-color: var(--line-strong);
+
+    .Exit_Tile_Tag{
+      background-color: var(--trading-exit-end-background);
+      color: var(--trading-exit-end-color);
+    }
+  }
+}
+
+.Exit_Tile_Header{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .Row_Action{ margin-left: auto; }
+}
+
+.Exit_Tile_Tag{
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background-color: var(--trading-exit-signal-background);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--trading-exit-signal-color);
+
+  .stop_loss &,
+  .trailing_stop &,
+  .break_even &{
+    background-color: var(--trading-exit-stop-background);
+    color: var(--trading-exit-stop-color);
+  }
+
+  .time &{
+    background-color: var(--trading-exit-end-background);
+    color: var(--trading-exit-end-color);
+  }
+
+  .take_profit &,
+  .partial &{
+    background-color: var(--trading-exit-target-background);
+    color: var(--trading-exit-target-color);
+  }
+}
+
+// As saídas parciais, por cima das outras: fecham parte; o resto sai pela primeira das outras
+.Partial_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.Partial_Word{
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+
+.Exit_Tile_Content{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &[hidden]{ display: none; }
+}
+
+.Exit_Tile_Part{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Exit_Tile_Label{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+// O stop e o take profit cabem numa linha: etiqueta, nome, % e a explicação
+.Risk_Tile{
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+// Etiqueta, nome, valor e o que faz, numa linha
+.Risk_Tile_Line{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  // A mesma largura nas etiquetas, nos nomes e nos controlos de todas as
+  // saídas: os valores e as explicações ficam alinhados uns por baixo dos outros
+  .Exit_Tile_Tag{ flex: 0 0 96px; text-align: center; }
+  .Inline_Name{ flex: 0 1 200px; }
+  .Simulator_Hint{ flex: 1; min-width: 200px; }
+}
+
+.Risk_Tile_Controls{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 540px;
+}
+
+// A preparação, as condições da conta, os ajustes do stop e os reforços: blocos
+// como os das saídas, cada regra lida como uma frase
+.Rule_Tile{
+  gap: 8px;
+  padding: 8px 12px;
+
+  .Exit_Tile_Header .Simulator_Hint{ flex: 1; }
+}
+
+.Rule_Line{
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-right: 36px;
+
+  .Exit_Tile_Tag{ flex: 0 0 96px; text-align: center; }
+  .Inline_Name{ flex: 0 1 200px; }
+
+  > .Risk_Remove{
+    position: absolute;
+    top: 1px;
+    right: 0;
+  }
+}
+
+.Rule_Word{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+// "+ Preparação" e "+ Só se", por baixo das condições da entrada
+.Entry_Extra_Adds{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  &:empty{ display: none; }
+}
+
+.Context_Sentence{
+  .Option_Sentence_Select{ width: 190px; }
+  .Option_Sentence_Select.Context_Operator{ width: $number-field-width; }
+}
+
+// O campo da máxima/mínima de N velas e a hora de início da faixa de abertura
+.Mini_Field.Value_Source,
+.Mini_Field.Value_Range_Start{ width: 104px; }
+
+// Os horários de uma entrada, stop ou saída: ligação para ligar; ligado, uma caixa
+.Link_Button.Schedule_Add{
+  align-self: flex-start;
+  font-size: 12px;
+}
+
+.Schedule_Box_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.Schedule_Box{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+
+.Schedule_Box_Head{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .Row_Action{ margin-left: auto; }
+}
+
+.Pct_Field{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .Global_Input{ width: $number-field-width; }
+
+  label{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+}
+
+// --- input de ativos ---------------------------------------------------------
+.Instrument_Picker{
+  position: relative;
+  width: 100%;
+
+  .Instrument_Picker_Trigger{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 34px;
+    padding: 0 8px 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--input-global-background-color);
+    color: var(--input-global-letter-color);
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    text-align: left;
+    transition: border-color var(--dur-fast), background-color var(--dur-fast);
+
+    > span{
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+
+      strong{ font-weight: 500; color: var(--text); }
+      em{ font-style: normal; font-size: 12px; color: var(--text-3); }
+    }
+
+    svg{
+      width: 14px;
+      height: 14px;
+      flex: none;
+      color: var(--global-input-icon-color);
+    }
+
+    > svg:last-child{ transition: transform var(--dur-fast); }
+
+    &:hover{ border-color: var(--line-strong); }
+  }
+
+  &.Empty .Instrument_Picker_Trigger > span{ color: var(--text-3); }
+
+  &.Open .Instrument_Picker_Trigger{
+    border-color: var(--global-input-focus-border-color);
+    background-color: var(--cards-background);
+
+    > svg:last-child{ transform: rotate(180deg); color: var(--accent); }
+  }
+}
+
+// Num portal, como o painel do Global_Dropdown, para não ser cortado pelo cartão
+.Instrument_Picker_Panel{
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--cards-background);
+  box-shadow: var(--shadow-pop);
+  font-family: Font.$font_family_sans;
+}
+
+.Instrument_Picker_Filters{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Filter_Group{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Filter_Label{
+  width: 72px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.Filter_Chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.Filter_Chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background-color: transparent;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: border-color var(--dur-fast), background-color var(--dur-fast), color var(--dur-fast);
+
+  small{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  &:hover{ border-color: var(--line-strong); color: var(--text); }
+
+  &.Active{
+    border-color: var(--trading-filter-active-border);
+    background-color: var(--trading-filter-active-background);
+    color: var(--trading-filter-active-color);
+
+    small{ color: inherit; }
+  }
+}
+
+// Linha de altura fixa: a contagem aparece sem empurrar a lista
+.Instrument_Picker_Count{
+  min-height: 15px;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Instrument_Picker_List{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 300px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--global-dropdown-scrollbar-thumb) transparent;
+}
+
+.Instrument_Picker_Message{
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Instrument_Option{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-xs);
+  background-color: transparent;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-2);
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  &:hover{
+    background-color: var(--global-dropdown-option-hover-background);
+    color: var(--text);
+  }
+
+  &.Selected{
+    background-color: var(--accent-soft);
+    color: var(--global-dropdown-option-selected-color);
+  }
+}
+
+.Instrument_Option_Pair{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Instrument_Option_Symbol,
+.Instrument_Option_Expiry{
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Instrument_Type_Badge{
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background-color: var(--trading-type-badge-background);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--trading-type-badge-color);
+  white-space: nowrap;
+}
+
+.Instrument_Picker_More{
+  padding: 8px 12px 4px;
+  border-top: 1px solid var(--line);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--accent);
+
+  &:hover{ color: var(--text); }
+  &:disabled{ opacity: .6; cursor: default; }
+}
+
+// --- progresso da simulação -----------------------------------------------
+.Simulation_Status{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px;
+  border: var(--card-border);
+  border-radius: var(--border-radius);
+  background-color: var(--cards-background);
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  color: var(--text);
+
+  &.Failed{
+    border-color: transparent;
+    background-color: var(--trading-failed-background);
+    color: var(--trading-failed-color);
+  }
+}
+
+.Simulation_Status_Text{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Simulation_Status_Percent{
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.Simulation_Progress{
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: var(--trading-progress-track);
+}
+
+.Simulation_Progress_Fill{
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--trading-progress-fill);
+  transition: width .4s ease;
+
+  &.Candles{ background-color: var(--trading-progress-candles-fill); }
+  .Failed &{ background-color: var(--trading-failed-color); }
+}
+
+// --- resultado --------------------------------------------------------------
+.Result_Metrics{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.Result_Metric{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+  min-width: 0;
+}
+
+.Result_Metric_Label{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.Result_Metric_Value{
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.Result_Metric_Detail{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Result_Metric_Value,
+.Trades_Table td{
+  &.Gain{ color: var(--trading-gain-color); }
+  &.Loss{ color: var(--trading-loss-color); }
+}
+
+.Trades_Message{
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-3);
+}
+
+// Resumo por entrada e saída: cada linha filtra a lista de trades
+.By_Exit_Table tbody tr.Clickable{
+  cursor: pointer;
+
+  &:hover td{ background: var(--trading-row-hover-background); }
+  &.Active td{ background: var(--trading-row-active-background); }
+  &:focus-visible{ outline: 2px solid var(--trading-rule-border); outline-offset: -2px; }
+}
+
+.Trades_Filter{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--trading-rule-border);
+  border-radius: var(--radius-xs);
+  background: var(--trading-row-active-background);
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+
+  svg{ width: 12px; height: 12px; }
+}
+
+.Side_Badge{
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &.long{
+    background-color: var(--trading-long-background);
+    color: var(--trading-long-color);
+  }
+
+  &.short{
+    background-color: var(--trading-short-background);
+    color: var(--trading-short-color);
+  }
+}
+
+.Exit_Badge{
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &.stop_loss{
+    background-color: var(--trading-exit-stop-background);
+    color: var(--trading-exit-stop-color);
+  }
+
+  &.take_profit{
+    background-color: var(--trading-exit-target-background);
+    color: var(--trading-exit-target-color);
+  }
+
+  &.signal{
+    background-color: var(--trading-exit-signal-background);
+    color: var(--trading-exit-signal-color);
+  }
+
+  &.end,
+  &.excluded,
+  &.time{
+    background-color: var(--trading-exit-end-background);
+    color: var(--trading-exit-end-color);
+  }
+
+  // A liquidação na cor do stop; o sinal contrário na das saídas com condição
+  &.liquidation,
+  &.trailing_stop,
+  &.break_even{
+    background-color: var(--trading-exit-stop-background);
+    color: var(--trading-exit-stop-color);
+  }
+
+  &.opposite{
+    background-color: var(--trading-exit-signal-background);
+    color: var(--trading-exit-signal-color);
+  }
+}
+
+// --- escolhas lado a lado ----------------------------------------------------
+.Segmented{
+  display: inline-flex;
+  height: 30px;
+  padding: 2px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--input-global-background-color);
+}
+
+.Segmented_Option{
+  flex: 1 1 auto;
+  padding: 0 12px;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  &:hover:not(:disabled){ color: var(--text); }
+  &:disabled{ opacity: .45; cursor: not-allowed; }
+
+  &.Active{
+    background-color: var(--trading-filter-active-background);
+    color: var(--trading-filter-active-color);
+  }
+}
+
+// --- opções -----------------------------------------------------------------
+// Uma opção por linha: o interruptor, o nome e o que faz; ligada, os campos por baixo
+.Option_Rows{
+  display: flex;
+  flex-direction: column;
+}
+
+.Option_Row{
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+
+  &:first-child{ border-top: none; padding-top: 2px; }
+}
+
+.Option_Row_Main{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Option_Row_Title{
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Option_Row_Help{
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Option_Row_Fields{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin-top: 8px;
+  max-width: 760px;
+
+  .Option_Field{ flex: 0 1 180px; }
+  .Option_Field:has(.Segmented){ flex-basis: 220px; }
+
+  // As listas (regras, horários, períodos) usam a largura toda
+  &:has(.Option_List){ max-width: none; }
+}
+
+// O mesmo interruptor dos módulos da empresa: trilho cheio (cinzento ou azul) e bola branca
+.Switch{
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 20px;
+  border-radius: 999px;
+  background-color: var(--module-toggle-off-background);
+  transition: background-color var(--dur-fast);
+
+  &.On{ background-color: var(--module-toggle-on-background); }
+}
+
+.Switch_Knob{
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--module-toggle-thumb);
+  box-shadow: var(--switch-thumb-shadow);
+  transition: transform var(--dur-fast) var(--ease-out);
+
+  .Switch.On &{ transform: translateX(12px); }
+}
+
+.Option_Field{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 110px;
+  flex: 1 1 130px;
+
+  label,
+  .Simulator_Label{
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+
+    em{ font-style: normal; color: var(--text-3); }
+  }
+}
+
+.Option_Field_Small{ flex: 0 0 120px; }
+
+.Option_Hint{ flex-basis: 100%; }
+
+.Option_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+
+  > .Option_Field{
+    flex: none;
+    max-width: 280px;
+  }
+}
+
+// Uma regra lida como uma frase: "Depois de [3] [perdas] → [passa a] [0,5] % durante [5] entradas"
+.Option_Sentence{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--trading-row-hover-background);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  color: var(--text-2);
+
+  .Global_Input{ width: 76px; }
+  .Global_Input input[type='date']{ width: 150px; }
+  .Global_Input:has(input[type='date']){ width: 150px; }
+  .Global_Input:has(input[type='time']){ width: 104px; }
+  .Row_Action{ margin-left: auto; }
+}
+
+.Option_Sentence_Select{ width: 170px; }
+.Option_Sentence_Unit{ width: 110px; }
+
+.Option_Sentence.Invalid{ box-shadow: inset 3px 0 0 var(--trading-failed-color); }
+
+.Day_Chips{
+  display: flex;
+  gap: 4px;
+}
+
+.Day_Chip{
+  min-width: 34px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background-color: var(--input-global-background-color);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+
+  &:hover{ color: var(--text); }
+
+  &.Active{
+    border-color: var(--trading-filter-active-border);
+    background-color: var(--trading-filter-active-background);
+    color: var(--trading-filter-active-color);
+  }
+}
+
+// Um botão que parece uma ligação ("usar os da Binance")
+.Link_Button{
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--accent);
+
+  &:hover{ text-decoration: underline; }
+}
+
+// A validade da ordem e as posições de uma entrada, por baixo do preço
+.Order_Options{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+
+  .Option_Field{ flex: 0 0 auto; }
+  // Os números (risco, alavancagem, velas da ordem) não crescem com o rótulo
+  .Option_Field_Small{ flex: 0 0 120px; width: 120px; }
+  .Simulator_Hint,
+  .Simulator_Error{ flex-basis: 100%; }
+}
+
+.Samples_Table td:first-child{ font-weight: 500; }
+
+// Um valor que é uma lista ("Stop 26 · Take 16 · …") em letra mais pequena
+.Result_Metric_Value.Compact{
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+// --- esquema de uma entrada (Entry_Preview) ---------------------------------
+.Preview_Button{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--trading-preview-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+
+  svg{ width: 15px; height: 15px; }
+
+  &:hover,
+  &.Open{
+    color: var(--trading-preview-right-line);
+    border-color: var(--trading-preview-right-line);
+    background-color: var(--trading-preview-signal-band);
+  }
+}
+
+// Por cima de tudo, com a página escurecida (e um pouco desfocada) por trás
+.Preview_Backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: var(--trading-preview-backdrop);
+  backdrop-filter: blur(3px);
+  animation: Preview_Fade .16s ease-out;
+}
+
+.Preview_Panel{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(1000px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px 24px 20px;
+  border: 1px solid var(--trading-preview-border);
+  border-radius: var(--radius);
+  background-color: var(--trading-preview-background);
+  box-shadow: var(--trading-preview-shadow);
+  font-family: Font.$font_family_sans;
+  animation: Preview_In .18s ease-out;
+
+  &:focus{ outline: none; }
+}
+
+@keyframes Preview_Fade{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+
+@keyframes Preview_In{
+  from{ opacity: 0; transform: translateY(8px) scale(.98); }
+  to{ opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .Preview_Backdrop,
+  .Preview_Panel{ animation: none; }
+}
+
+@media (max-width: 640px){
+  .Preview_Backdrop{ padding: 12px; }
+  .Preview_Panel{ padding: 16px; }
+}
+
+.Preview_Head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.Preview_Title{
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+
+  em{ font-style: normal; font-weight: 500; color: var(--text-2); }
+}
+
+.Preview_Outcomes{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.Preview_Chart{
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  padding: 8px 0;
+  border-top: 1px solid var(--trading-preview-border);
+  border-bottom: 1px solid var(--trading-preview-border);
+  text-rendering: geometricPrecision;
+
+  text{
+    font-family: Font.$font_family_sans;
+    font-size: 13px;
+    font-weight: 500;
+  }
+}
+
+.Preview_Grid{
+  line{ stroke: var(--trading-preview-grid); stroke-width: 1; shape-rendering: crispEdges; }
+  text{ fill: var(--trading-preview-grid-label); font-size: 12px; font-weight: 500; }
+}
+
+.Preview_Signal{ fill: var(--trading-preview-signal-band); fill-opacity: .55; transition: opacity var(--dur-panel); }
+
+.Preview_Tag{ fill: var(--trading-preview-right-line); transition: opacity var(--dur-panel); }
+
+.Preview_Trade{
+  &.Win{ fill: var(--trading-preview-win-area); }
+  &.Loss{ fill: var(--trading-preview-loss-area); }
+}
+
+.Preview_Entry_Line{ stroke: var(--trading-preview-entry-line); stroke-width: 1.2; stroke-dasharray: 3 4; }
+.Preview_Take{ stroke: var(--trading-preview-take-line); stroke-width: 2; stroke-dasharray: 7 5; }
+.Preview_Stop{ fill: none; stroke: var(--trading-preview-stop-line); stroke-width: 2; stroke-dasharray: 7 5; }
+.Preview_Order{ stroke: var(--trading-preview-order-line); stroke-width: 2.2; stroke-dasharray: 3 4; }
+// As saídas parciais: na cor do take, mais finas, e o ponto onde aconteceram
+.Preview_Partial{ stroke: var(--trading-preview-take-line); stroke-width: 1.4; stroke-dasharray: 2 4; }
+.Preview_Partial_Dot{
+  fill: var(--trading-preview-background);
+  stroke: var(--trading-preview-take-line);
+  stroke-width: 2.2;
+  transition: opacity var(--dur-panel);
+}
+.Preview_Right{ fill: none; stroke: var(--trading-preview-right-line); stroke-width: 2.4; stroke-linejoin: round; }
+.Preview_Left{ fill: none; stroke: var(--trading-preview-left-line); stroke-width: 2; stroke-linejoin: round; }
+
+// O painel do RSI, por baixo das velas: a faixa do "entre", a linha e o ponto do sinal
+.Preview_Rsi_Divider{ stroke: var(--trading-preview-border); stroke-width: 1; shape-rendering: crispEdges; }
+.Preview_Rsi_Band{ fill: var(--trading-preview-rsi-band); }
+.Preview_Rsi_Line{ fill: none; stroke: var(--trading-preview-left-line); stroke-width: 2.2; stroke-linejoin: round; }
+.Preview_Rsi_Dot{
+  fill: var(--trading-preview-background);
+  stroke: var(--trading-preview-marker);
+  stroke-width: 2.5;
+  transition: opacity var(--dur-panel);
+}
+
+.Preview_Candle{
+  line{ stroke-width: 1.6; }
+
+  &.Up{
+    line{ stroke: var(--trading-preview-candle-up); }
+    rect{ fill: var(--trading-preview-candle-up); }
+  }
+
+  &.Down{
+    line{ stroke: var(--trading-preview-candle-down); }
+    rect{ fill: var(--trading-preview-candle-down); }
+  }
+
+  &.Faded{
+    opacity: .4;
+  }
+}
+
+.Preview_Point{
+  transition: opacity var(--dur-panel);
+
+  circle{
+    fill: var(--trading-preview-background);
+    stroke: var(--trading-preview-marker);
+    stroke-width: 2.5;
+  }
+
+  text{ fill: var(--trading-preview-marker); font-size: 14px; font-weight: 500; }
+
+  &.Exit.Win{
+    circle{ stroke: var(--trading-preview-take-line); }
+    text{ fill: var(--trading-preview-take-line); }
+  }
+
+  &.Exit.Loss{
+    circle{ stroke: var(--trading-preview-stop-line); }
+    text{ fill: var(--trading-preview-stop-line); }
+  }
+}
+
+// O perfil de volume: a sessão anterior com o perfil, os níveis prolongados e os em desenvolvimento
+.Preview_Session_Previous{ fill: var(--trading-preview-session); }
+.Preview_Session_Divider{ stroke: var(--trading-preview-session-divider); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.Preview_Session_Tag{ fill: var(--trading-preview-grid-label); font-size: 12px; font-weight: 500; }
+.Preview_Profile_Row{
+  fill: var(--trading-preview-profile-row);
+  &.Va{ fill: var(--trading-preview-profile-row-va); }
+}
+.Preview_Profile_Level{
+  stroke: var(--trading-preview-profile-va-line);
+  stroke-width: 1.8;
+  stroke-dasharray: 6 4;
+  &.poc{ stroke: var(--trading-preview-profile-poc); stroke-width: 2.2; }
+  &.Inside{ stroke-dasharray: none; stroke-width: 1.2; }
+}
+.Preview_Profile_Developing{ fill: none; stroke: var(--trading-preview-profile-developing); stroke-width: 2; }
+
+.Preview_Level{
+  fill: var(--trading-preview-label);
+
+  &.Profile{ fill: var(--trading-preview-profile-va-line); }
+  &.Profile.poc{ fill: var(--trading-preview-profile-poc); }
+  &.Developing{ fill: var(--trading-preview-profile-developing); }
+
+  &.Take{ fill: var(--trading-preview-take-line); }
+  &.Stop{ fill: var(--trading-preview-stop-line); }
+  &.Right{ fill: var(--trading-preview-right-line); }
+  &.Left{ fill: var(--trading-preview-left-line); }
+}
+
+.Preview_Label{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.Preview_Foot{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  .Link_Button{ flex: none; font-size: 13px; }
+}
+
+.Preview_Sentence{
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+// O menu da página de uma simulação: separadores em linha como os do
+// simulador, alguns com um dropdown dos seus submenus. Sem overflow, para o
+// dropdown não ficar cortado; em ecrãs estreitos os separadores descem de linha.
+.Run_Nav{
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Run_Nav_Group{ position: relative; }
+
+.Run_Nav_Tab{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 12px 0 8px;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition: color var(--dur-fast), border-color var(--dur-fast);
+
+  &:hover{ color: var(--text); }
+
+  &.Active{
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+
+  &.Has_Problem::after{
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--trading-failed-color);
+  }
+}
+
+.Run_Nav_Chevron{
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  transition: transform var(--dur-fast);
+
+  &.Open{ transform: rotate(180deg); }
+}
+
+.Run_Nav_Menu{
+  position: absolute;
+  top: calc(100% + 4px);
+  left: -8px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--trading-run-menu-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--trading-run-menu-background);
+  box-shadow: var(--trading-run-menu-shadow);
+}
+
+.Run_Nav_Item{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-align: left;
+  white-space: nowrap;
+
+  &:hover{
+    background-color: var(--trading-run-menu-hover);
+    color: var(--text);
+  }
+
+  &.Active{ color: var(--trading-run-menu-active-color); }
+
+  &.Has_Problem::after{
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--trading-failed-color);
+  }
+}

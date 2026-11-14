@@ -1,0 +1,44 @@
+.Release_Notes{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Release_Notes_Section{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  ul{
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  li{
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+
+    strong{ font-weight: 500; }
+
+    &.More{
+      list-style: none;
+      margin-left: -20px;
+      color: var(--text-3);
+    }
+  }
+}
+
+.Release_Notes_Label em{
+  font-style: normal;
+  color: var(--text-3);
+}
+
+.Release_Notes_Empty{
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-3);
+}

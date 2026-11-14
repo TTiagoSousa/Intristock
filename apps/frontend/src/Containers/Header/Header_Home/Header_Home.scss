@@ -1,0 +1,136 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+.Header_Home{
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 16px;
+  background-color: var(--bg);
+  border-bottom: 1px solid var(--line);
+
+  .Header_Spacer{ flex: 1; }
+
+  .Breadcrumb{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .Breadcrumb_Item{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .Breadcrumb_Separator{ opacity: .5; }
+
+  .Breadcrumb_Link{
+    display: flex;
+    align-items: center;
+    color: var(--text-3);
+    font-size: 12px;
+    transition: color var(--dur-fast);
+
+    svg{ width: 14px; height: 14px; }
+
+    &:hover{ color: var(--accent); }
+  }
+
+  .Breadcrumb_Current{
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .Account_Menu{ position: relative; }
+
+  .Account_Avatar{
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    background-color: var(--account-avatar-background);
+    color: var(--account-avatar-text);
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    font-size: 12px;
+
+    svg{ width: 15px; height: 15px; }
+  }
+
+  .Account_Dropdown{
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 4px;
+    background-color: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-pop);
+    transform-origin: top right;
+    animation: Menu_In var(--dur-menu) var(--ease-out);
+    z-index: 60;
+
+    button{
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      text-align: left;
+      color: var(--text-2);
+      transition: background-color var(--dur-fast), color var(--dur-fast);
+
+      &:hover{
+        background-color: var(--surface-3);
+        color: var(--text);
+      }
+
+      &.Danger{
+        color: var(--danger-color);
+        &:hover{ background-color: var(--danger-color-soft); }
+      }
+    }
+  }
+
+  .Account_Dropdown_Head{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 12px 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .Account_Dropdown_Name{
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .Account_Dropdown_Mail{
+    font-size: 12px;
+    color: var(--text-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 1000px){
+  .Header_Home{ padding: 0 16px; }
+}

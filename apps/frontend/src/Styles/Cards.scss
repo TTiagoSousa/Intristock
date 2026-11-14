@@ -1,0 +1,240 @@
+@use './Fonts.scss' as Font;
+
+// ============================================================
+// CARTÕES E TABELAS
+// O cabeçalho de cartão, a tabela e o estado vazio estavam
+// copiados em oito páginas com valores ligeiramente diferentes.
+// Ficam aqui, como já aconteceu com o Popover.scss e o
+// Sidebar_Menu.scss — as páginas só declaram o que é delas.
+// ============================================================
+
+// --- casca do cartão -------------------------------------------------------
+.Page_Card,
+.Sections_Card,
+.Suppliers_Card,
+.Groups_Card,
+.Items_Card,
+.Payments_Card,
+.Stock_Card,
+.Assets_Card,
+.Modules_Card,
+.Setup_Card{
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  background-color: var(--cards-background);
+  border: var(--card-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-box-shadow);
+}
+
+// --- cabeçalho do cartão ---------------------------------------------------
+.Card_Header{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--card-global-header-background);
+}
+
+.Card_Header_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.Card_Title{
+  font-family: Font.$font_family_sans;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--card-global-header-title-color);
+}
+
+.Card_Subtitle{
+  // Texto normal (é o nome da empresa ou uma frase); só as contagens levam .Num
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// A ação principal do cartão encosta sempre à direita
+.Card_Header_Action{
+  margin-left: auto;
+  width: auto;
+  min-width: 150px;
+}
+
+.Card_Body{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+// --- tabelas ---------------------------------------------------------------
+.Suppliers_Table_Scroll,
+.Groups_Table_Scroll,
+.Items_Table_Scroll,
+.Payments_Table_Scroll,
+.Stock_Table_Scroll,
+.Assets_Table_Scroll,
+.Sections_Table_Scroll,
+.Trades_Table_Scroll,
+.Results_Table_Scroll{
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+
+  &::-webkit-scrollbar{ height: 8px; }
+  &::-webkit-scrollbar-track{ background: transparent; }
+  &::-webkit-scrollbar-thumb{
+    background-color: var(--line-strong);
+    border-radius: 4px;
+  }
+}
+
+.Suppliers_Table,
+.Groups_Table,
+.Items_Table,
+.Payments_Table,
+.Stock_Table,
+.Assets_Table,
+.Sections_Table,
+.Trades_Table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th{
+    text-align: left;
+    padding: 8px 16px;
+    font-family: Font.$font_family_sans;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+
+    &.Right{ text-align: right; }
+  }
+
+  td{
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    color: var(--text);
+
+    &.Right{ text-align: right; }
+  }
+
+  // A primeira e a última coluna alinham com o cabeçalho do cartão
+  th:first-child, td:first-child{ padding-left: 20px; }
+  th:last-child, td:last-child{ padding-right: 20px; }
+
+  tbody tr{
+    transition: background-color var(--dur-fast);
+
+    &:last-child td{ border-bottom: none; }
+    &:hover{ background-color: var(--surface-2); }
+  }
+
+  // Valores em coluna alinham por baixo uns dos outros
+  .Amount,
+  .Numeric{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  // Datas e contagens alinham à esquerda, mesmo em mono
+  .Numeric.Left{ text-align: left; }
+
+  // Linha de totais: separada do corpo, sem risco por baixo
+  tfoot td{
+    padding: 8px 12px;
+    border-top: 1px solid var(--line);
+    border-bottom: none;
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+// --- ações por linha -------------------------------------------------------
+// Vivem sempre DENTRO de um <td>, nunca no próprio: um <td> com display:flex
+// sai do layout da tabela e a linha divisória deixa de o atravessar.
+//
+// Discretas por cor, não por opacidade: o ícone já é var(--text-3), a mais
+// apagada das cores de texto, e 45% de opacidade por cima disso deixava-o
+// quase invisível.
+.Supplier_Actions,
+.Group_Actions,
+.Item_Actions,
+.Payment_Actions,
+.Asset_Actions,
+.Movement_Actions{
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.Row_Action{
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xs);
+  color: var(--text-2);
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  svg{ width: 14px; height: 14px; }
+
+  &:hover{
+    background-color: var(--surface-3);
+    color: var(--text);
+  }
+
+  &.Danger:hover{
+    background-color: var(--danger-color-soft);
+    color: var(--danger-color);
+  }
+
+  // Ligado (ex. o utilizador bloqueado): o clique desliga
+  &.Active{ color: var(--danger-color); }
+
+  &:disabled{
+    opacity: .4;
+    cursor: not-allowed;
+  }
+}
+
+// --- estados vazios e mensagens -------------------------------------------
+.Empty_Message,
+.Company_Dashboard_Message,
+.Company_Purchases_Message,
+.Company_Suppliers_Message,
+.Company_Items_Message,
+.Company_Payments_Message,
+.Company_Stock_Message,
+.Company_Assets_Message,
+.Groups_Message,
+.Modules_Message,
+.Setup_Message{
+  display: block;
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+// Quando a mensagem é o conteúdo todo do cartão, ganha o contorno tracejado
+.Page_Card > .Card_Body > .Empty_Message{
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--border-radius);
+}

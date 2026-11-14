@@ -1,0 +1,23 @@
+// Uma secção por API, separadas por um título pequeno, dentro da mesma lista de
+// definições — linhas nome+explicação à esquerda, campo à direita
+.Api_Settings_Section{
+  display: flex;
+  flex-direction: column;
+
+  & + &{
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.Api_Settings_Section_Title{
+  padding: 12px 0 2px;
+}
+
+.Api_Settings_Link{
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover{ text-decoration: underline; }
+}

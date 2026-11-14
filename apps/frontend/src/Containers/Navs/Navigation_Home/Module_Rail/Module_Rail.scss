@@ -1,0 +1,114 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Module_Rail{
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 0 8px;
+  background-color: var(--navbar-vertical-card-bg-color);
+  border-right: 1px solid var(--line);
+  z-index: 30;
+
+  .Rail_Brand{
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    // A marca é o nome em letra, não um quadrado de cor
+    background-color: var(--surface-3);
+    color: var(--text);
+    font-family: Font.$font_family_sans;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -.04em;
+    flex: none;
+  }
+
+  .Rail_Items{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .Rail_Bottom{
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .Rail_Item{
+    width: 40px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: grid;
+    place-items: center;
+    color: var(--navbar-vertical-default-link-color);
+    position: relative;
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    svg{
+      width: 17px;
+      height: 17px;
+    }
+
+    &:hover{
+      background-color: var(--navbar-vertical-item-hover-background);
+      color: var(--navbar-vertical-card-link-hover-color);
+    }
+
+    // O nome do ícone, à direita da barra, ao passar o rato ou com o foco do teclado
+    &:hover .Rail_Tooltip,
+    &:focus-visible .Rail_Tooltip{
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+
+    &.Active{
+      background-color: var(--navbar-vertical-item-active-background);
+      color: var(--navbar-vertical-card-link-active-color);
+
+      // Marca colada à borda esquerda, para se ver qual é mesmo o módulo ativo
+      &::before{
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 9px;
+        bottom: 9px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background-color: var(--accent);
+      }
+    }
+  }
+
+  .Rail_Tooltip{
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    padding: 4px 8px;
+    border: 1px solid var(--rail-tooltip-border);
+    border-radius: var(--radius-xs);
+    background-color: var(--rail-tooltip-background);
+    box-shadow: var(--rail-tooltip-shadow);
+    color: var(--rail-tooltip-text);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-4px, -50%);
+    transition: opacity var(--dur-fast), transform var(--dur-fast);
+    z-index: 40;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .Rail_Tooltip{ transition: none; }
+  }
+}

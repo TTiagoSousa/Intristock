@@ -1,0 +1,75 @@
+@use './Styles/Theme/index.scss' as Theme;
+@use './Styles/Fonts.scss' as Font;
+@use './Styles/Cards.scss' as Cards;
+@use './Styles/Popover.scss' as Popover;
+@use './Styles/Primitives.scss' as Primitives;
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+// Só a navegação por âncoras desliza; os scrolls do código (paginação, ir a um trade) são logo
+@media (prefers-reduced-motion: no-preference){
+  html{ scroll-behavior: smooth; }
+}
+
+html,
+body{
+  // O fundo tem de estar no body: se ficar só num filho, o ecrã por baixo
+  // fica com a cor do outro tema durante o scroll elástico
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: Font.$font_family_sans;
+  -webkit-font-smoothing: antialiased;
+
+  // Os tooltips encostados à direita chegavam a empurrar a página.
+  // `clip` corta sem criar um contentor de scroll — com `hidden`
+  // os elementos `sticky` deixariam de colar.
+  overflow-x: clip;
+}
+
+button{
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea{
+  font: inherit;
+  color: inherit;
+}
+
+a{
+  color: var(--accent);
+}
+
+// O anel de foco é para o que se carrega (botões, links, opções, caixas, linhas com
+// tabindex). Nos campos de texto o foco já se vê pela borda a mudar de cor — os dois
+// juntos davam uma caixa azul dentro do campo. O contorno segue o canto do elemento.
+:focus-visible{
+  outline: none;
+}
+
+:where(button, a, [role='button'], [role='option'], [role='tab'], [tabindex], select, summary, input[type='checkbox'], input[type='radio']):focus-visible{
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+input:focus,
+textarea:focus-visible,
+textarea:focus{
+  box-shadow: none;
+}
+
+main{
+  background-color: var(--bg);
+  min-height: 100svh;
+}

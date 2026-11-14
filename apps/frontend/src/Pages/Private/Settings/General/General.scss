@@ -1,0 +1,22 @@
+.General{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// O cartão das definições gerais: largura toda, cabeçalho "Geral" e as linhas
+// por baixo sem o limite de largura da lista
+.General_Card{
+  padding: 0;
+  overflow: hidden;
+
+  .Settings_List{
+    max-width: none;
+    padding: 2px 16px 8px;
+  }
+}
+
+.General_Subtitle{
+  font-size: 12px;
+  color: var(--text-3);
+}

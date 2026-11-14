@@ -1,0 +1,50 @@
+// O que é só das dívidas; o resto vem do Earnings.scss (os mesmos cartões, tabelas e barras)
+
+// Dois campos lado a lado no formulário (um por baixo do outro num ecrã estreito)
+.Debt_Pair{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+
+  .Full_Width{ grid-column: 1 / -1; }
+}
+
+.Debt_Section{
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.Debt_Check{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+
+  input{ accent-color: var(--accent); }
+}
+
+.Debt_Col_Progress{ min-width: 150px; }
+
+// Um aumento da dívida (uma compra no cartão)
+.Debt_Charge{ color: var(--loss); }
+
+// Cada dívida no dashboard: o nome, a barra do que já se pagou e o saldo
+.Debt_Rows{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Debt_Row_Head{
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.Debt_Fill_Owed{ background-color: var(--loss); }

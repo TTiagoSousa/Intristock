@@ -1,0 +1,26 @@
+// A casca do cartão, o cabeçalho e o estado vazio vêm do Styles/.
+.Company_Trading{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Company_Trading_Card{
+  padding: 0;
+  overflow: hidden;
+}
+
+.Company_Trading_Message{
+  display: block;
+  padding: 20px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Company_Trading_Link{
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover{ text-decoration: underline; }
+}

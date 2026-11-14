@@ -1,0 +1,77 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+.Company_Settings{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  // Os cartões vão até à direita, como nas outras definições
+  > .Settings_List{ max-width: none; }
+}
+
+.Company_Settings_Message{
+  padding: 20px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+// Aviso de empresa parada. Fica no topo e não numa caixa de erro: não é um
+// problema, é o estado em que ela está — e a saída está aqui mesmo ao lado.
+.Company_Paused{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background-color: var(--warn-soft);
+  color: var(--warn);
+  font-size: 13px;
+
+  > span{ flex: 1; }
+
+  @media (max-width: 620px){
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+// O endereço é um valor de leitura, não um campo — em mono, para se ver que é
+// um identificador e não texto que se escreve
+.Company_Slug{
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+// Blocos com cabeçalho próprio (contas bancárias, zona perigosa), ao lado da
+// lista simples de definições
+.Settings_Block{
+  max-width: none;
+  margin-top: 16px;
+  padding: 0;
+
+  .Settings_List{
+    max-width: none;
+    padding: 2px 16px 8px;
+  }
+}
+
+// Um IBAN partido a meio deixa de se conseguir ler ou copiar. Prefere-se a
+// tabela a rolar de lado — é para isso que ela vive dentro do `Table_Wrap`.
+.Account_Iban{ white-space: nowrap; }
+
+.Settings_Block_Body{
+  padding: 12px 16px 16px;
+}
+
+// As duas ações que mudam a empresa inteira. O contorno serve de travão
+// visual: chega-se aqui a descer, não por engano.
+.Danger_Zone{
+  border-color: var(--danger-color);
+
+  .Card_Title{ color: var(--danger-color); }
+}

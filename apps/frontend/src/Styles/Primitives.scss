@@ -1,0 +1,514 @@
+@use './Fonts.scss' as Font;
+
+// ============================================================
+// PRIMITIVAS PARTILHADAS
+// Peças que se repetiam coladas em várias páginas. Carregadas
+// uma vez no App.scss — as páginas usam só as classes.
+// ============================================================
+
+// --- números ---------------------------------------------------------------
+// Todos os valores da app são mono e tabulares: as colunas alinham sempre
+// e o produto lê-se como instrumento, não como texto corrido.
+// Números na letra do texto, com algarismos tabulares: as colunas alinham sem
+// a cara de máquina de escrever do mono (que fica para símbolos e códigos)
+.Num{
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+}
+
+// Rótulo pequeno por cima de um valor ou de um campo: em frase, sem maiúsculas espaçadas
+.Eyebrow{
+  font-family: Font.$font_family_sans;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.Muted{ color: var(--text-2); }
+.Dim{ color: var(--text-3); }
+
+// --- variação (subiu / desceu) ---------------------------------------------
+.Delta{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+
+  .Tick{
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid currentColor;
+    opacity: .55;
+  }
+
+  &.Up{
+    color: var(--gain);
+    .Tick{ border-bottom-color: var(--gain); opacity: 1; }
+  }
+
+  &.Down{
+    color: var(--loss);
+    .Tick{
+      border-bottom: none;
+      border-top: 5px solid var(--loss);
+      opacity: 1;
+    }
+  }
+}
+
+// --- etiquetas de estado ---------------------------------------------------
+.Pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text-2);
+
+  .Dot{
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.Ok{ background-color: var(--gain-soft); color: var(--gain); }
+  &.Bad{ background-color: var(--loss-soft); color: var(--loss); }
+  &.Warn{ background-color: var(--warn-soft); color: var(--warn); }
+  &.Info{ background-color: var(--accent-soft); color: var(--accent); }
+  &.Gold{ background-color: var(--surface-3); color: var(--text-2); }
+}
+
+// --- ondas à direita ---------------------------------------------------------
+// Um cartão de número com duas ondas sobrepostas no lado direito, na cor do tom
+// (Up, Down, Accent, Gold, Warn), a desvanecer para a esquerda.
+$wave-back: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120' preserveAspectRatio='none'%3E%3Cpath d='M92 0C74 26 98 48 128 60C160 73 148 102 166 120H200V0Z'/%3E%3C/svg%3E");
+$wave-front: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120' preserveAspectRatio='none'%3E%3Cpath d='M200 22C168 30 146 52 154 78C160 98 136 108 120 120H200Z'/%3E%3C/svg%3E");
+
+.Wave_Tile{
+  --wave-tile-color: var(--line-strong);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 112px;
+  padding: 16px 20px;
+  justify-content: space-between;
+  text-align: left;
+
+  &::before,
+  &::after{
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 46%;
+    z-index: -1;
+    pointer-events: none;
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+  }
+
+  &::before{
+    mask-image: $wave-back;
+    background-image: linear-gradient(225deg, color-mix(in srgb, var(--wave-tile-color) 13%, transparent), color-mix(in srgb, var(--wave-tile-color) 3%, transparent) 75%);
+  }
+
+  &::after{
+    mask-image: $wave-front;
+    background-image: linear-gradient(to top, color-mix(in srgb, var(--wave-tile-color) 17%, transparent), color-mix(in srgb, var(--wave-tile-color) 4%, transparent) 85%);
+  }
+
+  &.Up{ --wave-tile-color: var(--gain); }
+  &.Down{ --wave-tile-color: var(--loss); }
+  &.Accent{ --wave-tile-color: var(--accent); }
+  // O dourado fica nos gráficos; no cartão a onda é neutra
+  &.Gold{ --wave-tile-color: var(--text-3); }
+  &.Warn{ --wave-tile-color: var(--warn); }
+}
+
+// --- cartão ----------------------------------------------------------------
+.Card{
+  background-color: var(--cards-background);
+  border: var(--card-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-box-shadow);
+
+  &.Padded{ padding: 16px; }
+  &.Flat{ box-shadow: none; }
+}
+
+// Cartão de número. Só para as figuras que são mesmo o assunto da página.
+.Tile{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+
+  .Tile_Value{
+    font-family: Font.$font_family_sans;
+    font-variant-numeric: tabular-nums;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    color: var(--text);
+  }
+
+  &.Big .Tile_Value{ font-size: 32px; }
+
+  // Reserva sempre a linha, para os números dos cartões ficarem à mesma altura
+  .Tile_Foot{
+    min-height: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: var(--text-xs);
+    color: var(--text-3);
+  }
+}
+
+// --- cabeçalhos ------------------------------------------------------------
+.Page_Head{
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+
+  h1{
+    font-family: Font.$font_family_sans;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -.015em;
+    color: var(--text);
+  }
+
+  .Page_Head_Sub{
+    margin-top: 4px;
+    font-size: var(--text-md);
+    color: var(--text-2);
+  }
+
+  .Page_Head_Actions{
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+.Section_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  h2{
+    font-family: Font.$font_family_sans;
+    font-size: var(--text-lg);
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .Section_Head_Line{
+    flex: 1;
+    height: 1px;
+    background-color: var(--line);
+  }
+}
+
+// --- grelha ----------------------------------------------------------------
+.Grid{
+  display: grid;
+  gap: 16px;
+
+  // As células têm de poder encolher abaixo do conteúdo, senão
+  // uma tabela larga empurra a grelha toda
+  > *{ min-width: 0; }
+
+  &.Auto_190{ grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  &.Auto_240{ grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  &.Auto_280{ grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+}
+
+// --- tabela ----------------------------------------------------------------
+.Table_Wrap{
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+
+  &::-webkit-scrollbar{ height: 8px; }
+  &::-webkit-scrollbar-track{ background: transparent; }
+  &::-webkit-scrollbar-thumb{
+    background-color: var(--line-strong);
+    border-radius: 4px;
+  }
+}
+
+.Table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+
+  th{
+    text-align: left;
+    padding: 0 12px 8px;
+    font-family: Font.$font_family_sans;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  td{
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  tbody tr{
+    transition: background-color var(--dur-fast);
+
+    &:last-child td{ border-bottom: none; }
+    &:hover{ background-color: var(--surface-2); }
+    &.Clickable{ cursor: pointer; }
+  }
+
+  tfoot td{
+    border-top: 1px solid var(--line);
+    border-bottom: none;
+    padding: 8px 12px;
+  }
+
+  .Right{ text-align: right; }
+}
+
+// Cabeçalho de tabela dentro de um cartão
+.Table_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+
+  h2{
+    font-family: Font.$font_family_sans;
+    font-size: var(--text-md);
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+// Ações por linha: sempre à vista (no toque e no teclado não há "passar por cima")
+.Row_Actions{
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.Icon_Button{
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  border: 1px solid transparent;
+  transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+  position: relative;
+
+  &:hover{
+    background-color: var(--surface-3);
+    color: var(--text);
+  }
+
+  &:active:not(:disabled){ transform: scale(.96); }
+
+  svg{ width: 16px; height: 16px; }
+
+  &.Tiny{
+    width: 24px;
+    height: 24px;
+    svg{ width: 14px; height: 14px; }
+  }
+}
+
+// --- separadores em pastilha ----------------------------------------------
+.Tabs{
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  background-color: var(--surface-3);
+  border-radius: var(--radius-sm);
+
+  button{
+    padding: 4px 12px;
+    border-radius: var(--radius-xs);
+    font-family: Font.$font_family_sans;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-2);
+    white-space: nowrap;
+    transition: background-color var(--dur-fast), color var(--dur-fast);
+
+    &:hover{ color: var(--text); }
+
+    &.Active{
+      background-color: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    &:disabled{
+      opacity: .38;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// --- interruptor -----------------------------------------------------------
+.Switch{
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background-color: var(--module-toggle-off-background);
+  position: relative;
+  flex: none;
+  transition: background-color var(--dur-menu) var(--ease-out);
+
+  &::after{
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--module-toggle-thumb);
+    box-shadow: var(--switch-thumb-shadow);
+    transition: transform var(--dur-menu) var(--ease-out);
+  }
+
+  &.On{
+    background-color: var(--module-toggle-on-background);
+    &::after{ transform: translateX(16px); }
+  }
+}
+
+// --- estado vazio ----------------------------------------------------------
+.Empty_State{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 32px 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--border-radius);
+  background-color: var(--cards-background);
+
+  .Empty_State_Title{
+    font-family: Font.$font_family_sans;
+    font-weight: 500;
+    font-size: var(--text-md);
+    color: var(--text);
+  }
+
+  .Empty_State_Text{
+    font-size: var(--text-base);
+    color: var(--text-2);
+    max-width: 46ch;
+  }
+}
+
+// Os menus que abrem do topo (conta, moeda, avisos, dropdowns)
+@keyframes Menu_In{
+  from{ opacity: 0; transform: scale(.97); }
+  to{ opacity: 1; transform: none; }
+}
+
+// Sem movimento: as animações param e só as mudanças de cor e os fades ficam (não deslocam nada)
+@media (prefers-reduced-motion: reduce){
+  *{
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: color, background-color, border-color, opacity !important;
+  }
+}
+
+// ============================================================
+// LISTA DE DEFINIÇÕES
+// Uma linha por definição: nome e explicação à esquerda, controlo
+// à direita. Serve as Definições pessoais e as de cada empresa.
+// ============================================================
+
+.Settings_List{
+  max-width: 780px;
+  padding: 2px 16px;
+}
+
+.Setting_Row{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+}
+
+.Setting_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Setting_Label{
+  font-family: Font.$font_family_sans;
+  font-weight: 500;
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.Setting_Hint{
+  font-size: var(--text-sm);
+  color: var(--text-2);
+}
+
+.Setting_Control{
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 190px;
+}
+
+@media (max-width: 700px){
+  .Setting_Row{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .Setting_Control{
+    min-width: 0;
+    justify-content: stretch;
+  }
+}

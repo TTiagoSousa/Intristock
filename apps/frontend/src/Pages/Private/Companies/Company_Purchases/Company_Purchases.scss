@@ -1,0 +1,125 @@
+.Company_Purchases{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+// --- pagamentos por mês --------------------------------------------------------
+.Monthly_Card{
+  .Monthly_Controls{
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+}
+
+// A zona dos filtros, entre o cabeçalho e o gráfico
+.Monthly_Filters{
+  display: flex;
+  align-items: flex-end;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--surface-2);
+}
+
+.Monthly_Filter{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &.Wide{
+    width: 200px;
+  }
+}
+
+// As datas à mão: de um mês a outro, lado a lado
+.Monthly_Range_Fields{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input{ width: 170px; }
+}
+
+.Monthly_Range_Sep{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Monthly_Clear{
+  margin-left: auto;
+  padding: 4px 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+
+  &:hover{ color: var(--accent-hover); }
+}
+
+.Monthly_Body{
+  height: 280px;
+  padding: 12px 16px 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.Monthly_Message{
+  font-size: 12px;
+  color: var(--text-3);
+
+  &.Bad{ color: var(--loss); }
+}
+
+.Monthly_Tooltip{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  box-shadow: var(--shadow-pop);
+
+  .Monthly_Tooltip_Label{
+    font-size: 12px;
+    color: var(--text-3);
+
+    // "outubro de 2026" → "Outubro de 2026" (o `capitalize` punha "De")
+    &::first-letter{ text-transform: uppercase; }
+  }
+
+  .Monthly_Tooltip_Row{
+    display: grid;
+    grid-template-columns: 8px auto auto;
+    align-items: center;
+    column-gap: 8px;
+  }
+
+  .Monthly_Tooltip_Dot{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .Monthly_Tooltip_Name{
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .Monthly_Tooltip_Value{
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+  }
+
+  .Monthly_Tooltip_Count{
+    grid-column: 2 / 4;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+}

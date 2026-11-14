@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "SimulationTrade" ADD COLUMN     "bars" INTEGER,
+ADD COLUMN     "maePct" DOUBLE PRECISION,
+ADD COLUMN     "mfePct" DOUBLE PRECISION;

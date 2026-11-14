@@ -1,0 +1,91 @@
+@use '../../../../Styles/Fonts.scss' as Font;
+
+// A casca do cartão e a tabela vêm do Styles/Cards.scss. Aqui fica só o que é
+// do registo de bens.
+.Company_Assets_Register{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Asset_Name{
+  font-weight: 500;
+  color: var(--text);
+}
+
+// De onde veio o ativo, por baixo do nome. Aparece sempre: um ativo sem compra
+// associada tem de se ver que não tem, senão lê-se igual a "não reparei".
+.Asset_Origin{
+  display: block;
+  margin-top: 1px;
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-3);
+
+  // Sem compra não é uma referência, é uma nota — e lê-se como tal
+  &.Manual{
+    font-family: Font.$font_family_sans;
+    font-style: italic;
+  }
+}
+
+// O que já se gastou lê-se como perda, o que ainda vale lê-se a cheio
+.Asset_Depreciated{ color: var(--loss); }
+.Asset_Net{ font-weight: 500; }
+
+.Asset_Status{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-family: Font.$font_family_sans;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--surface-3);
+  color: var(--text-2);
+
+  &::before{
+    content: '';
+    width: 4.5px;
+    height: 4.5px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &.em_uso{
+    background-color: var(--supplier-status-active-background);
+    color: var(--supplier-status-active-color);
+  }
+
+  &.manutencao{
+    background-color: var(--warn-soft);
+    color: var(--warn);
+  }
+
+  &.abatido{
+    background-color: var(--danger-color-soft);
+    color: var(--danger-color);
+  }
+}
+
+// Campo de data nativo, com a mesma pele dos outros campos
+.Asset_Date_Input{
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--simple-input-background-color);
+  color: var(--simple-input-letter-color);
+  font-family: Font.$font_family_sans;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+
+  &:focus{
+    outline: none;
+    border-color: var(--simple-input-focus-border-color);
+    background-color: var(--cards-background);
+  }
+}

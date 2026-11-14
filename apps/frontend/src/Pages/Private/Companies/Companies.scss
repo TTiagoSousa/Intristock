@@ -1,0 +1,107 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+.Companies{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.Companies_Grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+
+  > *{ min-width: 0; }
+}
+
+// Cada empresa é um cartão que se abre, não uma linha de tabela: entrar numa
+// empresa é mudar de área de trabalho. O cartão fica neutro; só a superfície
+// muda ao passar por cima
+.Company_Card{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  text-align: left;
+  border: var(--card-border);
+  border-radius: var(--radius);
+  background-color: var(--cards-background);
+  box-shadow: var(--card-box-shadow);
+  transition: background-color var(--dur-fast), border-color var(--dur-fast);
+
+  &:hover{
+    background-color: var(--surface-2);
+    border-color: var(--line-strong);
+  }
+
+  &:active{ transform: scale(.99); }
+}
+
+.Company_Card_Head{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.Company_Card_Mark{
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background-color: var(--company-mark-background);
+  color: var(--company-mark-text);
+  font-family: Font.$font_family_sans;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.Company_Card_Identity{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.Company_Card_Name{
+  font-family: Font.$font_family_sans;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Company_Card_Country,
+.Company_Card_Role{
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Company_Card_Role{
+  flex: none;
+  align-self: flex-start;
+}
+
+.Company_Card_Parent{
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// A moeda e a data juntas numa linha discreta, empurrada para o fundo, para os
+// cartões acabarem todos na mesma linha
+.Company_Card_Meta{
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-3);
+}

@@ -1,0 +1,30 @@
+.Security{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// Como o cartão da página Geral: largura toda, cabeçalho "Alterar password", as
+// linhas sem o limite de largura da lista e o botão num rodapé
+.Security_Card{
+  padding: 0;
+  overflow: hidden;
+
+  .Settings_List{
+    max-width: none;
+    padding: 2px 16px 8px;
+  }
+}
+
+.Security_Subtitle{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Security_Foot{
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--line);
+  background-color: var(--card-global-header-background);
+}

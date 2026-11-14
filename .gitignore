@@ -1,0 +1,24 @@
+# Dependências e builds
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Segredos e configuração local — nunca no git
+.env
+.env.*
+!.env.example
+
+# Ferramentas e sistema
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Ferramentas e notas locais — ficam nesta máquina
+.claude/
+CLAUDE.md
+.agents/
+skills-lock.json

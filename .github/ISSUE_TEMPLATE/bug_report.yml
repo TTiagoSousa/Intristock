@@ -1,0 +1,55 @@
+name: Bug report
+description: Something does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Security problems are reported privately: see SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version you run (Versions → News shows it), for example v1.0.0, or a commit.
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Companies (suppliers, items, payments, stock, assets, members)
+        - Personal finances (earnings, expenses, debts, portfolio)
+        - Trading simulator
+        - Calculators
+        - Settings and administration
+        - Installation or update (Proxmox VM)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The steps that show the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: For installs and updates, the end of `journalctl -u intristock` or of `update.log`. Remove passwords and keys first.
+      render: text
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: Firefox 145 on Windows 11
