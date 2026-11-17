@@ -1263,8 +1263,24 @@ $within-width: 296px;
 }
 
 .Instrument_Option_Pair{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 500;
   color: var(--text);
+}
+
+// O logótipo da corretora (das plataformas), na lista, nos filtros e no escolhido
+.Instrument_Platform_Logo{
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: contain;
+  background-color: var(--surface-2);
+  vertical-align: middle;
+
+  em > &{ margin-right: 4px; }
 }
 
 .Instrument_Option_Symbol,

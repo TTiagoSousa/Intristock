@@ -9,6 +9,7 @@ import {
 } from '../../../../Hooks/Trading/useMarketInstruments';
 import type {
   Instrument_Filters,
+  Instrument_Platform,
   Instrument_Type,
   Market_Instrument,
 } from '../../../../Hooks/Trading/useMarketInstruments';
@@ -110,7 +111,8 @@ const Instrument_Picker = ({ value, onChange }: Instrument_Picker_Props) => {
             <>
               <strong>{instrumentPair(value)}</strong>
               <em>
-                {typeLabel(value.type)} · {sourceLabel(value.source)}
+                {typeLabel(value.type)} · <Platform_Logo platform={value.platform} />
+                {sourceLabel(value.source, value.platform)}
               </em>
             </>
           ) : (
@@ -148,14 +150,15 @@ const Instrument_Picker = ({ value, onChange }: Instrument_Picker_Props) => {
                   >
                     {t('trading.filterAllSources')}
                   </button>
-                  {facets.sources.map(({ source, count }) => (
+                  {facets.sources.map(({ source, count, platform }) => (
                     <button
                       key={source}
                       type="button"
                       className={`Filter_Chip${filters.source === source ? ' Active' : ''}`}
                       onClick={() => setFilter('source', source)}
                     >
-                      {sourceLabel(source)}
+                      <Platform_Logo platform={platform} />
+                      {sourceLabel(source, platform)}
                       <small>{count}</small>
                     </button>
                   ))}
@@ -204,7 +207,10 @@ const Instrument_Picker = ({ value, onChange }: Instrument_Picker_Props) => {
                       className={`Instrument_Option${value?.id === instrument.id ? ' Selected' : ''}`}
                       onClick={() => choose(instrument)}
                     >
-                      <span className="Instrument_Option_Pair">{instrumentPair(instrument)}</span>
+                      <span className="Instrument_Option_Pair">
+                        <Platform_Logo platform={instrument.platform} title={sourceLabel(instrument.source, instrument.platform)} />
+                        {instrumentPair(instrument)}
+                      </span>
                       <span className="Instrument_Option_Symbol">{instrument.symbol}</span>
                       {instrument.expiresAt && (
                         <span className="Instrument_Option_Expiry">
@@ -232,6 +238,22 @@ const Instrument_Picker = ({ value, onChange }: Instrument_Picker_Props) => {
           document.body,
         )}
     </div>
+  );
+};
+
+// O logótipo da corretora, das plataformas; sem ele (ou se não carregar) não ocupa espaço
+const Platform_Logo = ({ platform, title }: { platform?: Instrument_Platform; title?: string }) => {
+  const [failed, setFailed] = useState(false);
+  if (!platform?.logo || failed) return null;
+  return (
+    <img
+      className="Instrument_Platform_Logo"
+      src={platform.logo}
+      alt=""
+      title={title}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
   );
 };
 

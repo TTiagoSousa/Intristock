@@ -8,6 +8,7 @@ import { PrismaMarketDataRepository } from './repositories/prisma/prisma-market-
 import { FindInstrumentsDto } from './dto/find-instruments.dto';
 import { CreateMarketDataDownloadDto } from './dto/create-market-data-download.dto';
 import { syncInstruments } from './helpers/syncInstruments';
+import { linkInstrumentsToPlatform } from './helpers/linkInstrumentsToPlatform';
 import {
   BINANCE_QUOTES,
   fetchBinanceInstruments,
@@ -81,7 +82,10 @@ export class MarketDataService
     sync: () => Promise<Record<string, number>>,
   ) {
     try {
-      const result = await sync();
+      const result = {
+        ...(await sync()),
+        ...(await linkInstrumentsToPlatform(this.repository, source)),
+      };
       this.logger.log(`Mercados da ${name}: ${JSON.stringify(result)}`);
     } catch (error) {
       // Sem internet ou com a corretora em baixo, fica a lista que já havia

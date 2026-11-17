@@ -13,6 +13,9 @@ export interface Instrument_Metadata {
   tickSize?: string;
 }
 
+// A plataforma da corretora (Definições → Plataformas), quando os mercados estão ligados a ela
+export type Instrument_Platform = { name: string; logo: string | null } | null;
+
 export interface Market_Instrument {
   id: string;
   source: string;
@@ -23,6 +26,7 @@ export interface Market_Instrument {
   expiresAt: string | null;
   metadata?: Instrument_Metadata | null;
   asset: { ticker: string | null; name: string };
+  platform?: Instrument_Platform;
 }
 
 export interface Instrument_Filters {
@@ -32,7 +36,7 @@ export interface Instrument_Filters {
 }
 
 export interface Instrument_Facets {
-  sources: { source: string; count: number }[];
+  sources: { source: string; count: number; platform?: Instrument_Platform }[];
   types: { type: Instrument_Type; count: number }[];
 }
 
@@ -40,10 +44,11 @@ export interface Instrument_Facets {
 export const instrumentPair = (instrument: Market_Instrument) =>
   `${instrument.asset.ticker ?? instrument.symbol}/${instrument.quote}`;
 
-// Nome da corretora como se escreve; as que não estão aqui mostram o id
+// Nome da corretora: o da plataforma ligada; sem ela, como se escreve (as que não estão aqui mostram o id)
 const SOURCE_LABELS: Record<string, string> = { binance: 'Binance', coinbase: 'Coinbase' };
 
-export const sourceLabel = (source: string) => SOURCE_LABELS[source] ?? source;
+export const sourceLabel = (source: string, platform?: Instrument_Platform) =>
+  platform?.name ?? SOURCE_LABELS[source] ?? source;
 
 // Espera que se pare de escrever antes de ir ao servidor
 const DEBOUNCE_MS = 250;

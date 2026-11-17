@@ -29,10 +29,12 @@ export interface InstrumentFilters {
   status: string;
 }
 
+export type InstrumentPlatform = { name: string; logo: string | null } | null;
+
 export type InstrumentListItem = Pick<
   Instrument,
   'id' | 'source' | 'type' | 'symbol' | 'quote' | 'status' | 'expiresAt'
-> & { asset: { ticker: string | null; name: string } };
+> & { asset: { ticker: string | null; name: string }; platform: InstrumentPlatform };
 
 export type MarketDataDownloadView = MarketDataDownload & {
   instrument: Pick<Instrument, 'id' | 'source' | 'type' | 'symbol' | 'quote'>;
@@ -58,10 +60,12 @@ export interface MarketDataRepository {
     take: number,
   ): Promise<{ items: InstrumentListItem[]; total: number }>;
   countInstrumentFacets(status: string): Promise<{
-    sources: { source: string; count: number }[];
+    sources: { source: string; count: number; platform: InstrumentPlatform }[];
     types: { type: string; count: number }[];
   }>;
   findInstrumentById(id: string): Promise<Instrument | null>;
+  findExchangePlatformId(name: string, coingeckoId: string): Promise<string | null>;
+  linkInstrumentsToPlatform(source: string, platformId: string): Promise<number>;
   createDownload(data: {
     userId: string;
     instrumentId: string;

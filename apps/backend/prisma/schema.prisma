@@ -464,6 +464,7 @@ model Platform {
   portfolios   PersonalPortfolio[]
   suppliers    CompanySupplier[]
   propFirm     PropFirmDetail?
+  instruments  Instrument[]
 
   @@unique([source, externalId])
   @@index([type])
@@ -1025,27 +1026,31 @@ model Asset {
 /// Um mercado concreto onde um ativo tem preço (o BTCUSDT spot da Binance e o
 /// perpétuo BTCUSDT são dois). As velas, no ClickHouse, ligam-se pelo id daqui.
 model Instrument {
-  id        String    @id @default(uuid())
-  assetId   String
-  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  assetId    String
+  asset      Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
   /// de onde vêm os dados: 'binance'
-  source    String
+  source     String
+  /// A plataforma da corretora (a `Platform` de type exchange), para o nome e o logótipo;
+  /// o `source` continua a dizer a que API se vão buscar as velas
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
   /// spot | perpetual | future | option | cfd | index
-  type      String
+  type       String
   /// como a fonte lhe chama: 'BTCUSDT'
-  symbol    String
+  symbol     String
   /// onde negoceia, quando não é a própria fonte: 'NASDAQ'
-  venue     String?
+  venue      String?
   /// moeda do preço: 'USDT'
-  quote     String
+  quote      String
   /// futuros com data e opções
-  expiresAt DateTime?
+  expiresAt  DateTime?
   /// trading | halted | delisted
-  status    String
+  status     String
   /// o específico da fonte (passo de preço, tamanho do contrato…)
-  metadata  Json?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   months      MarketDataMonth[]
   downloads   MarketDataDownload[]
@@ -1055,6 +1060,7 @@ model Instrument {
   @@unique([source, type, symbol])
   @@index([assetId])
   @@index([status, type, quote])
+  @@index([platformId])
 }
 
 /// Que meses de velas de um instrumento já estão no ClickHouse. Escrita pelo

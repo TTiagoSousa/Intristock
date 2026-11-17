@@ -19,6 +19,8 @@ const INSTRUMENT_LIST_SELECT = {
   // O passo e os mínimos de cada ordem, para o simulador
   metadata: true,
   asset: { select: { ticker: true, name: true } },
+  // O nome e o logótipo da corretora, das plataformas
+  platform: { select: { name: true, logo: true } },
 } as const;
 
 const INSTRUMENT_ORDER: Prisma.InstrumentOrderByWithRelationInput[] = [
@@ -187,7 +189,7 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
   }
 
   async countInstrumentFacets(status: string) {
-    const [sources, types] = await Promise.all([
+    const [sources, types, platforms] = await Promise.all([
       this.prisma.instrument.groupBy({
         by: ['source'],
         where: { status },
@@ -198,11 +200,22 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
         where: { status },
         _count: { _all: true },
       }),
+      // Uma linha por corretora, com a plataforma a que os mercados dela estão ligados
+      this.prisma.instrument.findMany({
+        where: { status, platformId: { not: null } },
+        distinct: ['source'],
+        select: { source: true, platform: { select: { name: true, logo: true } } },
+      }),
     ]);
+    const platformBySource = new Map(platforms.map((item) => [item.source, item.platform]));
 
     return {
       sources: sources
-        .map((item) => ({ source: item.source, count: item._count._all }))
+        .map((item) => ({
+          source: item.source,
+          count: item._count._all,
+          platform: platformBySource.get(item.source) ?? null,
+        }))
         .sort((a, b) => b.count - a.count),
       types: types
         .map((item) => ({ type: item.type, count: item._count._all }))
@@ -212,6 +225,30 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
 
   async findInstrumentById(id: string): Promise<Instrument | null> {
     return this.prisma.instrument.findUnique({ where: { id } });
+  }
+
+  // A exchange pelo nome do catálogo (a CoinGecko mantém-no) ou pelo id na CoinGecko
+  async findExchangePlatformId(name: string, coingeckoId: string) {
+    const platform = await this.prisma.platform.findFirst({
+      where: {
+        type: 'exchange',
+        OR: [
+          { name: { equals: name, mode: 'insensitive' } },
+          { source: 'coingecko', externalId: coingeckoId },
+        ],
+      },
+      orderBy: { isActive: 'desc' },
+      select: { id: true },
+    });
+    return platform?.id ?? null;
+  }
+
+  async linkInstrumentsToPlatform(source: string, platformId: string) {
+    const result = await this.prisma.instrument.updateMany({
+      where: { source, OR: [{ platformId: null }, { platformId: { not: platformId } }] },
+      data: { platformId },
+    });
+    return result.count;
   }
 
   async createDownload(data: {

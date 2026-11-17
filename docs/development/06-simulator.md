@@ -2,7 +2,7 @@
 
 ## Pieces
 
-- **Markets**: an `Asset` is the thing (Bitcoin), an `Instrument` is a market where it has a price (Binance spot BTCUSDT, Coinbase BTC-USD). The backend syncs the markets of each exchange on start and every 24 h.
+- **Markets**: an `Asset` is the thing (Bitcoin), an `Instrument` is a market where it has a price (Binance spot BTCUSDT, Coinbase BTC-USD). The backend syncs the markets of each exchange on start and every 24 h. Each market points to the exchange's `Platform` (`Instrument.platformId`, matched by name or by its CoinGecko id), so the picker shows its name and logo; `source` still decides which API the candles come from.
 - **Downloader** (`apps/downloader`): takes `MarketDataDownload` rows (`FOR UPDATE SKIP LOCKED`), downloads one-minute candles month by month into ClickHouse and records the months it has in `MarketDataMonth`.
 - **Simulator** (`apps/simulator/intristock_simulator`): waits for a `SimulationRun` whose download is done, runs it in a process pool and writes the result, the trades (`SimulationTrade`) and the report.
 
