@@ -57,6 +57,10 @@ export interface PlatformRepository {
   findByTypeWithPlanCount(
     type: string,
   ): Promise<(Platform & { propFirm: PropFirmDetail | null; _count: { plans: number } })[]>;
+  // As ligações pela API das pessoas (portefólios), com quem as fez
+  findBrokerConnections(): Promise<
+    { platformId: string; externalAccountId: string; status: string; user: { id: string; fullName: string; email: string } }[]
+  >;
   findByTypeWithCountry(
     type: string,
   ): Promise<(Platform & { country: { name: string; iso2: string } | null })[]>;

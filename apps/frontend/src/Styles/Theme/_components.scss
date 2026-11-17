@@ -56,6 +56,14 @@ $components: (
   'portfolio-chart-line-3':             var(--gold),
   'portfolio-chart-line-4':             var(--warn),
   'portfolio-chart-line-5':             var(--text-2),
+  // a distribuição: uma cor por categoria geral (os ativos ficam com a da categoria)
+  'portfolio-allocation-total':         var(--text-2),
+  'portfolio-allocation-cash':          var(--accent),
+  'portfolio-allocation-securities':    var(--violet),
+  'portfolio-allocation-crypto':        var(--gold),
+  'portfolio-allocation-property':      var(--teal),
+  'portfolio-allocation-goods':         var(--gain),
+  'portfolio-allocation-other':         var(--pink),
 
   // --- moeda do site (ao lado do sino) ---
   'currency-menu-dropdown-background':  var(--surface),

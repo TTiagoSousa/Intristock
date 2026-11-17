@@ -145,3 +145,293 @@
   flex: 1;
   min-height: 0;
 }
+
+// --- os cartões dos portefólios no resumo: cada um abre a página dele ---
+.Portfolio_Tiles{
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+// O Total, parado à esquerda
+.Portfolio_Tile_Total{
+  flex: 0 0 200px;
+  cursor: default;
+
+  &:hover{ border-color: var(--line); }
+}
+
+// As setas e a fila dos portefólios, que anda por páginas
+.Portfolio_Carousel{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Portfolio_Carousel_Arrows{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .Icon_Button:disabled{ opacity: .35; cursor: default; }
+}
+
+.Portfolio_Carousel_Track{
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar{ display: none; }
+
+  .Portfolio_Tile{
+    flex: 0 0 220px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 640px){
+  .Portfolio_Tiles{ flex-direction: column; }
+  .Portfolio_Tile_Total{ flex-basis: auto; }
+}
+
+.Portfolio_Tile{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 16px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast), background-color var(--dur-fast);
+
+  &:hover{ border-color: var(--line-strong); }
+  &:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+.Portfolio_Tile_Name{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.Portfolio_Tile_Value{
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.Portfolio_Tile_Meta{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Portfolio_Platform_Logo{
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: contain;
+  background-color: var(--surface-2);
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+// --- as listas: o filtro com mais campos, as ligações e os valores ---
+// Sete campos em quatro colunas; o limpar fica na última da segunda linha
+.Earnings_Filter_Card .Earnings_Filters.Portfolio_Filters{
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  .Earnings_Clear{ justify-self: start; }
+
+  @media (max-width: 900px){ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.Portfolio_Link{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover{ color: var(--accent); }
+}
+
+.Portfolio_Muted{ color: var(--text-3); }
+.Portfolio_In{ color: var(--gain); }
+.Portfolio_Out{ color: var(--text); }
+.Portfolio_Capitalize{ text-transform: capitalize; }
+
+// --- a página de um portefólio ---
+.Portfolio_Head{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.Portfolio_Head_Title{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.Portfolio_Stats{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 900px){ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 480px){ grid-template-columns: 1fr; }
+}
+
+.Portfolio_Stat{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+}
+
+.Portfolio_Stat_Label,
+.Portfolio_Stat_Sub{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Portfolio_Stat_Value{
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+// --- as corretoras ligadas ---
+.Portfolio_Connections{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Portfolio_Connection{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.Portfolio_Connection_Head{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.Portfolio_Connection_Facts{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Portfolio_Connection_Row{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Portfolio_Connection_Actions{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// --- enquanto o resumo carrega: o cartão já no sítio, os números e o gráfico a piscar ---
+.Portfolio_Pulse{
+  display: block;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+  animation: Portfolio_Pulse 1.4s ease-in-out infinite;
+}
+
+.Portfolio_Pulse_Line{ width: 220px; height: 12px; }
+.Portfolio_Pulse_Value{ width: 120px; height: 22px; }
+.Portfolio_Pulse_Name{ width: 140px; height: 13px; }
+.Portfolio_Pulse_Meta{ width: 80px; height: 10px; }
+.Portfolio_Pulse_Chart{ flex: 1; min-height: 280px; }
+
+@keyframes Portfolio_Pulse{
+  50%{ opacity: .45; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .Portfolio_Pulse{ animation: none; }
+}
+
+// O aviso de vazio (ou de erro) ocupa o lugar do gráfico
+.Portfolio_Chart_Empty{
+  flex: 1;
+  justify-content: center;
+}
+
+// As perdas e as posições já fechadas
+.Portfolio_Loss{ color: var(--loss); }
+.Portfolio_Closed td{ color: var(--text-3); }
+
+// Os períodos do gráfico, por baixo do cabeçalho
+.Portfolio_Ranges{
+  padding: 12px 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar{ display: none; }
+}
+
+// Enquanto chega o período novo, o gráfico de antes fica mais apagado
+.Portfolio_Changing{
+  opacity: .5;
+  transition: opacity var(--dur-fast);
+}
+
+// --- a distribuição de hoje, por baixo do gráfico: dois cartões lado a lado ---
+.Portfolio_Allocation{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+
+  @media (max-width: 960px){ grid-template-columns: 1fr; }
+}
+
+.Portfolio_Allocation_Card{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.Portfolio_Allocation_Body{
+  height: 320px;
+  padding: 12px 16px 16px;
+  display: flex;
+}
+
+.Portfolio_Allocation_Chart{
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}

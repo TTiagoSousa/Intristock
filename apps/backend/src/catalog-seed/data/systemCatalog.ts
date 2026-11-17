@@ -74,6 +74,7 @@ export const SYSTEM_PLATFORMS: SystemPlatform[] = [
   { name: 'DEGIRO', type: 'broker', website: 'https://www.degiro.pt' },
   { name: 'XTB', type: 'broker', website: 'https://www.xtb.com' },
   { name: 'eToro', type: 'broker', website: 'https://www.etoro.com' },
+  { name: 'Trading 212', type: 'broker', website: 'https://www.trading212.com' },
 
   { name: 'Binance', type: 'exchange', website: 'https://www.binance.com' },
   { name: 'Kraken', type: 'exchange', website: 'https://www.kraken.com' },

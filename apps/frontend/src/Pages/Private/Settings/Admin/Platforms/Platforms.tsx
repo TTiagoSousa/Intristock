@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import http from '../../../../../Service/httpService';
+import { End_Points } from '../../../../../Service/endPoints';
 import { useTranslation } from 'react-i18next';
 import { useAdminPlatforms } from '../../../../../Hooks/Admin/useAdminPlatforms';
 import { useCountries } from '../../../../../Hooks/useCountries';
@@ -14,6 +16,21 @@ const Platforms = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  // As ligações pela API de cada plataforma (as corretoras dos portefólios) e de quem são
+  const [connections, setConnections] = useState<
+    Record<string, { count: number; users: { id: string; name: string; account: string; status: string }[] }>
+  >({});
+
+  useEffect(() => {
+    let cancelled = false;
+    http
+      .get(End_Points.Platform_Connections_Endpoint())
+      .then(({ data }) => !cancelled && setConnections(data))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const countryName = (countryId: string | null) =>
     countryId ? countries.find((country) => country.id === countryId)?.name ?? '—' : t('adminPlatforms.international');
@@ -79,6 +96,7 @@ const Platforms = () => {
                     <th>{t('adminPlatforms.country')}</th>
                     <th>{t('adminPlatforms.website')}</th>
                     <th>{t('adminPlatforms.source')}</th>
+                    <th>{t('adminPlatforms.connections')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -95,6 +113,22 @@ const Platforms = () => {
                         <span className={`Pill ${platform.source === 'manual' || platform.source === 'system' ? '' : 'Info'}`}>
                           {t(`adminPlatforms.sources.${platform.source}`, { defaultValue: platform.source })}
                         </span>
+                      </td>
+                      <td>
+                        {connections[platform.id] ? (
+                          <span
+                            title={connections[platform.id].users
+                              .map((user) => `${user.name} · ${user.account}`)
+                              .join('\n')}
+                          >
+                            {t('adminPlatforms.connectionCount', {
+                              count: connections[platform.id].count,
+                              users: [...new Set(connections[platform.id].users.map((user) => user.name))].join(', '),
+                            })}
+                          </span>
+                        ) : (
+                          <span className="Admin_Muted_Cell">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

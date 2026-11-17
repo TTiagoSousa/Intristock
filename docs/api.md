@@ -315,8 +315,27 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/personal-portfolio` | findPortfolios | user |
 | GET | `/personal-portfolio/summary` | summarize | user |
 | POST | `/personal-portfolio` | createPortfolio | user |
+| GET | `/personal-portfolio/:portfolioId` | findPortfolio | user |
+| GET | `/personal-portfolio/:portfolioId/positions` | findPositions | user |
 | GET | `/personal-portfolio/:portfolioId/transactions` | findTransactions | user |
 | POST | `/personal-portfolio/:portfolioId/transactions/cash` | createCashTransaction | user |
+| GET | `/personal-portfolio/transactions` | findAllTransactions | user |
+| GET | `/personal-portfolio/connections` | findConnections | user |
+| POST | `/personal-portfolio/connections` | connectBroker | user |
+| PATCH | `/personal-portfolio/connections/:connectionId` | updateConnection | user |
+| POST | `/personal-portfolio/connections/:connectionId/sync` | syncConnection | user |
+| DELETE | `/personal-portfolio/connections/:connectionId` | deleteConnection | user |
+
+Broker connections (Trading 212, cash only for now): `POST /connections` takes `apiKey`, `apiSecret` and an optional
+`fromDate`, checks the key against the broker, stores it encrypted and creates a read-only cash portfolio; the first
+sync (the whole history) runs in the background and then every hour. The key never comes back in a response.
+Portfolios that come from a connection reject manual transactions. Each sync looks 7 days back from the last imported
+cash movement, so movements the broker books late with an earlier date still come in (repeats are skipped by id).
+
+`GET /summary?currencyId&range` is cached in memory per user, currency and range until the data changes (transactions,
+portfolios, connections, the latest hourly rate, stock closes) or 15 minutes pass (5 in the 7-day and 24-hour ranges,
+which value stocks at Yahoo's hourly prices). `GET /transactions` is paginated (`page`, `take` up to 100, default 20) and
+also returns `total` and `net`: cash in minus cash out of every matching transaction, in `currencyId` at each day's rate.
 
 ### platform
 
@@ -326,6 +345,7 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/platform` | findAll | public |
 | GET | `/platform/prop-firms/status` | propFirmStatus | admin |
 | POST | `/platform/prop-firms/sync` | syncPropFirms | admin |
+| GET | `/platform/connections` | connections | admin |
 | GET | `/platform/exchanges` | exchanges | admin |
 | POST | `/platform/exchanges/sync` | syncExchanges | admin |
 | GET | `/platform/prop-firms` | propFirmsFromDatabase | admin |

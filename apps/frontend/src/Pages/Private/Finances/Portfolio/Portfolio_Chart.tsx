@@ -61,7 +61,8 @@ const Portfolio_Chart = ({ days, series, format, compact, dateLabel, axisLabel }
         tooltipBorder: token('month-chart-tooltip-border'),
         font: getComputedStyle(document.body).fontFamily,
       };
-      const times = days.map((day) => Date.parse(`${day}T00:00:00Z`));
+      // Um dia (YYYY-MM-DD) ou uma hora (ISO), nos períodos curtos
+      const times = days.map((day) => Date.parse(day.length > 10 ? day : `${day}T00:00:00Z`));
       const colors = series.map((part) => token(part.colorToken));
       // Com uma só linha, a área por baixo; com várias, só as linhas
       const single = series.length === 1;

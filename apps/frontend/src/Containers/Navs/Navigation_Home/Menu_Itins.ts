@@ -95,7 +95,9 @@ export const modules: Menu_Module[] = [
     icon: Icon.Pie,
     path: '/Portefolio',
     sections: [
-      { id: 'dashboard', labelKey: 'menu.portfolioDashboard', path: '/Portefolio' },
+      { id: 'dashboard', labelKey: 'menu.portfolioDashboard', path: '/Portefolio', matchPaths: ['/Portefolio/p/'] },
+      { id: 'transactions', labelKey: 'menu.portfolioTransactions', path: '/Portefolio/transacoes', nested: true },
+      { id: 'connections', labelKey: 'menu.portfolioConnections', path: '/Portefolio/corretoras' },
       { id: 'add', labelKey: 'menu.portfolioAddTransaction', path: '/Portefolio', action: 'portfolio-transaction' },
     ],
   },

@@ -35,8 +35,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popover_Props) => {
   const { t } = useTranslation();
   const { currencies, selectedCurrency } = useCurrency();
-  const { portfolios, bankAccounts, loading, saving, error, setError, createPortfolio, createCashTransaction } =
+  const { portfolios: allPortfolios, bankAccounts, loading, saving, error, setError, createPortfolio, createCashTransaction } =
     usePortfolioTransaction();
+  // Os de uma corretora são só de leitura: mantém-nos a ligação
+  const portfolios = allPortfolios.filter((item) => item.source !== 'api');
 
   const [step, setStep] = useState<Step>('portfolio');
   const [portfolio, setPortfolio] = useState<Personal_Portfolio | null>(null);

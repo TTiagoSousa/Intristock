@@ -90,6 +90,18 @@ export class PrismaPlatformRepository implements PlatformRepository {
   }
 
   // As de um tipo com o nome do país (a página das exchanges)
+  async findBrokerConnections() {
+    return this.prisma.brokerConnection.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: {
+        platformId: true,
+        externalAccountId: true,
+        status: true,
+        user: { select: { id: true, fullName: true, email: true } },
+      },
+    });
+  }
+
   async findByTypeWithCountry(type: string) {
     return this.prisma.platform.findMany({
       where: { type },

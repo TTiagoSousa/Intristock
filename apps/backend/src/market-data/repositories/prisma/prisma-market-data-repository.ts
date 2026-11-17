@@ -5,7 +5,12 @@ import {
   CatalogAssetInput,
   InstrumentFilters,
   InstrumentInput,
+  InstrumentToPrice,
   MarketDataRepository,
+  PriceSyncState,
+  SharedAssetInput,
+  SIMULATOR_SOURCES,
+  StockInstrumentInput,
 } from '../market-data-repository';
 
 const INSTRUMENT_LIST_SELECT = {
@@ -107,9 +112,16 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
   }
 
   // Ativos do catálogo que ficaram sem nenhum mercado
+  // Os do catálogo que ficaram sem mercado; nunca o dinheiro de uma moeda nem um ativo
+  // que esteja nalguma transação de um portefólio
   async deleteOrphanCatalogAssets() {
     const result = await this.prisma.asset.deleteMany({
-      where: { ownerUserId: null, instruments: { none: {} } },
+      where: {
+        ownerUserId: null,
+        currencyId: null,
+        instruments: { none: {} },
+        portfolioTransactions: { none: {} },
+      },
     });
     return result.count;
   }
@@ -123,7 +135,9 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
   ) {
     const base: Prisma.InstrumentWhereInput = {
       status: filters.status,
-      ...(filters.source && { source: filters.source }),
+      source: filters.source && SIMULATOR_SOURCES.includes(filters.source)
+        ? filters.source
+        : { in: SIMULATOR_SOURCES },
       ...(filters.type && { type: filters.type }),
     };
 
@@ -192,12 +206,12 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
     const [sources, types, platforms] = await Promise.all([
       this.prisma.instrument.groupBy({
         by: ['source'],
-        where: { status },
+        where: { status, source: { in: SIMULATOR_SOURCES } },
         _count: { _all: true },
       }),
       this.prisma.instrument.groupBy({
         by: ['type'],
-        where: { status },
+        where: { status, source: { in: SIMULATOR_SOURCES } },
         _count: { _all: true },
       }),
       // Uma linha por corretora, com a plataforma a que os mercados dela estão ligados
@@ -275,5 +289,121 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
   async notifyDownload(id: string) {
     await this.prisma
       .$executeRaw`SELECT pg_notify('market_data_download', ${id})`;
+  }
+
+  // --- as ações (Yahoo e corretoras) ---
+
+  async findInstrumentBySymbol(source: string, type: string, symbol: string) {
+    return this.prisma.instrument.findUnique({
+      where: { source_type_symbol: { source, type, symbol } },
+      select: { id: true, assetId: true },
+    });
+  }
+
+  async findSharedAssetByIsin(isin: string) {
+    return this.prisma.asset.findFirst({
+      where: { isin, ownerUserId: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, name: true, ticker: true },
+    });
+  }
+
+  // Uma ação do catálogo partilhado com este ticker e ainda sem ISIN (as dos futuros da Binance)
+  async findSharedStockByTicker(ticker: string) {
+    return this.prisma.asset.findFirst({
+      where: { ticker, subClass: { in: ['stock', 'etf'] }, ownerUserId: null, isin: null },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, name: true, ticker: true },
+    });
+  }
+
+  async updateAsset(id: string, data: { isin?: string; name?: string }) {
+    await this.prisma.asset.update({ where: { id }, data });
+  }
+
+  async createAsset(data: SharedAssetInput) {
+    return this.prisma.asset.create({ data, select: { id: true, name: true, ticker: true } });
+  }
+
+  async upsertInstrument(input: StockInstrumentInput) {
+    const { metadata, ...data } = input;
+    const json = metadata as Prisma.InputJsonValue | undefined;
+    return this.prisma.instrument.upsert({
+      where: { source_type_symbol: { source: data.source, type: data.type, symbol: data.symbol } },
+      create: { ...data, metadata: json },
+      update: { ...data, metadata: json },
+      select: { id: true, assetId: true },
+    });
+  }
+
+  // Os mercados do Yahoo que dão o preço a um mercado de corretora com transações (ou só
+  // os destes mercados de corretora): desde a primeira transação e o último dia guardado
+  async findInstrumentsToPrice(brokerInstrumentIds?: string[]): Promise<InstrumentToPrice[]> {
+    const rows = await this.prisma.instrument.findMany({
+      where: {
+        source: 'yahoo',
+        pricedBy: {
+          some: {
+            ...(brokerInstrumentIds ? { id: { in: brokerInstrumentIds } } : {}),
+            transactions: { some: {} },
+          },
+        },
+      },
+      select: {
+        id: true,
+        symbol: true,
+        pricedBy: {
+          select: { transactions: { select: { date: true }, orderBy: { date: 'asc' }, take: 1 } },
+        },
+        metadata: true,
+        prices: { select: { date: true }, orderBy: { date: 'desc' }, take: 1 },
+      },
+    });
+    return rows.flatMap((row) => {
+      const dates = row.pricedBy.flatMap((broker) => broker.transactions.map((tx) => tx.date.getTime()));
+      if (!dates.length) return [];
+      return [
+        {
+          id: row.id,
+          symbol: row.symbol,
+          firstDate: new Date(Math.min(...dates)),
+          lastDate: row.prices[0]?.date ?? null,
+          metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+        },
+      ];
+    });
+  }
+
+  // Os fechos de um mercado: os dias novos entram, os que já estavam ficam com o valor novo
+  // Os dias novos entram de uma vez; os de `refreshFrom` em diante (o último guardado e os
+  // antes dele, que o Yahoo ainda pode corrigir) atualizam-se. Devolve os novos.
+  async saveInstrumentPrices(
+    instrumentId: string,
+    days: { date: string; close: number; adjClose: number | null }[],
+    refreshFrom: string | null,
+  ) {
+    const at = (day: string) => new Date(`${day}T00:00:00.000Z`);
+    const refresh = refreshFrom ? days.filter((day) => day.date >= refreshFrom) : [];
+    const [created] = await this.prisma.$transaction([
+      this.prisma.instrumentPrice.createMany({
+        data: days.map((day) => ({ instrumentId, date: at(day.date), close: day.close, adjClose: day.adjClose })),
+        skipDuplicates: true,
+      }),
+      ...refresh.map((day) =>
+        this.prisma.instrumentPrice.updateMany({
+          where: { instrumentId, date: at(day.date) },
+          data: { close: day.close, adjClose: day.adjClose },
+        }),
+      ),
+    ]);
+    return created.count;
+  }
+
+  // Guarda no metadata do mercado como correu a última volta dos preços
+  async savePriceSyncState(instrumentId: string, metadata: Record<string, unknown> | null, state: PriceSyncState) {
+    await this.prisma.instrument.update({
+      where: { id: instrumentId },
+      data: { metadata: { ...(metadata ?? {}), ...state } as Prisma.InputJsonValue },
+    });
   }
 }

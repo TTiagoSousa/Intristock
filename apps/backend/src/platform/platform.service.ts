@@ -19,4 +19,15 @@ export class PlatformService {
   async findAll() {
     return findAllPlatforms(this.platformRepository);
   }
+
+  /** Por plataforma, as ligações pela API (quantas e de quem), para a lista do admin. */
+  async connections() {
+    const byPlatform: Record<string, { count: number; users: { id: string; name: string; account: string; status: string }[] }> = {};
+    for (const row of await this.platformRepository.findBrokerConnections()) {
+      const entry = (byPlatform[row.platformId] ??= { count: 0, users: [] });
+      entry.count += 1;
+      entry.users.push({ id: row.user.id, name: row.user.fullName || row.user.email, account: row.externalAccountId, status: row.status });
+    }
+    return byPlatform;
+  }
 }

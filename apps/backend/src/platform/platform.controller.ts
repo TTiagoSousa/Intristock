@@ -25,6 +25,13 @@ export class PlatformController {
     return this.platformService.findAll();
   }
 
+  // As ligações pela API de cada plataforma (as corretoras dos portefólios) e de quem são
+  @Get('connections')
+  @UseGuards(JwtUserAuthGuard, UserAdminGuard)
+  connections() {
+    return this.platformService.connections();
+  }
+
   // As prop firms da PropFirmMap (página APIs): o estado do atualizar, arrancá-lo
   // (corre em fundo, ~5 min) e a base contra a API
   @Get('prop-firms/status')

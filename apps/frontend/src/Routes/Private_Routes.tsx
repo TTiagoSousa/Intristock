@@ -20,6 +20,11 @@ const Private_Routes = () => {
       <Route path='Finances/dividas' element={ <Private_Page.Debts_Dashboard /> } />
       <Route path='Finances/dividas/registo' element={ <Private_Page.Debts_Register /> } />
       <Route path='Portefolio' element={ <Private_Page.Portfolio_Dashboard /> } />
+      <Route path='Portefolio/transacoes' element={ <Private_Page.Portfolio_Transactions /> } />
+      <Route path='Portefolio/corretoras' element={ <Private_Page.Portfolio_Connections /> } />
+      {/* O segmento "Portefólios" do breadcrumb volta ao resumo, onde estão todos */}
+      <Route path='Portefolio/p' element={ <Navigate to='/Portefolio' replace /> } />
+      <Route path='Portefolio/p/:portfolioId' element={ <Private_Page.Portfolio_Page /> } />
       {/* O segmento "Trading" do breadcrumb abre o simulador, a única secção por agora */}
       <Route path='Trading' element={ <Navigate to='/Trading/simulador' replace /> } />
       <Route path='Trading/simulador' element={ <Private_Page.Trading_Simulator /> } />

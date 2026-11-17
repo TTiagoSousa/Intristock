@@ -13,8 +13,11 @@ export async function createCashTransaction(
   dto: CreateCashTransactionDto,
   repository: PrismaPersonalPortfolioRepository,
 ) {
-  if (!(await repository.findPortfolio(userId, portfolioId)))
-    throw new NotFoundException('Portefólio não encontrado');
+  const portfolio = await repository.findPortfolio(userId, portfolioId);
+  if (!portfolio) throw new NotFoundException('Portefólio não encontrado');
+  // Os de uma corretora mantém-nos a ligação
+  if (portfolio.source === 'api')
+    throw new BadRequestException('Este portefólio vem de uma corretora e é só de leitura');
 
   const currency = await repository.findCurrency(dto.currencyId);
   if (!currency) throw new NotFoundException('Moeda não encontrada');

@@ -15,6 +15,9 @@ export { default as Expenses_Items } from '../Pages/Private/Finances/Expenses/Ex
 export { default as Debts_Dashboard } from '../Pages/Private/Finances/Debts/Debts_Dashboard';
 export { default as Debts_Register } from '../Pages/Private/Finances/Debts/Debts_Register';
 export { default as Portfolio_Dashboard } from '../Pages/Private/Finances/Portfolio/Portfolio_Dashboard';
+export { default as Portfolio_Transactions } from '../Pages/Private/Finances/Portfolio/Portfolio_Transactions';
+export { default as Portfolio_Connections } from '../Pages/Private/Finances/Portfolio/Portfolio_Connections';
+export { default as Portfolio_Page } from '../Pages/Private/Finances/Portfolio/Portfolio_Page';
 export { default as Trading_Simulator } from '../Pages/Private/Trading/Trading_Simulator/Trading_Simulator';
 export { default as Trading_Simulations } from '../Pages/Private/Trading/Trading_Simulations/Trading_Simulations';
 export { default as Trading_Compare } from '../Pages/Private/Trading/Trading_Compare/Trading_Compare';

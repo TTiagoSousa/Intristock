@@ -4,6 +4,7 @@ import { MarketDataService } from './market-data.service';
 import { PrismaMarketDataRepository } from './repositories/prisma/prisma-market-data-repository';
 import { BinanceCandleRepository } from './repositories/binance/binance-candle-repository';
 import { CoinbaseCandleRepository } from './repositories/coinbase/coinbase-candle-repository';
+import { StockPriceService } from './stock-price.service';
 
 // Catálogo de mercados (Asset/Instrument), pedidos de velas para as simulações
 // (vivem no ClickHouse e quem as escreve é o downloader, apps/downloader) e as
@@ -19,6 +20,9 @@ import { CoinbaseCandleRepository } from './repositories/coinbase/coinbase-candl
     },
     BinanceCandleRepository,
     CoinbaseCandleRepository,
+    StockPriceService,
   ],
+  // Os portefólios usam-no para as ações (o ativo, os mercados e os preços do Yahoo)
+  exports: [StockPriceService],
 })
 export class MarketDataModule {}
