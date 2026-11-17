@@ -4069,7 +4069,7 @@
   },
   "setup": {
     "title": "Bem-vindo ao IntriStock",
-    "subtitle": "Liga a app às APIs de moedas e de países. As chaves ficam cifradas e só o administrador as muda.",
+    "subtitle": "Liga a app às APIs de moedas e de países, e se quiseres à das exchanges de cripto. As chaves ficam cifradas e só o administrador as muda.",
     "steps": {
       "apis": "Chaves das APIs",
       "sync": "Sincronizar dados",
@@ -4083,7 +4083,8 @@
     "doneText": "Países, moedas, impostos e plataformas prontos. Já podes criar a primeira empresa.",
     "open": "Abrir o IntriStock",
     "waitingTitle": "A instalação ainda não está configurada",
-    "waitingText": "O administrador tem de ligar as APIs de moedas e de países. Volta a entrar daqui a pouco."
+    "waitingText": "O administrador tem de ligar as APIs de moedas e de países. Volta a entrar daqui a pouco.",
+    "optional": "Opcional"
   },
   "adminUsers": {
     "title": "Utilizadores",
@@ -4159,7 +4160,9 @@
       "currencies": "Moedas",
       "currenciesDone": "{{count}} moedas atualizadas",
       "rates": "Cotações",
-      "ratesDone": "{{count}} cotações atualizadas"
+      "ratesDone": "{{count}} cotações atualizadas",
+      "exchanges": "Exchanges",
+      "exchangesDone": "{{count}} exchanges atualizadas"
     },
     "test": "Testar ligações",
     "testing": "A testar…",
@@ -4295,6 +4298,32 @@
       "processing": "Processamento",
       "dailyDrawdown": "Perda diária (texto da API)",
       "origin": "Origem"
+    },
+    "exchangeTitle": "Exchanges de cripto",
+    "currencyPurpose": "As moedas e as cotações de cada dia: os pagamentos noutra moeda, os totais e os gráficos das finanças.",
+    "countryPurpose": "A lista de países: as empresas, os fornecedores, os impostos e as plataformas de cada país.",
+    "propfirmPurpose": "As prop firms e os planos delas (preços, objetivos, perdas, regras), para os fornecedores e as contas de trading.",
+    "exchangePurpose": "As exchanges de cripto (nome, site, logótipo e país), que entram nas plataformas para as contas, os fornecedores e os portefólios.",
+    "keyOptionalHint": "Opcional: funciona sem chave, mas a chave Demo (grátis) dá mais pedidos.",
+    "keyOptionalKeepHint": "Já há uma guardada; escreve só para a trocar. Sem ela também funciona.",
+    "optionalHint": "Chave opcional; se a meteres, fica cifrada na base de dados",
+    "exchangesDetail": "{{count}} exchanges · {{date}}",
+    "exchangesNever": "Ainda não foram buscadas",
+    "exchanges": {
+      "pageTitle": "Exchanges",
+      "syncNow": "Atualizar agora",
+      "statStored": "Na base",
+      "statFromApi": "Da CoinGecko",
+      "statCountries": "Países",
+      "statLastSync": "Última atualização",
+      "neverHint": "Carrega em Atualizar agora para as trazer da CoinGecko.",
+      "allCountries": "Todos os países",
+      "search": "Pesquisar exchange",
+      "exchange": "Exchange",
+      "website": "Site",
+      "noMatch": "Nenhuma exchange com estes filtros.",
+      "listLabel": "Lista",
+      "listDetail": "As exchanges guardadas, com o país e o site"
     }
   },
   "adminTaxes": {
@@ -4354,7 +4383,8 @@
     "sources": {
       "system": "Catálogo",
       "manual": "Manual",
-      "propfirmmap": "API · PropFirmMap"
+      "propfirmmap": "API · PropFirmMap",
+      "coingecko": "API · CoinGecko"
     }
   },
   "notifications": {

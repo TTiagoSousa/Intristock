@@ -53,6 +53,7 @@ const PATH_LABELS: Record<string, string> = {
   Users: 'menu.users',
   Apis: 'menu.apis',
   'prop-firms': 'adminApis.propFirms.pageTitle',
+  exchanges: 'adminApis.exchanges.pageTitle',
   Taxes: 'menu.taxes',
   Platforms: 'menu.platforms',
   Versions: 'menu.versions',

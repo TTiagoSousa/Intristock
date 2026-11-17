@@ -36,6 +36,7 @@ const Private_Routes = () => {
       <Route path='Settings/Admin/Users' element={ <Admin_Only><Private_Page.Admin_Users /></Admin_Only> } />
       <Route path='Settings/Admin/Apis' element={ <Admin_Only><Private_Page.Admin_Apis /></Admin_Only> } />
       <Route path='Settings/Admin/Apis/prop-firms' element={ <Admin_Only><Private_Page.Admin_Prop_Firms /></Admin_Only> } />
+      <Route path='Settings/Admin/Apis/exchanges' element={ <Admin_Only><Private_Page.Admin_Exchanges /></Admin_Only> } />
       <Route path='Settings/Admin/Apis/prop-firms/:platformId' element={ <Admin_Only><Private_Page.Admin_Prop_Firm /></Admin_Only> } />
       <Route path='Settings/Admin/Taxes' element={ <Admin_Only><Private_Page.Admin_Taxes /></Admin_Only> } />
       <Route path='Settings/Admin/Platforms' element={ <Admin_Only><Private_Page.Admin_Platforms /></Admin_Only> } />

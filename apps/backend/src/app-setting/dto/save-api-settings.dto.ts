@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsOptional, IsString, IsUrl, ValidateNested } from 'class-validator';
-import { COUNTRY_PROVIDERS, CURRENCY_PROVIDERS, PROPFIRM_PROVIDERS } from '../helpers/apiProviders';
+import { COUNTRY_PROVIDERS, CURRENCY_PROVIDERS, EXCHANGE_PROVIDERS, PROPFIRM_PROVIDERS } from '../helpers/apiProviders';
 
 const URL_OPTIONS = { protocols: ['https', 'http'], require_protocol: true, require_tld: false };
 
@@ -41,6 +41,19 @@ class PropfirmApiSettingDto {
   key?: string;
 }
 
+class ExchangeApiSettingDto {
+  @IsIn(EXCHANGE_PROVIDERS.map((p) => p.id))
+  provider: string;
+
+  @IsUrl(URL_OPTIONS)
+  url: string;
+
+  // Opcional mesmo sem nenhuma guardada: a API funciona sem chave
+  @IsOptional()
+  @IsString()
+  key?: string;
+}
+
 export class SaveApiSettingsDto {
   @ValidateNested()
   @Type(() => CurrencyApiSettingDto)
@@ -55,4 +68,10 @@ export class SaveApiSettingsDto {
   @ValidateNested()
   @Type(() => PropfirmApiSettingDto)
   propfirm?: PropfirmApiSettingDto;
+
+  // Opcional: a chave das exchanges não é obrigatória
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ExchangeApiSettingDto)
+  exchange?: ExchangeApiSettingDto;
 }

@@ -12,6 +12,8 @@ export interface ApiProvider {
   docsUrl: string;
   // false = API pública, sem chave
   keyRequired?: boolean;
+  // Pública, mas aceita uma chave (opcional) que dá mais pedidos
+  keyOptional?: boolean;
 }
 
 export interface ApiSettingView {
@@ -26,7 +28,8 @@ export interface ApiSettings {
   currency: ApiSettingView;
   country: ApiSettingView;
   propfirm: ApiSettingView;
-  providers: { currency: ApiProvider[]; country: ApiProvider[]; propfirm: ApiProvider[] };
+  exchange: ApiSettingView;
+  providers: { currency: ApiProvider[]; country: ApiProvider[]; propfirm: ApiProvider[]; exchange: ApiProvider[] };
 }
 
 export interface ApiSettingInput {
@@ -41,6 +44,8 @@ export interface SaveApiSettingsPayload {
   country: ApiSettingInput;
   // O assistente da instalação não a manda
   propfirm?: ApiSettingInput;
+  // Opcional: a chave das exchanges não é obrigatória
+  exchange?: ApiSettingInput;
 }
 
 export const useApiSettings = () => {
@@ -73,6 +78,7 @@ export const useApiSettings = () => {
         currency: clean(payload.currency),
         country: clean(payload.country),
         ...(payload.propfirm ? { propfirm: clean(payload.propfirm) } : {}),
+        ...(payload.exchange ? { exchange: clean(payload.exchange) } : {}),
       }),
     );
 

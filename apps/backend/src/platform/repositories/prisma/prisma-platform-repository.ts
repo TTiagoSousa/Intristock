@@ -89,6 +89,15 @@ export class PrismaPlatformRepository implements PlatformRepository {
     });
   }
 
+  // As de um tipo com o nome do país (a página das exchanges)
+  async findByTypeWithCountry(type: string) {
+    return this.prisma.platform.findMany({
+      where: { type },
+      orderBy: { name: 'asc' },
+      include: { country: { select: { name: true, iso2: true } } },
+    });
+  }
+
   async findByTypeWithPlanCount(type: string) {
     return this.prisma.platform.findMany({
       where: { type },

@@ -7,11 +7,12 @@ import { useCurrency } from '../../../../../Contexts/Currency_Context';
 import Simple_Button from '../../../../../Components/Buttons/Simple_Button/Simple_Button';
 import Api_Card, { type Api_Card_Sync } from './Api_Card';
 import Prop_Firms_Data from './Prop_Firms_Data';
+import Exchanges_Data from './Exchanges_Data';
 import * as Icon from '../../../../../Imports/icons';
 import '../Admin.scss';
 import './Apis.scss';
 
-type Api_Kind = 'currency' | 'country' | 'propfirm';
+type Api_Kind = 'currency' | 'country' | 'propfirm' | 'exchange';
 type Api_Values = Record<Api_Kind, ApiSettingInput>;
 
 // Cotações com mais de 2 dias já não são as do dia
@@ -84,6 +85,24 @@ const Apis = () => {
         <Prop_Firms_Data formatDate={format} />
       ),
     },
+    {
+      kind: 'exchange',
+      icon: <Icon.Trend />,
+      syncs: (catalog, format) => [
+        {
+          target: 'exchanges',
+          detail:
+            catalog && catalog.exchanges > 0
+              ? t('adminApis.exchangesDetail', {
+                  count: catalog.exchanges,
+                  date: catalog.exchangesSyncedAt ? format(catalog.exchangesSyncedAt) : '—',
+                })
+              : t('adminApis.exchangesNever'),
+          warn: !catalog || catalog.exchanges === 0,
+        },
+      ],
+      extra: () => <Exchanges_Data />,
+    },
   ];
 
   // O que se escreveu, ligado às definições em que se escreveu: quando chegam
@@ -96,6 +115,7 @@ const Apis = () => {
           currency: fromSaved(settings, 'currency'),
           country: fromSaved(settings, 'country'),
           propfirm: fromSaved(settings, 'propfirm'),
+          exchange: fromSaved(settings, 'exchange'),
         }
     : null;
   const setKind = (kind: Api_Kind, next: ApiSettingInput) => {
@@ -109,20 +129,24 @@ const Apis = () => {
       currency: fromSaved(settings, 'currency'),
       country: fromSaved(settings, 'country'),
       propfirm: fromSaved(settings, 'propfirm'),
+      exchange: fromSaved(settings, 'exchange'),
     };
     payload[kind] = values[kind];
     setSavingKind(kind);
     const ok = await save(payload);
     setSavingKind(null);
-    if (ok) check();
+    if (!ok) return;
+    // As exchanges vêm logo: gravar a API já as traz para as plataformas
+    if (kind === 'exchange') await runSync('exchanges');
+    else check();
   };
 
-  const runSync = async (target: SyncTarget) => {
+  async function runSync(target: SyncTarget) {
     const result = await sync(target);
     // As moedas novas têm de chegar aos seletores da app sem recarregar a página
-    if (result.ok && target !== 'countries') refreshCurrencies();
+    if (result.ok && (target === 'currencies' || target === 'rates')) refreshCurrencies();
     if (result.ok) check();
-  };
+  }
 
   // O resumo conta as APIs que houver, não só duas
   const states = health ? APIS.map((api) => health[api.kind].status) : [];

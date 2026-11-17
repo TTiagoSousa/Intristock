@@ -1,0 +1,26 @@
+// A página das exchanges: a lista com o logótipo ao lado do nome. O resto vem da
+// página das prop firms (Prop_Firms.scss) e do Admin.scss.
+
+.Exchanges_Filters{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Exchanges_Country{ width: 220px; }
+
+.Exchanges_Name{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.Exchanges_Logo{
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  background-color: var(--surface-2);
+}

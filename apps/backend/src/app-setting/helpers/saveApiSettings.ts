@@ -15,7 +15,7 @@ import { getApiSettings } from './getApiSettings';
 export async function saveApiSettings(dto: SaveApiSettingsDto, repository: PrismaAppSettingRepository) {
   const entries: { key: string; value: string; encrypted: boolean }[] = [];
 
-  for (const kind of ['currency', 'country', 'propfirm'] as ApiKind[]) {
+  for (const kind of ['currency', 'country', 'propfirm', 'exchange'] as ApiKind[]) {
     const input = dto[kind];
     if (!input) continue;
     const newKey = input.key?.trim();

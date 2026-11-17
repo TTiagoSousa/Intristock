@@ -326,6 +326,8 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/platform` | findAll | public |
 | GET | `/platform/prop-firms/status` | propFirmStatus | admin |
 | POST | `/platform/prop-firms/sync` | syncPropFirms | admin |
+| GET | `/platform/exchanges` | exchanges | admin |
+| POST | `/platform/exchanges/sync` | syncExchanges | admin |
 | GET | `/platform/prop-firms` | propFirmsFromDatabase | admin |
 | GET | `/platform/prop-firms/compare` | comparePropFirms | admin |
 | GET | `/platform/:id` | findOne | user |

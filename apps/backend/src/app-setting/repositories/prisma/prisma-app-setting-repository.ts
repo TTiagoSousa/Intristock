@@ -23,12 +23,28 @@ export class PrismaAppSettingRepository implements AppSettingRepository {
     );
   }
 
-  async countCatalog(): Promise<{ countries: number; currencies: number }> {
-    const [countries, currencies] = await Promise.all([
+  async countCatalog(): Promise<{
+    countries: number;
+    currencies: number;
+    exchanges: number;
+    exchangesSyncedAt: string | null;
+  }> {
+    const [countries, currencies, exchanges] = await Promise.all([
       this.prisma.country.count(),
       this.prisma.currency.count(),
+      // As exchanges que a CoinGecko mantém (as do catálogo e as manuais não contam)
+      this.prisma.platform.aggregate({
+        where: { type: 'exchange', source: 'coingecko', isActive: true },
+        _count: { _all: true },
+        _max: { syncedAt: true },
+      }),
     ]);
-    return { countries, currencies };
+    return {
+      countries,
+      currencies,
+      exchanges: exchanges._count._all,
+      exchangesSyncedAt: exchanges._max.syncedAt?.toISOString() ?? null,
+    };
   }
 
   // As cotações gravam-se na moeda: a última que mudou diz quando foi a atualização

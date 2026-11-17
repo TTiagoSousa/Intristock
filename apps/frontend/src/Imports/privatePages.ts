@@ -40,6 +40,7 @@ export { default as Company_Stock_Movements } from '../Pages/Private/Companies/C
 export { default as Company_Modules } from '../Pages/Private/Companies/Company_Modules/Company_Modules';
 export { default as Admin_Prop_Firms } from '../Pages/Private/Settings/Admin/Apis/Prop_Firms/Prop_Firms_Page';
 export { default as Admin_Prop_Firm } from '../Pages/Private/Settings/Admin/Apis/Prop_Firms/Prop_Firm_Page';
+export { default as Admin_Exchanges } from '../Pages/Private/Settings/Admin/Apis/Exchanges/Exchanges_Page';
 export { default as Company_Module_Settings } from '../Pages/Private/Companies/Company_Modules/Company_Module_Settings';
 export { default as Company_Trading } from '../Pages/Private/Companies/Company_Trading/Company_Trading';
 export { default as Company_Members } from '../Pages/Private/Companies/Company_Members/Company_Members';

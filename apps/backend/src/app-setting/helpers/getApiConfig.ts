@@ -8,6 +8,7 @@ const ENV_FALLBACK: Record<ApiKind, { url: string; key: string } | null> = {
   currency: { url: 'Currency_Api', key: 'Currency_Api_Key' },
   country: { url: 'Country_Api', key: 'Country_Api_Key' },
   propfirm: null,
+  exchange: { url: 'Exchange_Api', key: 'Exchange_Api_Key' },
 };
 
 /**

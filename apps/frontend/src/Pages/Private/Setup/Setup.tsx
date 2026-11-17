@@ -11,8 +11,10 @@ import './Setup.scss';
 type Setup_Step = 'apis' | 'sync' | 'done';
 
 // Os países primeiro: os impostos e as plataformas pré-definidos entram quando
-// os países deles existem
-const SYNC_ORDER: SyncTarget[] = ['countries', 'currencies'];
+// os países deles existem (as exchanges também levam o país)
+const SYNC_ORDER: SyncTarget[] = ['countries', 'currencies', 'exchanges'];
+// Se falhar, a app abre na mesma: atualiza-se depois em Definições → APIs
+const OPTIONAL_SYNCS: SyncTarget[] = ['exchanges'];
 
 interface Setup_Props {
   onDone: () => void;
@@ -35,7 +37,7 @@ const Setup_Wizard = ({ onDone }: Setup_Props) => {
     setStep('sync');
     for (const target of SYNC_ORDER) {
       const result = await sync(target);
-      if (!result.ok) return;
+      if (!result.ok && !OPTIONAL_SYNCS.includes(target)) return;
     }
     await refreshCurrencies();
     setStep('done');
@@ -46,7 +48,9 @@ const Setup_Wizard = ({ onDone }: Setup_Props) => {
     if (saved) await runSyncs();
   };
 
-  const syncFailed = SYNC_ORDER.some((target) => results[target] && !results[target]?.ok);
+  const syncFailed = SYNC_ORDER.some(
+    (target) => !OPTIONAL_SYNCS.includes(target) && results[target] && !results[target]?.ok,
+  );
 
   return (
     <div className="Setup">

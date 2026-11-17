@@ -5,6 +5,7 @@ import { PrismaPlatformRepository } from './repositories/prisma/prisma-platform-
 import { CountryModule } from 'src/country/country.module';
 import { AppSettingModule } from 'src/app-setting/app-setting.module';
 import { PropFirmSyncService } from './prop-firm-sync.service';
+import { ExchangeSyncService } from './exchange-sync.service';
 
 @Module({
   imports: [CountryModule, AppSettingModule],
@@ -12,6 +13,7 @@ import { PropFirmSyncService } from './prop-firm-sync.service';
   providers: [
     PlatformService,
     PropFirmSyncService,
+    ExchangeSyncService,
     {
       provide: PrismaPlatformRepository,
       useClass: PrismaPlatformRepository,

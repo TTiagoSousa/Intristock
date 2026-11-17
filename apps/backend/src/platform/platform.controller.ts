@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { PlatformService } from './platform.service';
 import { PropFirmSyncService } from './prop-firm-sync.service';
+import { ExchangeSyncService } from './exchange-sync.service';
 import { CreatePlatformDto } from './dto/create-platform.dto';
 import { JwtUserAuthGuard } from 'src/auth-user/guards/jwt-user-auth.guard';
 import { UserAdminGuard } from 'src/auth-user/guards/user-admin.guard';
@@ -10,6 +11,7 @@ export class PlatformController {
   constructor(
     private readonly platformService: PlatformService,
     private readonly propFirmSync: PropFirmSyncService,
+    private readonly exchangeSync: ExchangeSyncService,
   ) {}
 
   @Post()
@@ -49,6 +51,19 @@ export class PlatformController {
   @UseGuards(JwtUserAuthGuard, UserAdminGuard)
   comparePropFirms() {
     return this.propFirmSync.compare();
+  }
+
+  // As exchanges de cripto da CoinGecko (página APIs e primeiro arranque); uns segundos
+  @Get('exchanges')
+  @UseGuards(JwtUserAuthGuard, UserAdminGuard)
+  exchanges() {
+    return this.exchangeSync.list();
+  }
+
+  @Post('exchanges/sync')
+  @UseGuards(JwtUserAuthGuard, UserAdminGuard)
+  syncExchanges() {
+    return this.exchangeSync.sync();
   }
 
   // Uma plataforma com os detalhes (numa prop firm: as regras, os payouts e os planos)

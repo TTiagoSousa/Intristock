@@ -15,7 +15,15 @@ export interface ApisHealth {
   currency: ApiHealth;
   country: ApiHealth;
   propfirm: ApiHealth;
-  catalog: { countries: number; currencies: number; ratesUpdatedAt: string | null };
+  exchange: ApiHealth;
+  catalog: {
+    countries: number;
+    currencies: number;
+    ratesUpdatedAt: string | null;
+    // As exchanges que vieram da CoinGecko
+    exchanges: number;
+    exchangesSyncedAt: string | null;
+  };
 }
 
 /**

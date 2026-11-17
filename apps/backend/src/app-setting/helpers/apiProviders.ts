@@ -10,6 +10,8 @@ export interface ApiProvider {
   docsUrl: string;
   // Sem chave: a API é pública (falta = precisa)
   keyRequired?: boolean;
+  // Pública, mas com chave grátis dá mais pedidos: o campo aparece e pode ficar em branco
+  keyOptional?: boolean;
 }
 
 export const CURRENCY_PROVIDERS: ApiProvider[] = [
@@ -41,12 +43,25 @@ export const PROPFIRM_PROVIDERS: ApiProvider[] = [
   },
 ];
 
-export type ApiKind = 'currency' | 'country' | 'propfirm';
+// As exchanges de cripto (nome, site, logótipo, país); funciona sem chave, a Demo (grátis) dá mais pedidos
+export const EXCHANGE_PROVIDERS: ApiProvider[] = [
+  {
+    id: 'coingecko',
+    label: 'CoinGecko',
+    defaultUrl: 'https://api.coingecko.com/api/v3',
+    docsUrl: 'https://www.coingecko.com/en/api/pricing',
+    keyRequired: false,
+    keyOptional: true,
+  },
+];
+
+export type ApiKind = 'currency' | 'country' | 'propfirm' | 'exchange';
 
 export const PROVIDERS_BY_KIND: Record<ApiKind, ApiProvider[]> = {
   currency: CURRENCY_PROVIDERS,
   country: COUNTRY_PROVIDERS,
   propfirm: PROPFIRM_PROVIDERS,
+  exchange: EXCHANGE_PROVIDERS,
 };
 
 // O que se diz quando a API ainda não foi configurada
@@ -54,6 +69,7 @@ export const API_LABEL: Record<ApiKind, string> = {
   currency: 'de moedas',
   country: 'de países',
   propfirm: 'de prop firms',
+  exchange: 'de exchanges',
 };
 
 /** Se o fornecedor escolhido pede chave (sem fornecedor guardado, o primeiro). */

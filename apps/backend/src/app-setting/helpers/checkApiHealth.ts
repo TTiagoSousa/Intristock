@@ -33,6 +33,12 @@ const PROBES: Record<ApiKind, (url: string, key: string) => Promise<unknown>> =
     // Pública: a lista com uma só firma
     propfirm: (url) =>
       axios.get(`${url}/firms`, { params: { per_page: 1 }, timeout: 8_000 }),
+    // Pública com chave opcional: o ping recusa uma chave errada (401)
+    exchange: (url, key) =>
+      axios.get(`${url}/ping`, {
+        headers: key ? { 'x-cg-demo-api-key': key } : {},
+        timeout: 8_000,
+      }),
   };
 
 /** Se a API responde com a chave guardada, e em quanto tempo. */
@@ -79,10 +85,11 @@ export async function checkApiHealth(
 
 /** As APIs todas ao mesmo tempo, e o que já está no catálogo. */
 export async function getApisHealth(repository: PrismaAppSettingRepository) {
-  const [currency, country, propfirm, catalog, ratesUpdatedAt] = await Promise.all([
+  const [currency, country, propfirm, exchange, catalog, ratesUpdatedAt] = await Promise.all([
     checkApiHealth('currency', repository),
     checkApiHealth('country', repository),
     checkApiHealth('propfirm', repository),
+    checkApiHealth('exchange', repository),
     repository.countCatalog(),
     repository.lastRatesUpdate(),
   ]);
@@ -90,6 +97,7 @@ export async function getApisHealth(repository: PrismaAppSettingRepository) {
     currency,
     country,
     propfirm,
+    exchange,
     catalog: {
       ...catalog,
       ratesUpdatedAt: ratesUpdatedAt?.toISOString() ?? null,

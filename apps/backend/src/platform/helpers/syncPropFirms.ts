@@ -30,7 +30,7 @@ const RATE_LIMIT_WAIT_MS = 60_000;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Os países que a PropFirmMap escreve de outra maneira da nossa lista (Country State City)
-const COUNTRY_ALIASES: Record<string, string> = {
+export const COUNTRY_ALIASES: Record<string, string> = {
   'hong kong': 'hong kong s.a.r.',
   'british virgin islands': 'virgin islands (british)',
   bahamas: 'the bahamas',

@@ -4069,7 +4069,7 @@
   },
   "setup": {
     "title": "Welcome to IntriStock",
-    "subtitle": "Connect the app to the currency and country APIs. Keys are stored encrypted and only the administrator can change them.",
+    "subtitle": "Connect the app to the currency and country APIs, and optionally to the crypto exchanges API. Keys are stored encrypted and only the administrator can change them.",
     "steps": {
       "apis": "API keys",
       "sync": "Sync data",
@@ -4083,7 +4083,8 @@
     "doneText": "Countries, currencies, taxes and platforms are ready. You can create your first company.",
     "open": "Open IntriStock",
     "waitingTitle": "This installation isn't set up yet",
-    "waitingText": "The administrator has to connect the currency and country APIs. Sign in again shortly."
+    "waitingText": "The administrator has to connect the currency and country APIs. Sign in again shortly.",
+    "optional": "Optional"
   },
   "adminUsers": {
     "title": "Users",
@@ -4159,7 +4160,9 @@
       "currencies": "Currencies",
       "currenciesDone": "{{count}} currencies updated",
       "rates": "Exchange rates",
-      "ratesDone": "{{count}} rates updated"
+      "ratesDone": "{{count}} rates updated",
+      "exchanges": "Exchanges",
+      "exchangesDone": "{{count}} exchanges updated"
     },
     "test": "Test connections",
     "testing": "Testing…",
@@ -4295,6 +4298,32 @@
       "processing": "Processing",
       "dailyDrawdown": "Daily loss (API text)",
       "origin": "Source"
+    },
+    "exchangeTitle": "Crypto exchanges",
+    "currencyPurpose": "Currencies and the daily exchange rates: payments in another currency, totals and the finance charts.",
+    "countryPurpose": "The list of countries: companies, suppliers, taxes and the platforms of each country.",
+    "propfirmPurpose": "Prop firms and their plans (prices, targets, losses, rules), for suppliers and trading accounts.",
+    "exchangePurpose": "Crypto exchanges (name, website, logo and country), added to the platforms for accounts, suppliers and portfolios.",
+    "keyOptionalHint": "Optional: it works without a key, but the free Demo key allows more requests.",
+    "keyOptionalKeepHint": "One is already saved; type only to replace it. It also works without one.",
+    "optionalHint": "Optional key; if you add one, it is stored encrypted in the database",
+    "exchangesDetail": "{{count}} exchanges · {{date}}",
+    "exchangesNever": "Not fetched yet",
+    "exchanges": {
+      "pageTitle": "Exchanges",
+      "syncNow": "Update now",
+      "statStored": "Stored",
+      "statFromApi": "From CoinGecko",
+      "statCountries": "Countries",
+      "statLastSync": "Last update",
+      "neverHint": "Press Update now to fetch them from CoinGecko.",
+      "allCountries": "All countries",
+      "search": "Search exchange",
+      "exchange": "Exchange",
+      "website": "Website",
+      "noMatch": "No exchange matches these filters.",
+      "listLabel": "List",
+      "listDetail": "The stored exchanges, with country and website"
     }
   },
   "adminTaxes": {
@@ -4354,7 +4383,8 @@
     "sources": {
       "system": "Catalog",
       "manual": "Manual",
-      "propfirmmap": "API · PropFirmMap"
+      "propfirmmap": "API · PropFirmMap",
+      "coingecko": "API · CoinGecko"
     }
   },
   "notifications": {

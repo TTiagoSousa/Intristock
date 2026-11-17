@@ -16,7 +16,7 @@ export interface Api_Card_Sync {
 }
 
 interface Api_Card_Props {
-  kind: 'currency' | 'country' | 'propfirm';
+  kind: 'currency' | 'country' | 'propfirm' | 'exchange';
   icon: ReactNode;
   saved: ApiSettingView;
   values: ApiSettingInput;
@@ -62,6 +62,8 @@ const Api_Card = ({
   const dirty = values.provider !== saved.provider || values.url !== saved.url || values.key.trim() !== '';
   // Uma API pública não tem campo de chave nem a pede para gravar
   const keyRequired = provider?.keyRequired !== false;
+  // Pública mas com chave opcional (mais pedidos): o campo aparece e pode ficar vazio
+  const keyOptional = !keyRequired && provider?.keyOptional === true;
   const missingKey = keyRequired && !saved.keySet && !values.key.trim();
 
   // O estado da ligação: a testar, por testar, ou o que a API respondeu
@@ -103,6 +105,8 @@ const Api_Card = ({
         </span>
       </header>
 
+      <p className="Api_Card_Purpose">{t(`adminApis.${kind}Purpose`)}</p>
+
       <div className="Api_Card_Body">
       <div className="Api_Card_Section">
         <span className="Eyebrow">{t('adminApis.connection')}</span>
@@ -126,7 +130,7 @@ const Api_Card = ({
           />
         </div>
 
-        {keyRequired ? (
+        {keyRequired || keyOptional ? (
           <div className="Api_Field">
             <label htmlFor={`${kind}-key`}>{t('adminApis.key')}</label>
             <Global_Input
@@ -137,7 +141,11 @@ const Api_Card = ({
               onChange={(e) => onChange({ ...values, key: e.target.value })}
             />
             <span className="Api_Field_Hint">
-              {saved.keySet ? t('adminApis.keyKeepHint') : t('adminApis.keyHint')}
+              {keyOptional
+                ? t(saved.keySet ? 'adminApis.keyOptionalKeepHint' : 'adminApis.keyOptionalHint')
+                : saved.keySet
+                  ? t('adminApis.keyKeepHint')
+                  : t('adminApis.keyHint')}
               {provider && (
                 <>
                   {' '}
@@ -205,7 +213,7 @@ const Api_Card = ({
             ? t('adminApis.keyNeeded')
             : dirty
               ? t('adminApis.unsaved')
-              : t(keyRequired ? 'adminApis.encryptedHint' : 'adminApis.publicHint')}
+              : t(keyRequired ? 'adminApis.encryptedHint' : keyOptional ? 'adminApis.optionalHint' : 'adminApis.publicHint')}
         </span>
         {dirty && <Simple_Button text={t('adminApis.discard')} onClick={onReset} variant="Quiet" small auto />}
         <Simple_Button

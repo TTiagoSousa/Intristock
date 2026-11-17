@@ -21,6 +21,7 @@ export async function getApiSettings(repository: PrismaAppSettingRepository) {
     currency: await viewOf('currency', repository),
     country: await viewOf('country', repository),
     propfirm: await viewOf('propfirm', repository),
+    exchange: await viewOf('exchange', repository),
     providers: PROVIDERS_BY_KIND,
   };
 }

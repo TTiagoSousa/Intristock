@@ -36,7 +36,7 @@ controller  →  service  →  helper (one function per file)  →  repository (
 
 Background work runs inside the backend as Nest services with timers: the market sync every 24 h, the prop firm sync from PropFirmMap, the hourly exchange rates (`CurrencyHourRateService`) and the version watcher that announces new releases.
 
-External APIs (CurrencyBeacon for exchange rates, a countries API, PropFirmMap) are configured in Settings → APIs. Their keys are stored encrypted in `AppSetting` with the install's `ENCRYPTION_KEY`.
+External APIs (CurrencyBeacon for exchange rates, a countries API, PropFirmMap, CoinGecko for the crypto exchanges) are configured in Settings → APIs. Their keys are stored encrypted in `AppSetting` with the install's `ENCRYPTION_KEY`.
 
 ## Database
 

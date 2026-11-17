@@ -118,9 +118,10 @@ assistente: escolhes as APIs e metes as chaves.
 |---|---|---|
 | Moedas e cotações | CurrencyBeacon (`https://api.currencybeacon.com/v1`) | conta grátis em currencybeacon.com |
 | Países | Country State City (`https://api.countrystatecity.in/v1`) | conta grátis em countrystatecity.in |
+| Exchanges de cripto (opcional) | CoinGecko (`https://api.coingecko.com/api/v3`) | sem chave funciona; a Demo, grátis em coingecko.com, dá mais pedidos |
 
 As chaves ficam **cifradas** na base de dados (com a `ENCRYPTION_KEY` do
-`backend.env`). A seguir os países e as moedas sincronizam sozinhos, e entram os
+`backend.env`). A seguir os países, as moedas e as exchanges (nas plataformas) sincronizam sozinhos, e entram os
 **impostos e as plataformas pré-definidos** (IVA de Portugal continental, Espanha,
 França, Alemanha, Itália e Reino Unido; os principais bancos portugueses, corretoras e
 exchanges).

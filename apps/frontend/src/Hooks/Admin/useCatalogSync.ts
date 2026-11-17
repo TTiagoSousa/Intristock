@@ -3,7 +3,7 @@ import http from '../../Service/httpService';
 import { End_Points } from '../../Service/endPoints';
 import { getErrorMessage } from '../useAsyncRequest';
 
-export type SyncTarget = 'countries' | 'currencies' | 'rates';
+export type SyncTarget = 'countries' | 'currencies' | 'rates' | 'exchanges';
 
 export interface SyncResult {
   ok: boolean;
@@ -16,6 +16,7 @@ const ENDPOINTS: Record<SyncTarget, () => string> = {
   countries: End_Points.Countries_Sync_Endpoint,
   currencies: End_Points.Currencies_Sync_Endpoint,
   rates: End_Points.Currency_Rates_Endpoint,
+  exchanges: End_Points.Exchanges_Sync_Endpoint,
 };
 
 /**

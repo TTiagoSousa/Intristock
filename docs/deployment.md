@@ -53,5 +53,5 @@ The admin updates from the app (Versions → Update). Behind it, `deploy/proxmox
 ## After installing
 
 1. Open the app and sign in with the admin from the end of the install. Change the password.
-2. In Settings → APIs, enter the keys for the exchange rates (CurrencyBeacon) and the countries API. PropFirmMap needs no key.
+2. In Settings → APIs, enter the keys for the exchange rates (CurrencyBeacon) and the countries API. PropFirmMap needs no key. CoinGecko (the crypto exchanges, added to the platforms when you save it) works without one, and a free Demo key allows more requests.
 3. Create the other users in Settings → Users.

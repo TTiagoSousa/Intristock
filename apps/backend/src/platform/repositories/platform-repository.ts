@@ -57,6 +57,9 @@ export interface PlatformRepository {
   findByTypeWithPlanCount(
     type: string,
   ): Promise<(Platform & { propFirm: PropFirmDetail | null; _count: { plans: number } })[]>;
+  findByTypeWithCountry(
+    type: string,
+  ): Promise<(Platform & { country: { name: string; iso2: string } | null })[]>;
   sourceStats(
     type: string,
     source: string,
