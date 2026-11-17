@@ -439,3 +439,26 @@
   min-width: 0;
   min-height: 0;
 }
+
+// --- a pesquisa de um mercado numa compra à mão ---
+.Portfolio_Market_Results{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.Portfolio_Market_Result{ padding: 8px 12px; }
+
+// O mercado escolhido, com o Mudar ao lado
+.Portfolio_Market_Chosen{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}

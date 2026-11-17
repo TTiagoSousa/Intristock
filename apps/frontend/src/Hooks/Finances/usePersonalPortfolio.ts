@@ -7,7 +7,63 @@ import type { Personal_Bank_Account } from './usePersonalIncome';
 // Os tipos de ativo que se escolhem ao adicionar uma transação; para já só o dinheiro passivo
 export const PORTFOLIO_ASSET_TYPES = ['securities', 'crypto', 'cash', 'metals', 'property', 'other'] as const;
 export type Portfolio_Asset_Type = (typeof PORTFOLIO_ASSET_TYPES)[number];
-export const AVAILABLE_ASSET_TYPES: Portfolio_Asset_Type[] = ['cash'];
+export const AVAILABLE_ASSET_TYPES: Portfolio_Asset_Type[] = ['securities', 'crypto', 'cash'];
+
+// As corretoras de cripto onde se diz que se comprou (o preço vem do mercado delas)
+export const CRYPTO_SOURCES = ['binance', 'coinbase'] as const;
+export type Crypto_Source = (typeof CRYPTO_SOURCES)[number];
+
+/** Um mercado de uma pesquisa: uma ação do Yahoo (`yahooSymbol`) ou um par de cripto (`instrumentId`). */
+export interface Market_Result {
+  instrumentId: string | null;
+  yahooSymbol: string | null;
+  symbol: string;
+  name: string;
+  ticker: string | null;
+  // A cotada dos pares (EUR, USDT…); nas ações vem com o preço
+  quote: string | null;
+  venue: string;
+  logo: string | null;
+  etf: boolean;
+}
+
+/** Uma compra ou venda à mão e de onde vem (ou para onde vai) o dinheiro. */
+export interface Position_Transaction_Body {
+  kind: 'buy' | 'sell';
+  date: string;
+  yahooSymbol?: string;
+  instrumentId?: string;
+  quantity: number;
+  price: number;
+  fee: number;
+  currencyId: string;
+  // new = dinheiro novo; portfolio = o saldo de um portefólio (sem id, o próprio)
+  cash: 'new' | 'portfolio';
+  cashPortfolioId?: string;
+  notes: string | null;
+}
+
+/** Os mercados que batem com o texto: ações no Yahoo ou pares numa corretora de cripto. */
+export const searchMarkets = async (kind: 'stock' | 'crypto', q: string, source?: Crypto_Source) =>
+  (
+    await http.get<Market_Result[]>(End_Points.Personal_Portfolio_Market_Search_Endpoint(), {
+      params: { kind, q, ...(source ? { source } : {}) },
+    })
+  ).data;
+
+/** O fecho de um mercado num dia (o último até esse dia), ou nulo. */
+export const findMarketPrice = async (market: Market_Result, date: string) =>
+  (
+    await http.get<{ date: string; close: number; quote: string | null } | null>(
+      End_Points.Personal_Portfolio_Market_Price_Endpoint(),
+      {
+        params: {
+          date,
+          ...(market.yahooSymbol ? { yahooSymbol: market.yahooSymbol } : { instrumentId: market.instrumentId }),
+        },
+      },
+    )
+  ).data;
 
 export const CASH_TRANSACTION_KINDS = ['deposit', 'withdrawal', 'interest', 'fee', 'tax'] as const;
 export type Cash_Transaction_Kind = (typeof CASH_TRANSACTION_KINDS)[number];
@@ -166,7 +222,31 @@ export const usePortfolioTransaction = () => {
     }
   }, []);
 
-  return { portfolios, bankAccounts, loading, saving, error, setError, createPortfolio, createCashTransaction };
+  const createPositionTransaction = useCallback(async (portfolioId: string, body: Position_Transaction_Body) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await http.post(End_Points.Personal_Portfolio_Position_Endpoint(portfolioId), body);
+      return true;
+    } catch (err) {
+      setError(getErrorMessage(err));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  return {
+    portfolios,
+    bankAccounts,
+    loading,
+    saving,
+    error,
+    setError,
+    createPortfolio,
+    createCashTransaction,
+    createPositionTransaction,
+  };
 };
 
 // O popover avisa com isto depois de gravar, para o resumo voltar a pedir os números

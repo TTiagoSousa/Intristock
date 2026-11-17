@@ -14,7 +14,9 @@ import {
   type Cash_Transaction_Kind,
   type Personal_Portfolio,
   type Portfolio_Asset_Type,
+  type Position_Transaction_Body,
 } from '../../../../Hooks/Finances/usePersonalPortfolio';
+import Portfolio_Position_Form from './Portfolio_Position_Form';
 import './Portfolio.scss';
 
 interface Portfolio_Transaction_Popover_Props {
@@ -29,14 +31,24 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * Adicionar uma transação, em três passos: o portefólio (um dos que há, ou um
- * novo só com o nome), o tipo de ativo e o formulário dele. Para já só o
- * dinheiro passivo tem formulário; os outros tipos aparecem como «Em breve».
+ * novo só com o nome), o tipo de ativo e o formulário dele: o dinheiro passivo,
+ * e as compras e vendas de títulos (Yahoo) e de cripto (Binance, Coinbase). Os
+ * outros tipos aparecem como «Em breve».
  */
 const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popover_Props) => {
   const { t } = useTranslation();
   const { currencies, selectedCurrency } = useCurrency();
-  const { portfolios: allPortfolios, bankAccounts, loading, saving, error, setError, createPortfolio, createCashTransaction } =
-    usePortfolioTransaction();
+  const {
+    portfolios: allPortfolios,
+    bankAccounts,
+    loading,
+    saving,
+    error,
+    setError,
+    createPortfolio,
+    createCashTransaction,
+    createPositionTransaction,
+  } = usePortfolioTransaction();
   // Os de uma corretora são só de leitura: mantém-nos a ligação
   const portfolios = allPortfolios.filter((item) => item.source !== 'api');
 
@@ -107,6 +119,14 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
     });
     if (saved) {
       // O resumo, se estiver aberto, volta a pedir os números
+      window.dispatchEvent(new Event(PORTFOLIO_CHANGED_EVENT));
+      onClose();
+    }
+  };
+
+  const submitPosition = async (body: Position_Transaction_Body) => {
+    if (!portfolio) return;
+    if (await createPositionTransaction(portfolio.id, body)) {
       window.dispatchEvent(new Event(PORTFOLIO_CHANGED_EVENT));
       onClose();
     }
@@ -202,6 +222,20 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
           </div>
         </div>
       </div>
+    );
+  } else if (portfolio && (assetType === 'securities' || assetType === 'crypto')) {
+    content = (
+      <Portfolio_Position_Form
+        key={assetType}
+        assetType={assetType}
+        portfolio={portfolio}
+        portfolios={portfolios}
+        header={header}
+        errorLine={errorLine}
+        saving={saving}
+        onBack={() => goTo('asset')}
+        onSubmit={submitPosition}
+      />
     );
   } else {
     content = (

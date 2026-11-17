@@ -1,7 +1,7 @@
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { PortfolioCurrency } from '../repositories/personal-portfolio-repository';
-import { applyToPosition, CASH_SIGN, emptyPosition, Position, POSITION_SIGN, priceCurrency } from './portfolioLedger';
+import { applyToPosition, CASH_SIGN, emptyPosition, Position, POSITION_SIGN, priceCurrency, priceMarketOf } from './portfolioLedger';
 
 // As categorias gerais da distribuição, por esta ordem
 export const ALLOCATION_CATEGORIES = ['cash', 'securities', 'crypto', 'property', 'goods', 'other'] as const;
@@ -71,7 +71,10 @@ export async function findPortfolioAllocation(
   }
 
   const open = [...positions.values()].filter((row) => row.quantity > 0);
-  const markets = open.flatMap((row) => (row.tx.instrument?.priceInstrument ? [row.tx.instrument.priceInstrument] : []));
+  const markets = open.flatMap((row) => {
+    const market = priceMarketOf(row.tx.instrument);
+    return market ? [market] : [];
+  });
   const latest = new Map(
     (await repository.findLatestPrices(markets.map((market) => market.id))).map((price) => [price.instrumentId, price]),
   );
@@ -89,7 +92,7 @@ export async function findPortfolioAllocation(
       currency: row.currency,
     });
   for (const row of open) {
-    const market = row.tx.instrument?.priceInstrument ?? null;
+    const market = priceMarketOf(row.tx.instrument);
     const close = market ? latest.get(market.id) : undefined;
     const unit = market ? priceCurrency(market.quote) : null;
     const unitCurrency = unit ? priceCurrencies.get(unit.code) : undefined;

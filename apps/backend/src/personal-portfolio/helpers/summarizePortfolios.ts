@@ -5,6 +5,8 @@ import {
   applyToPosition,
   CASH_SIGN,
   emptyPosition,
+  priceMarketOf,
+  PriceMarket,
   Position,
   POSITION_SIGN,
   priceCurrency,
@@ -71,7 +73,7 @@ export async function summarizePortfolios(
   repository: PrismaPersonalPortfolioRepository,
   currencyService: CurrencyService,
   // Nos períodos de hora a hora, os fechos de hora a hora de cada mercado (do Yahoo)
-  hourlyCloses?: (markets: { id: string; symbol: string }[]) => Promise<Map<string, HourClose[]>>,
+  hourlyCloses?: (markets: PriceMarket[]) => Promise<Map<string, HourClose[]>>,
 ) {
   const [portfolios, allTransactions] = await Promise.all([
     repository.findPortfolios(userId),
@@ -127,9 +129,11 @@ export async function summarizePortfolios(
   }
 
   // Os fechos dos mercados das posições e a moeda de cada um
-  const priceMarkets = new Map<string, { id: string; symbol: string; quote: string }>();
-  for (const tx of transactions)
-    if (tx.instrument?.priceInstrument) priceMarkets.set(tx.instrument.priceInstrument.id, tx.instrument.priceInstrument);
+  const priceMarkets = new Map<string, PriceMarket>();
+  for (const tx of transactions) {
+    const market = priceMarketOf(tx.instrument);
+    if (market) priceMarkets.set(market.id, market);
+  }
   const series = await repository.findPriceSeries([...priceMarkets.keys()]);
   const units = new Map([...priceMarkets].map(([id, market]) => [id, priceCurrency(market.quote)]));
   const unitCurrencies = new Map(
@@ -226,7 +230,7 @@ export async function summarizePortfolios(
         const key = tx.instrumentId ?? tx.assetId;
         const position =
           byKey.get(key) ??
-          ({ ...emptyPosition(), currency: tx.currency, priceId: tx.instrument?.priceInstrument?.id ?? null } as PricedPosition);
+          ({ ...emptyPosition(), currency: tx.currency, priceId: priceMarketOf(tx.instrument)?.id ?? null } as PricedPosition);
         applyToPosition(position, tx.kind, Number(tx.quantity), amount);
         byKey.set(key, position);
         positions.set(tx.portfolioId, byKey);

@@ -4,7 +4,7 @@ import {
   PortfolioCurrency,
   PortfolioTransactionWithRefs,
 } from '../repositories/personal-portfolio-repository';
-import { applyToPosition, emptyPosition, Position, POSITION_SIGN, priceCurrency } from './portfolioLedger';
+import { applyToPosition, emptyPosition, Position, POSITION_SIGN, priceCurrency, priceMarketOf } from './portfolioLedger';
 
 const round = (value: number, digits = 2) => Math.round(value * 10 ** digits) / 10 ** digits;
 
@@ -34,22 +34,20 @@ export async function findPortfolioPositions(
     rows.set(key, row);
   }
 
-  const priceIds = [...rows.values()].flatMap((row) =>
-    row.first.instrument?.priceInstrument ? [row.first.instrument.priceInstrument.id] : [],
-  );
+  const markets = [...rows.values()].flatMap((row) => {
+    const market = priceMarketOf(row.first.instrument);
+    return market ? [market] : [];
+  });
+  const priceIds = markets.map((market) => market.id);
   const latest = new Map((await repository.findLatestPrices(priceIds)).map((price) => [price.instrumentId, price]));
   // As moedas dos preços, todas de uma vez
-  const codes = new Set(
-    [...rows.values()].flatMap((row) =>
-      row.first.instrument?.priceInstrument ? [priceCurrency(row.first.instrument.priceInstrument.quote).code] : [],
-    ),
-  );
+  const codes = new Set(markets.map((market) => priceCurrency(market.quote).code));
   const currencies = new Map(
     (await repository.findCurrenciesByCodes([...codes])).map((currency) => [currency.shortCode, currency]),
   );
 
   const result = [...rows.values()].map((row) => {
-    const market = row.first.instrument?.priceInstrument ?? null;
+    const market = priceMarketOf(row.first.instrument);
     const price = market ? latest.get(market.id) : undefined;
     const unit = market ? priceCurrency(market.quote) : null;
     const valueCurrency = unit ? (currencies.get(unit.code) ?? null) : null;

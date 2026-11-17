@@ -19,6 +19,9 @@ import {
   ConnectBrokerDto,
   CreateCashTransactionDto,
   CreatePortfolioDto,
+  CreatePositionTransactionDto,
+  MarketPriceQueryDto,
+  MarketSearchQueryDto,
   PortfolioAllocationQueryDto,
   PortfolioSummaryQueryDto,
   PortfolioTransactionsQueryDto,
@@ -47,6 +50,18 @@ export class PersonalPortfolioController {
   @Get('allocation')
   allocation(@Req() req: AuthRequest, @Query() query: PortfolioAllocationQueryDto) {
     return this.portfolioService.allocation(req.user.id, query.currencyId);
+  }
+
+  // Os mercados para uma compra à mão: ações e ETF no Yahoo, pares de cripto na Binance ou na Coinbase
+  @Get('markets/search')
+  searchMarkets(@Query() query: MarketSearchQueryDto) {
+    return this.portfolioService.searchMarkets(query);
+  }
+
+  // O fecho de um mercado num dia (o preço que o formulário propõe)
+  @Get('markets/price')
+  marketPrice(@Query() query: MarketPriceQueryDto) {
+    return this.portfolioService.marketPrice(query);
   }
 
   // Todas as transações da pessoa, com os filtros
@@ -120,6 +135,16 @@ export class PersonalPortfolioController {
     @Param('portfolioId', ParseUUIDPipe) portfolioId: string,
   ) {
     return this.portfolioService.findTransactions(req.user.id, portfolioId);
+  }
+
+  // Uma compra ou venda à mão (ações do Yahoo, cripto da Binance ou da Coinbase) e o dinheiro dela
+  @Post(':portfolioId/transactions/position')
+  createPositionTransaction(
+    @Req() req: AuthRequest,
+    @Param('portfolioId', ParseUUIDPipe) portfolioId: string,
+    @Body() dto: CreatePositionTransactionDto,
+  ) {
+    return this.portfolioService.createPositionTransaction(req.user.id, portfolioId, dto);
   }
 
   // Dinheiro passivo (uma conta poupança): depósito, levantamento, juros, comissão, imposto

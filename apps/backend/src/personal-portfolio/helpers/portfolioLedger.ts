@@ -23,7 +23,35 @@ export const POSITION_SIGN: Record<string, number> = { buy: 1, sell: -1, adjust:
  * convertem-se como libras ÷ 100.
  */
 export const priceCurrency = (quote: string) =>
-  quote === 'GBX' ? { code: 'GBP', factor: 0.01 } : { code: quote, factor: 1 };
+  quote === 'GBX'
+    ? { code: 'GBP', factor: 0.01 }
+    : STABLE_USD.includes(quote)
+      ? { code: 'USD', factor: 1 }
+      : { code: quote, factor: 1 };
+
+// As stablecoins do dólar valem um dólar (os pares BTCUSDT da Binance contam em USD)
+const STABLE_USD = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'DAI', 'TUSD', 'USDP'];
+
+// Os mercados que dão o preço eles próprios (os das corretoras de ações apontam para um destes)
+export const PRICED_SOURCES = ['yahoo', 'binance', 'coinbase'];
+
+/** Um mercado de onde vem o preço. */
+export type PriceMarket = { id: string; symbol: string; quote: string; source: string; type: string };
+
+/**
+ * O mercado de onde vem o preço de uma transação: o que o mercado dela indica (uma ação
+ * da Trading 212 → o do Yahoo) ou ele próprio, se der preço (uma compra na Binance, uma
+ * ação escolhida no Yahoo). Sem nenhum, nulo.
+ */
+export const priceMarketOf = (
+  instrument: (PriceMarket & { priceInstrument: PriceMarket | null }) | null | undefined,
+): PriceMarket | null => {
+  if (!instrument) return null;
+  if (instrument.priceInstrument) return instrument.priceInstrument;
+  if (!PRICED_SOURCES.includes(instrument.source)) return null;
+  const { id, symbol, quote, source, type } = instrument;
+  return { id, symbol, quote, source, type };
+};
 
 /** Uma posição a correr: a quantidade e o custo médio (o método do custo médio ponderado). */
 export type Position = {

@@ -1,5 +1,8 @@
 import { PrismaMarketDataRepository } from '../repositories/prisma/prisma-market-data-repository';
+import { InstrumentToPrice } from '../repositories/market-data-repository';
 import { fetchYahooChart } from './yahooClient';
+
+type PriceDay = { date: string; close: number; adjClose: number | null };
 
 // Antes da primeira transação, uns dias a mais (o fecho anterior a um fim de semana)
 const LEAD_DAYS = 10;
@@ -13,14 +16,20 @@ const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Os fechos diários do Yahoo dos mercados que valem posições (os que um mercado de
- * corretora com transações usa para o preço): da primeira transação, ou do último dia
+ * Os fechos diários dos mercados que valem posições (os do Yahoo para onde aponta um
+ * mercado de corretora com transações, e os do Yahoo, da Binance e da Coinbase com
+ * transações deles, as compras à mão): da primeira transação, ou do último dia
  * guardado, até hoje. Os dias novos entram de uma vez e os últimos atualizam-se. Um
  * mercado que falhe (já depois das novas tentativas do cliente) não pára os outros, e
  * cada um guarda no metadata a última volta boa e o último erro. Devolve quantos dias
  * novos entraram, quantos mercados ficaram em dia e os que falharam.
  */
-export async function syncStockPrices(repository: PrismaMarketDataRepository, instrumentIds?: string[]) {
+export async function syncStockPrices(
+  repository: PrismaMarketDataRepository,
+  instrumentIds: string[] | undefined,
+  // Os fechos de um mercado que não é do Yahoo (a Binance, a Coinbase)
+  fetchExchangeDays: (market: InstrumentToPrice, from: Date) => Promise<PriceDay[]>,
+) {
   const targets = await repository.findInstrumentsToPrice(instrumentIds);
   let saved = 0;
   let updated = 0;
@@ -32,8 +41,11 @@ export async function syncStockPrices(repository: PrismaMarketDataRepository, in
       : new Date(target.firstDate.getTime() - LEAD_DAYS * DAY_MS);
     const now = new Date().toISOString();
     try {
-      const chart = await fetchYahooChart(target.symbol, from);
-      if (chart?.days.length) saved += await repository.saveInstrumentPrices(target.id, chart.days, target.lastDate ? isoDay(from) : null);
+      const days =
+        target.source === 'yahoo'
+          ? ((await fetchYahooChart(target.symbol, from))?.days ?? [])
+          : await fetchExchangeDays(target, from);
+      if (days.length) saved += await repository.saveInstrumentPrices(target.id, days, target.lastDate ? isoDay(from) : null);
       updated += 1;
       await repository.savePriceSyncState(target.id, target.metadata, { priceSyncedAt: now, priceError: null, priceErrorAt: null });
     } catch (error) {

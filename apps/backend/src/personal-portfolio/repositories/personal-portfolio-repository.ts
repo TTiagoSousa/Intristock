@@ -67,7 +67,9 @@ export type PortfolioTransactionWithRefs = PersonalPortfolioTransaction & {
     id: string;
     symbol: string;
     quote: string;
-    priceInstrument: { id: string; symbol: string; quote: string } | null;
+    source: string;
+    type: string;
+    priceInstrument: { id: string; symbol: string; quote: string; source: string; type: string } | null;
   } | null;
 };
 
@@ -106,6 +108,8 @@ export type PortfolioTransactionData = {
   currencyId: string;
   bankAccountId: string | null;
   notes: string | null;
+  // Nas compras e vendas (e no dinheiro delas): o mercado
+  instrumentId?: string | null;
 };
 
 export interface PersonalPortfolioRepository {

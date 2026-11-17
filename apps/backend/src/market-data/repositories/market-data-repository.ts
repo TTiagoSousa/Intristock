@@ -42,12 +42,16 @@ export interface SharedAssetInput {
   subClass: string;
   name: string;
   ticker: string | null;
-  isin: string;
+  // Nas ações escolhidas no Yahoo não há ISIN
+  isin: string | null;
 }
 
 /** Um mercado do Yahoo a pôr em dia: desde quando é preciso e o último dia guardado. */
 export interface InstrumentToPrice {
   id: string;
+  // yahoo · binance · coinbase (de onde vêm os fechos)
+  source: string;
+  type: string;
   symbol: string;
   firstDate: Date;
   lastDate: Date | null;
@@ -65,6 +69,9 @@ export interface PriceSyncState {
 // As fontes que o simulador sabe usar (as velas vêm delas); as outras (Yahoo, as
 // corretoras de ações) são só para os preços dos portefólios
 export const SIMULATOR_SOURCES = ['binance', 'coinbase'];
+
+// Os mercados que dão preço às transações dos portefólios (os fechos vêm da API deles)
+export const PRICED_SOURCES = ['yahoo', 'binance', 'coinbase'];
 
 export interface InstrumentFilters {
   search?: string;

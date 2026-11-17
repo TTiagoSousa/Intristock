@@ -4,6 +4,9 @@ import { PrismaPersonalPortfolioRepository } from './repositories/prisma/prisma-
 import {
   ConnectBrokerDto,
   CreateCashTransactionDto,
+  CreatePositionTransactionDto,
+  MarketPriceQueryDto,
+  MarketSearchQueryDto,
   PortfolioTransactionsQueryDto,
   UpdateBrokerConnectionDto,
 } from './dto/personal-portfolio.dto';
@@ -16,6 +19,8 @@ import { findPortfolioTransactions } from './helpers/findPortfolioTransactions';
 import { findAllTransactions } from './helpers/findAllTransactions';
 import { findPortfolioPositions } from './helpers/findPortfolioPositions';
 import { createCashTransaction } from './helpers/createCashTransaction';
+import { createPositionTransaction } from './helpers/createPositionTransaction';
+import { findMarketPrice, searchMarkets } from './helpers/searchMarkets';
 import { summarizePortfolios, type SummaryRange } from './helpers/summarizePortfolios';
 import { StockPriceService } from 'src/market-data/stock-price.service';
 import { findPortfolioAllocation } from './helpers/findPortfolioAllocation';
@@ -83,6 +88,21 @@ export class PersonalPortfolioService {
 
   findPortfolios(userId: string) {
     return findPortfolios(userId, this.repository);
+  }
+
+  // Uma compra ou venda à mão (ações do Yahoo, cripto da Binance ou da Coinbase)
+  createPositionTransaction(userId: string, portfolioId: string, dto: CreatePositionTransactionDto) {
+    return createPositionTransaction(userId, portfolioId, dto, this.repository, this.stocks);
+  }
+
+  // Os mercados para uma compra à mão: as ações no Yahoo, os pares numa corretora de cripto
+  searchMarkets(query: MarketSearchQueryDto) {
+    return searchMarkets(query, this.stocks);
+  }
+
+  // O fecho de um mercado num dia (para propor o preço no formulário)
+  marketPrice(query: MarketPriceQueryDto) {
+    return findMarketPrice(query, this.stocks);
   }
 
   // O que se tem hoje, por categoria geral e por ativo

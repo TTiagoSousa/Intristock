@@ -53,7 +53,7 @@ const nameWords = (name: string) =>
  * ao ticker (os futuros de ações da Binance, que são de empresas americanas), só se o
  * ticker veio de uma bolsa americana.
  */
-function sameCompany(catalog: { name: string; ticker: string | null }, names: string[], us: boolean) {
+export function sameCompany(catalog: { name: string; ticker: string | null }, names: string[], us: boolean) {
   if (catalog.name === catalog.ticker) return us;
   const mine = nameWords(catalog.name).join(' ');
   if (!mine) return us;

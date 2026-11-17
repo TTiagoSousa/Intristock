@@ -9,6 +9,7 @@ import {
   MarketDataRepository,
   PriceSyncState,
   SharedAssetInput,
+  PRICED_SOURCES,
   SIMULATOR_SOURCES,
   StockInstrumentInput,
 } from '../market-data-repository';
@@ -293,6 +294,30 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
 
   // --- as ações (Yahoo e corretoras) ---
 
+  // Os mercados à vista de uma corretora de cripto que batem com o texto (o símbolo, o
+  // ticker ou o nome do ativo), dos que se negoceiam
+  async searchExchangeInstruments(source: string, query: string, take: number) {
+    const text = { contains: query, mode: 'insensitive' as const };
+    return this.prisma.instrument.findMany({
+      where: {
+        source,
+        type: 'spot',
+        status: 'trading',
+        OR: [{ symbol: text }, { asset: { ticker: text } }, { asset: { name: text } }],
+      },
+      take,
+      orderBy: { symbol: 'asc' },
+      select: {
+        id: true,
+        source: true,
+        symbol: true,
+        quote: true,
+        asset: { select: { id: true, name: true, ticker: true } },
+        platform: { select: { id: true, name: true, logo: true } },
+      },
+    });
+  }
+
   async findInstrumentBySymbol(source: string, type: string, symbol: string) {
     return this.prisma.instrument.findUnique({
       where: { source_type_symbol: { source, type, symbol } },
@@ -336,35 +361,43 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
     });
   }
 
-  // Os mercados do Yahoo que dão o preço a um mercado de corretora com transações (ou só
-  // os destes mercados de corretora): desde a primeira transação e o último dia guardado
-  async findInstrumentsToPrice(brokerInstrumentIds?: string[]): Promise<InstrumentToPrice[]> {
+  // Os mercados que dão o preço a transações de um portefólio: os do Yahoo para onde
+  // aponta um mercado de corretora com transações, e os do Yahoo, da Binance e da Coinbase
+  // com transações deles (as compras à mão). Com `instrumentIds`, só os destes mercados
+  // (os das transações ou eles próprios). Desde a primeira transação e o último dia guardado.
+  async findInstrumentsToPrice(instrumentIds?: string[]): Promise<InstrumentToPrice[]> {
+    const only = instrumentIds ? { id: { in: instrumentIds } } : {};
     const rows = await this.prisma.instrument.findMany({
       where: {
-        source: 'yahoo',
-        pricedBy: {
-          some: {
-            ...(brokerInstrumentIds ? { id: { in: brokerInstrumentIds } } : {}),
-            transactions: { some: {} },
-          },
-        },
+        OR: [
+          { source: 'yahoo', pricedBy: { some: { ...only, transactions: { some: {} } } } },
+          { source: { in: PRICED_SOURCES }, ...only, transactions: { some: {} } },
+        ],
       },
       select: {
         id: true,
+        source: true,
+        type: true,
         symbol: true,
         pricedBy: {
           select: { transactions: { select: { date: true }, orderBy: { date: 'asc' }, take: 1 } },
         },
+        transactions: { select: { date: true }, orderBy: { date: 'asc' }, take: 1 },
         metadata: true,
         prices: { select: { date: true }, orderBy: { date: 'desc' }, take: 1 },
       },
     });
     return rows.flatMap((row) => {
-      const dates = row.pricedBy.flatMap((broker) => broker.transactions.map((tx) => tx.date.getTime()));
+      const dates = [
+        ...row.pricedBy.flatMap((broker) => broker.transactions.map((tx) => tx.date.getTime())),
+        ...row.transactions.map((tx) => tx.date.getTime()),
+      ];
       if (!dates.length) return [];
       return [
         {
           id: row.id,
+          source: row.source,
+          type: row.type,
           symbol: row.symbol,
           firstDate: new Date(Math.min(...dates)),
           lastDate: row.prices[0]?.date ?? null,

@@ -1,8 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaMarketDataRepository } from './repositories/prisma/prisma-market-data-repository';
+import { BinanceCandleRepository } from './repositories/binance/binance-candle-repository';
+import { CoinbaseCandleRepository } from './repositories/coinbase/coinbase-candle-repository';
 import { BrokerStock, ensureStockListing } from './helpers/ensureStockListing';
+import { ensureYahooListing } from './helpers/ensureYahooListing';
 import { syncStockPrices } from './helpers/syncStockPrices';
-import { fetchYahooHourly, YahooHourClose } from './helpers/yahooClient';
+import { ExchangeMarket, fetchExchangeDays, fetchExchangeHours } from './helpers/exchangeCloses';
+import { fetchYahooChart, fetchYahooHourly, searchYahoo, YahooHourClose } from './helpers/yahooClient';
 
 // Os fechos põem-se em dia no arranque e de 6 em 6 horas (o do dia acaba quando a bolsa fecha)
 const SYNC_EVERY_MS = 6 * 60 * 60 * 1000;
@@ -10,12 +14,21 @@ const SYNC_EVERY_MS = 6 * 60 * 60 * 1000;
 const HOURLY_TTL_MS = 10 * 60 * 1000;
 // Quantos dias para trás se pedem de uma vez (cobre os 7 dias e o fecho antes deles)
 const HOURLY_DAYS = 9;
+// O fecho de um dia: até uns dias antes (fins de semana, feriados)
+const PRICE_LOOKBACK_DAYS = 7;
 const DAY_MS = 86_400_000;
+// Quantos mercados de cripto devolve uma pesquisa
+const SEARCH_TAKE = 30;
+
+/** Um mercado de onde vem um preço (do Yahoo, da Binance ou da Coinbase). */
+export type PricedMarket = ExchangeMarket & { id: string };
 
 /**
- * As ações dos portefólios: o ativo e os mercados de cada uma (o da corretora e o do
- * Yahoo, de onde vem o preço) e os fechos diários do Yahoo, guardados em `InstrumentPrice`.
- * Os de hora a hora não se guardam: pedem-se quando um gráfico curto precisa e ficam em memória.
+ * Os preços dos portefólios: o ativo e os mercados de cada ação de uma corretora (o da
+ * corretora e o do Yahoo, de onde vem o preço), as compras à mão (uma ação do Yahoo ou um
+ * par da Binance ou da Coinbase, que dão o preço eles próprios) e os fechos diários deles,
+ * guardados em `InstrumentPrice`. Os de hora a hora não se guardam: pedem-se quando um
+ * gráfico curto precisa e ficam em memória.
  */
 @Injectable()
 export class StockPriceService implements OnModuleInit, OnModuleDestroy {
@@ -26,7 +39,11 @@ export class StockPriceService implements OnModuleInit, OnModuleDestroy {
   // Sobe a cada volta que mexeu nos fechos (o resumo dos portefólios usa-o na cache dele)
   private version = 0;
 
-  constructor(private readonly repository: PrismaMarketDataRepository) {}
+  constructor(
+    private readonly repository: PrismaMarketDataRepository,
+    private readonly binance: BinanceCandleRepository,
+    private readonly coinbase: CoinbaseCandleRepository,
+  ) {}
 
   onModuleInit() {
     void this.syncPrices();
@@ -47,21 +64,73 @@ export class StockPriceService implements OnModuleInit, OnModuleDestroy {
     return ensureStockListing(stock, this.repository);
   }
 
-  /** Põe em dia os fechos (de todos os mercados com posições, ou só dos destes mercados de corretora). */
-  syncPrices(brokerInstrumentIds?: string[]) {
+  /** O ativo e o mercado do Yahoo de um símbolo escolhido à mão (criados da primeira vez). */
+  ensureYahooListing(symbol: string) {
+    return ensureYahooListing(symbol, this.repository);
+  }
+
+  /** Um mercado pelo id (um par da Binance ou da Coinbase escolhido à mão). */
+  findMarket(instrumentId: string) {
+    return this.repository.findInstrumentById(instrumentId);
+  }
+
+  /** As ações e os ETF que o Yahoo encontra para um texto (ticker, nome, ISIN). */
+  searchStocks(query: string) {
+    return searchYahoo(query);
+  }
+
+  /** Os pares à vista de uma corretora de cripto (binance, coinbase) que batem com o texto. */
+  async searchCrypto(source: string, query: string) {
+    const rows = await this.repository.searchExchangeInstruments(source, query, SEARCH_TAKE * 4);
+    const wanted = query.trim().toUpperCase();
+    // Primeiro o ticker igual ao texto, e as cotadas mais comuns
+    const quoteRank = (quote: string) => {
+      const index = ['EUR', 'USDC', 'USDT', 'USD'].indexOf(quote);
+      return index < 0 ? 9 : index;
+    };
+    return rows
+      .sort(
+        (a, b) =>
+          Number(b.asset.ticker?.toUpperCase() === wanted) - Number(a.asset.ticker?.toUpperCase() === wanted) ||
+          quoteRank(a.quote) - quoteRank(b.quote) ||
+          a.symbol.localeCompare(b.symbol),
+      )
+      .slice(0, SEARCH_TAKE);
+  }
+
+  /** O fecho de um mercado num dia (o último até esse dia; hoje, o preço de agora). */
+  // Com a moeda do preço (no Yahoo, a do símbolo; nos pares, a cotada)
+  async priceOn(market: ExchangeMarket & { quote?: string }, day: string) {
+    const date = new Date(`${day}T00:00:00.000Z`);
+    const from = new Date(date.getTime() - PRICE_LOOKBACK_DAYS * DAY_MS);
+    let quote = market.quote ?? null;
+    let days: { date: string; close: number }[];
+    if (market.source === 'yahoo') {
+      const chart = await fetchYahooChart(market.symbol, from, date);
+      quote = chart?.currency ?? quote;
+      days = chart?.days ?? [];
+    } else days = await fetchExchangeDays(market, from, this.binance, this.coinbase);
+    const found = days.filter((row) => row.date <= day).at(-1);
+    return found ? { date: found.date, close: found.close, quote } : null;
+  }
+
+  /** Põe em dia os fechos (de todos os mercados com posições, ou só destes mercados). */
+  syncPrices(instrumentIds?: string[]) {
     // Uma volta de cada vez: a seguinte espera pela que está a correr
     const run = this.running.then(async () => {
       try {
-        const result = await syncStockPrices(this.repository, brokerInstrumentIds);
+        const result = await syncStockPrices(this.repository, instrumentIds, (market, from) =>
+          fetchExchangeDays(market, from, this.binance, this.coinbase),
+        );
         if (result.updated) this.version += 1;
         if (result.saved || result.failed.length)
           this.logger.log(
-            `Preços das ações: ${result.saved} dias novos em ${result.instruments} mercados` +
+            `Preços dos portefólios: ${result.saved} dias novos em ${result.instruments} mercados` +
               (result.failed.length ? `; falharam ${result.failed.join(', ')}` : ''),
           );
         return result;
       } catch (error) {
-        this.logger.warn(`Preços das ações por pôr em dia: ${(error as Error).message}`);
+        this.logger.warn(`Preços dos portefólios por pôr em dia: ${(error as Error).message}`);
         return null;
       }
     });
@@ -70,23 +139,31 @@ export class StockPriceService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Os fechos de hora a hora dos últimos dias destes mercados do Yahoo, por id. Um que
-   * falhe fica de fora (o gráfico usa o fecho do dia dele).
+   * Os fechos de hora a hora dos últimos dias destes mercados (do Yahoo, da Binance ou da
+   * Coinbase), por id. Um que falhe fica de fora (o gráfico usa o fecho do dia dele).
    */
-  async hourlyCloses(markets: { id: string; symbol: string }[]) {
+  async hourlyCloses(markets: PricedMarket[]) {
     const now = Date.now();
     const result = new Map<string, YahooHourClose[]>();
     await Promise.all(
       markets.map(async (market) => {
-        let cached = this.hourly.get(market.symbol);
+        const key = `${market.source}:${market.type}:${market.symbol}`;
+        let cached = this.hourly.get(key);
         if (!cached || now - cached.at > HOURLY_TTL_MS) {
-          cached = { at: now, closes: fetchYahooHourly(market.symbol, new Date(now - HOURLY_DAYS * DAY_MS)) };
-          this.hourly.set(market.symbol, cached);
+          const from = new Date(now - HOURLY_DAYS * DAY_MS);
+          cached = {
+            at: now,
+            closes:
+              market.source === 'yahoo'
+                ? fetchYahooHourly(market.symbol, from)
+                : fetchExchangeHours(market, from, this.binance, this.coinbase),
+          };
+          this.hourly.set(key, cached);
         }
         try {
           result.set(market.id, await cached.closes);
         } catch (error) {
-          this.hourly.delete(market.symbol);
+          this.hourly.delete(key);
           this.logger.warn(`Preços de hora a hora de ${market.symbol}: ${(error as Error).message}`);
         }
       }),

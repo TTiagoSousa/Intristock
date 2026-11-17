@@ -319,6 +319,10 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/personal-portfolio/:portfolioId/positions` | findPositions | user |
 | GET | `/personal-portfolio/:portfolioId/transactions` | findTransactions | user |
 | POST | `/personal-portfolio/:portfolioId/transactions/cash` | createCashTransaction | user |
+| POST | `/personal-portfolio/:portfolioId/transactions/position` | createPositionTransaction | user |
+| GET | `/personal-portfolio/markets/search` | searchMarkets | user |
+| GET | `/personal-portfolio/markets/price` | marketPrice | user |
+| GET | `/personal-portfolio/allocation` | allocation | user |
 | GET | `/personal-portfolio/transactions` | findAllTransactions | user |
 | GET | `/personal-portfolio/connections` | findConnections | user |
 | POST | `/personal-portfolio/connections` | connectBroker | user |
@@ -331,6 +335,14 @@ Broker connections (Trading 212, cash only for now): `POST /connections` takes `
 sync (the whole history) runs in the background and then every hour. The key never comes back in a response.
 Portfolios that come from a connection reject manual transactions. Each sync looks 7 days back from the last imported
 cash movement, so movements the broker books late with an earlier date still come in (repeats are skipped by id).
+
+Manual buys and sells (`POST /:portfolioId/transactions/position`): `kind` buy or sell, `date`, `quantity`, `price` per
+unit, optional `fee`, `currencyId`, and the market, either `yahooSymbol` (a stock or ETF, created on first use) or
+`instrumentId` (a Binance or Coinbase spot pair, priced by that exchange). `cash` says where the money comes from or goes:
+`new` (a deposit before a buy, a withdrawal after a sale, so returns don't count it as a gain) or `portfolio` (the balance
+of `cashPortfolioId`, or of the same portfolio). It writes the position row and a `transfer_out`/`transfer_in` row, and
+refuses to sell more than the portfolio holds. `GET /markets/search?kind=stock|crypto&source=binance|coinbase&q` finds
+markets; `GET /markets/price?yahooSymbol|instrumentId&date` gives the last close up to that day.
 
 `GET /summary?currencyId&range` is cached in memory per user, currency and range until the data changes (transactions,
 portfolios, connections, the latest hourly rate, stock closes) or 15 minutes pass (5 in the 7-day and 24-hour ranges,

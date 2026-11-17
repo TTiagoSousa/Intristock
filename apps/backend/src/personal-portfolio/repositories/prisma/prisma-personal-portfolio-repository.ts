@@ -32,7 +32,9 @@ const TRANSACTION_INCLUDE = {
       id: true,
       symbol: true,
       quote: true,
-      priceInstrument: { select: { id: true, symbol: true, quote: true } },
+      source: true,
+      type: true,
+      priceInstrument: { select: { id: true, symbol: true, quote: true, source: true, type: true } },
     },
   },
 };
@@ -159,6 +161,24 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
         rateHour: await latestRateHour(this.prisma),
       },
       include: TRANSACTION_INCLUDE,
+    });
+  }
+
+  // Várias de uma vez (uma compra e o dinheiro dela): ou entram todas ou nenhuma
+  async createTransactions(rows: PortfolioTransactionData[]): Promise<PortfolioTransactionWithRefs[]> {
+    const rateHour = await latestRateHour(this.prisma);
+    return this.prisma.$transaction(
+      rows.map((data) =>
+        this.prisma.personalPortfolioTransaction.create({ data: { ...data, rateHour }, include: TRANSACTION_INCLUDE }),
+      ),
+    );
+  }
+
+  // As transações de um mercado num portefólio que mexem na quantidade (para ver o que se tem)
+  async findPositionTransactions(portfolioId: string, instrumentId: string) {
+    return this.prisma.personalPortfolioTransaction.findMany({
+      where: { portfolioId, instrumentId, kind: { in: ['buy', 'sell', 'adjust'] } },
+      select: { kind: true, quantity: true },
     });
   }
 

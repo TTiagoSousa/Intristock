@@ -38,6 +38,100 @@ export class PortfolioSummaryQueryDto {
   range?: SummaryRange;
 }
 
+// De onde vem (compra) ou para onde vai (venda) o dinheiro de uma compra à mão:
+// new = dinheiro novo (entra / sai da carteira); portfolio = o saldo de um portefólio
+export const POSITION_CASH_MODES = ['new', 'portfolio'] as const;
+
+/**
+ * Uma compra ou venda à mão: o mercado (uma ação do Yahoo pelo símbolo, ou um par da
+ * Binance ou da Coinbase pelo id), a quantidade, o preço por unidade, a comissão e de
+ * onde vem o dinheiro.
+ */
+export class CreatePositionTransactionDto {
+  @IsIn(['buy', 'sell'])
+  kind: 'buy' | 'sell';
+
+  @IsDateString()
+  date: string;
+
+  // Um destes dois
+  @ValidateIf((dto: CreatePositionTransactionDto) => !dto.instrumentId)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(30)
+  yahooSymbol?: string;
+
+  @ValidateIf((dto: CreatePositionTransactionDto) => !dto.yahooSymbol)
+  @IsUUID()
+  instrumentId?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  quantity: number;
+
+  // Por unidade, na moeda da transação
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  price: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  fee?: number;
+
+  @IsUUID()
+  currencyId: string;
+
+  @IsIn(POSITION_CASH_MODES)
+  cash: (typeof POSITION_CASH_MODES)[number];
+
+  // Com `cash` portfolio: o portefólio do dinheiro (sem ele, o próprio)
+  @IsOptional()
+  @IsUUID()
+  cashPortfolioId?: string;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @MaxLength(500)
+  notes?: string | null;
+}
+
+/** A pesquisa de um mercado para uma compra à mão: ações no Yahoo, cripto numa corretora. */
+export class MarketSearchQueryDto {
+  @IsIn(['stock', 'crypto'])
+  kind: 'stock' | 'crypto';
+
+  // Na cripto: binance · coinbase
+  @ValidateIf((dto: MarketSearchQueryDto) => dto.kind === 'crypto')
+  @IsIn(['binance', 'coinbase'])
+  source?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
+  q: string;
+}
+
+/** O preço de um mercado num dia (para propor no formulário). */
+export class MarketPriceQueryDto {
+  @ValidateIf((dto: MarketPriceQueryDto) => !dto.instrumentId)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(30)
+  yahooSymbol?: string;
+
+  @ValidateIf((dto: MarketPriceQueryDto) => !dto.yahooSymbol)
+  @IsUUID()
+  instrumentId?: string;
+
+  @IsDateString()
+  date: string;
+}
+
 /** A moeda da distribuição (sem ela, o euro). */
 export class PortfolioAllocationQueryDto {
   @IsOptional()
