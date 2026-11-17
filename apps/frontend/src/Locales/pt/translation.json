@@ -5245,6 +5245,20 @@
     "allocation_crypto": "Cripto",
     "allocation_property": "Imobiliário",
     "allocation_goods": "Bens materiais",
-    "allocation_other": "Outros"
+    "allocation_other": "Outros",
+    "modeLabel": "O que mostrar",
+    "modeTab_value": "Valor",
+    "modeTab_gain": "Ganho",
+    "modeTab_twr": "TWR",
+    "modeTab_mwr": "TIR",
+    "mode_value": "Valor",
+    "mode_gain": "Ganho sobre o investido",
+    "mode_twr": "Rentabilidade ponderada no tempo",
+    "mode_mwr": "Rentabilidade ponderada pelo dinheiro",
+    "modeHint_gain": "Em {{currency}}: o valor menos o que meteste (depósitos menos levantamentos), sobre o que meteste",
+    "modeHint_twr": "Em {{currency}}: quanto renderam os investimentos, sem contar quando meteste ou tiraste dinheiro",
+    "modeHint_mwr": "Em {{currency}}: a tua rentabilidade, contando quanto tempo cada depósito lá esteve",
+    "investedOf": "sobre {{value}} investidos",
+    "perYear": "{{value}} por ano"
   }
 }

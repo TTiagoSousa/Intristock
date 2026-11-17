@@ -185,8 +185,30 @@ export interface Portfolio_Summary {
   estimatedRates: number;
   portfolios: { id: string; name: string; source: 'manual' | 'api'; platform: Portfolio_Platform | null }[];
   // Um ponto por dia com transações (e hoje): o saldo de cada portefólio e o total
-  points: { date: string; values: Record<string, number>; total: number }[];
+  // Em cada ponto, também a rentabilidade desde o início do período (em %; nula quando não dá)
+  points: ({ date: string; values: Record<string, number>; total: number } & Portfolio_Return)[];
+  // O resultado do período (o último ponto) e a TIR anual
+  returns: (Portfolio_Return & { xirrPct: number | null; days: number }) | null;
 }
+
+/**
+ * A rentabilidade: o que se meteu (o valor de partida mais os depósitos menos os
+ * levantamentos), o ganho em dinheiro e as três percentagens.
+ */
+export interface Portfolio_Return {
+  invested: number;
+  gain: number;
+  // O ganho sobre o investido
+  simplePct: number | null;
+  // Ponderada no tempo (TWR)
+  twrPct: number | null;
+  // Ponderada pelo dinheiro (TIR do período, sem anualizar)
+  mwrPct: number | null;
+}
+
+// O que o gráfico do resumo mostra: o valor em dinheiro ou uma das rentabilidades
+export const SUMMARY_MODES = ['value', 'gain', 'twr', 'mwr'] as const;
+export type Summary_Mode = (typeof SUMMARY_MODES)[number];
 
 /** O valor de cada portefólio ao longo do tempo, na moeda escolhida no topo. */
 export const usePortfolioSummary = (currencyId: string, range: Summary_Range = 'all') => {

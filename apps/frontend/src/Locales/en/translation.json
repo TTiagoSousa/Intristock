@@ -5245,6 +5245,20 @@
     "allocation_crypto": "Crypto",
     "allocation_property": "Real estate",
     "allocation_goods": "Physical goods",
-    "allocation_other": "Other"
+    "allocation_other": "Other",
+    "modeLabel": "What to show",
+    "modeTab_value": "Value",
+    "modeTab_gain": "Gain",
+    "modeTab_twr": "TWR",
+    "modeTab_mwr": "IRR",
+    "mode_value": "Value",
+    "mode_gain": "Gain on invested",
+    "mode_twr": "Time-weighted return",
+    "mode_mwr": "Money-weighted return",
+    "modeHint_gain": "In {{currency}}: the value minus what you put in (deposits minus withdrawals), over what you put in",
+    "modeHint_twr": "In {{currency}}: how the investments did, regardless of when you added or took out money",
+    "modeHint_mwr": "In {{currency}}: your own return, counting how long each deposit was there",
+    "investedOf": "on {{value}} invested",
+    "perYear": "{{value}} a year"
   }
 }

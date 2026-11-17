@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
 import {
+  SUMMARY_MODES,
   SUMMARY_RANGES,
   usePortfolioSummary,
+  type Summary_Mode,
   type Summary_Range,
 } from '../../../../Hooks/Finances/usePersonalPortfolio';
 import Portfolio_Chart, { type Portfolio_Chart_Series } from './Portfolio_Chart';
@@ -25,6 +27,20 @@ const readRange = (): Summary_Range => {
   }
 };
 
+// O que o gráfico mostra (o valor ou uma rentabilidade) também fica no browser
+const MODE_KEY = 'intristock-portfolio-mode';
+const readMode = (): Summary_Mode => {
+  try {
+    const saved = localStorage.getItem(MODE_KEY);
+    return SUMMARY_MODES.includes(saved as Summary_Mode) ? (saved as Summary_Mode) : 'value';
+  } catch {
+    return 'value';
+  }
+};
+
+// O campo de cada ponto que cada modo desenha
+const MODE_FIELD = { gain: 'simplePct', twr: 'twrPct', mwr: 'mwrPct' } as const;
+
 // As cores dos portefólios, por ordem; a partir do 5.º repetem
 const LINE_TOKENS = [1, 2, 3, 4, 5].map((n) => `portfolio-chart-line-${n}`);
 
@@ -40,6 +56,15 @@ const Portfolio_Dashboard = () => {
     setRange(next);
     try {
       localStorage.setItem(RANGE_KEY, next);
+    } catch {
+      // Sem armazenamento, só para esta visita
+    }
+  };
+  const [mode, setMode] = useState<Summary_Mode>(readMode);
+  const chooseMode = (next: Summary_Mode) => {
+    setMode(next);
+    try {
+      localStorage.setItem(MODE_KEY, next);
     } catch {
       // Sem armazenamento, só para esta visita
     }
@@ -71,26 +96,51 @@ const Portfolio_Dashboard = () => {
     [i18n.language],
   );
   const hourly = data?.granularity === 'hour';
+  const percent = useMemo(
+    () => new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 2, signDisplay: 'exceptZero' }),
+    [i18n.language],
+  );
+  const pct = (value: number) => percent.format(value / 100);
+  const signedMoney = (value: number) => (value > 0 ? '+' : '') + format(value);
+  const isValue = mode === 'value';
 
   const points = data?.points ?? [];
   const days = points.map((point) => point.date);
-  // Por agora uma linha só: o valor de todos os portefólios juntos
-  const series = useMemo<Portfolio_Chart_Series[]>(
-    () =>
-      data
-        ? [
-            {
-              id: 'total',
-              name: t('portfolio.total'),
-              values: data.points.map((point) => point.total),
-              colorToken: LINE_TOKENS[0],
-            },
-          ]
-        : [],
-    [data, t],
-  );
+  // Uma linha só: o valor de todos os portefólios juntos, ou a rentabilidade escolhida
+  // (onde não se pode calcular, fica a de antes)
+  const series = useMemo<Portfolio_Chart_Series[]>(() => {
+    if (!data) return [];
+    let carried = 0;
+    const values = data.points.map((point) => {
+      if (mode === 'value') return point.total;
+      const value = point[MODE_FIELD[mode]];
+      if (value !== null && value !== undefined) carried = value;
+      return carried;
+    });
+    return [{ id: mode, name: t(`portfolio.mode_${mode}`), values, colorToken: LINE_TOKENS[0] }];
+  }, [data, mode, t]);
   const now = points[points.length - 1]?.total ?? 0;
   const last = points[points.length - 1];
+  const result = data?.returns ?? null;
+  // O número do cabeçalho em cada modo, e se é ganho ou perda
+  const headline = (() => {
+    if (isValue || !result) return { label: t('portfolio.valueNow'), text: format(now), sign: 0, extra: '' };
+    if (mode === 'gain')
+      return {
+        label: t('portfolio.mode_gain'),
+        text: result.simplePct === null ? signedMoney(result.gain) : `${signedMoney(result.gain)} · ${pct(result.simplePct)}`,
+        sign: Math.sign(result.gain),
+        extra: t('portfolio.investedOf', { value: format(result.invested) }),
+      };
+    const value = mode === 'twr' ? result.twrPct : result.mwrPct;
+    return {
+      label: t(`portfolio.mode_${mode}`),
+      text: value === null ? '—' : pct(value),
+      sign: Math.sign(value ?? 0),
+      // A TIR anual só com um período que se possa anualizar (um mês, pelo menos)
+      extra: mode === 'mwr' && result.xirrPct !== null && result.days >= 30 ? t('portfolio.perYear', { value: pct(result.xirrPct) }) : '',
+    };
+  })();
 
   return (
     <div className="Portfolio_Dashboard">
@@ -160,23 +210,42 @@ const Portfolio_Dashboard = () => {
               <span className="Portfolio_Pulse Portfolio_Pulse_Line" />
             ) : (
               <span className="Portfolio_Chart_Sub">
-                {t('portfolio.chartIn', { currency: code })}
+                {t(isValue ? 'portfolio.chartIn' : `portfolio.modeHint_${mode}`, { currency: code })}
                 {data?.estimatedRates ? t('finances.ratesEstimated', { count: data.estimatedRates }) : ''}
               </span>
             )}
           </div>
           {(loading || points.length > 0) && (
             <div className="Portfolio_Chart_Now">
-              <span className="Portfolio_Chart_Now_Label">{t('portfolio.valueNow')}</span>
+              <span className="Portfolio_Chart_Now_Label">{headline.label}</span>
               {loading ? (
                 <span className="Portfolio_Pulse Portfolio_Pulse_Value" />
               ) : (
-                <span className="Portfolio_Chart_Now_Value Num">{format(now)}</span>
+                <span
+                  className={`Portfolio_Chart_Now_Value Num${headline.sign > 0 ? ' Portfolio_In' : headline.sign < 0 ? ' Portfolio_Loss' : ''}`}
+                >
+                  {headline.text}
+                </span>
               )}
+              {!loading && headline.extra && <span className="Portfolio_Chart_Now_Label">{headline.extra}</span>}
             </div>
           )}
         </div>
         <div className="Portfolio_Ranges">
+          <div className="Tabs" role="tablist" aria-label={t('portfolio.modeLabel')}>
+            {SUMMARY_MODES.map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="tab"
+                aria-selected={mode === option}
+                className={mode === option ? 'Active' : ''}
+                onClick={() => chooseMode(option)}
+              >
+                {t(`portfolio.modeTab_${option}`)}
+              </button>
+            ))}
+          </div>
           <div className="Tabs" role="tablist" aria-label={t('portfolio.rangeLabel')}>
             {SUMMARY_RANGES.map((option) => (
               <button
@@ -208,8 +277,9 @@ const Portfolio_Dashboard = () => {
             <Portfolio_Chart
               days={days}
               series={series}
-              format={format}
-              compact={compact}
+              format={isValue ? format : pct}
+              compact={isValue ? compact : pct}
+              beginAtZero={isValue}
               dateLabel={(ms) => (hourly ? dayHour : day).format(new Date(ms))}
               axisLabel={(ms) => (hourly && range === '24h' ? shortHour : hourly ? dayHour : shortDay).format(new Date(ms))}
             />

@@ -24,6 +24,8 @@ interface Portfolio_Chart_Props {
   dateLabel: (ms: number) => string;
   // A data curta do eixo
   axisLabel: (ms: number) => string;
+  // O eixo começa no 0 (o valor); nas percentagens, não (podem ser negativas)
+  beginAtZero?: boolean;
 }
 
 const escape = (text: string) =>
@@ -33,14 +35,14 @@ const escape = (text: string) =>
  * O valor dos portefólios no tempo, nas linhas da `trading-chart`, um ponto por
  * dia com transações. Ocupa a altura que o pai lhe der.
  */
-const Portfolio_Chart = ({ days, series, format, compact, dateLabel, axisLabel }: Portfolio_Chart_Props) => {
+const Portfolio_Chart = ({ days, series, format, compact, dateLabel, axisLabel, beginAtZero = true }: Portfolio_Chart_Props) => {
   const { theme } = useTheme();
   const chartRef = useRef<HTMLDivElement>(null);
   const latest = useRef({ format, compact, dateLabel, axisLabel });
   useEffect(() => {
     latest.current = { format, compact, dateLabel, axisLabel };
   });
-  const dataKey = JSON.stringify({ days, series });
+  const dataKey = JSON.stringify({ days, series, beginAtZero });
 
   useEffect(() => {
     const element = chartRef.current;
@@ -82,7 +84,7 @@ const Portfolio_Chart = ({ days, series, format, compact, dateLabel, axisLabel }
         theme: look,
         padding: 4,
         legend: { show: !single, position: 'bottom', align: 'center', marker: 'line', fontSize: 11 },
-        yAxis: { grid: true, beginAtZero: true, format: (value) => latest.current.compact(value) },
+        yAxis: { grid: true, beginAtZero, format: (value) => latest.current.compact(value) },
         // Só datas: o dinheiro conta-se ao dia
         xAxis: { grid: false, format: (x) => latest.current.axisLabel(x < 1e11 ? x * 1000 : x) },
         crosshair: { show: true },

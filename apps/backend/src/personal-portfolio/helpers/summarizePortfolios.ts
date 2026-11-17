@@ -9,6 +9,11 @@ import {
   POSITION_SIGN,
   priceCurrency,
 } from './portfolioLedger';
+import { computeReturns, ReturnPoint, ReturnStep } from './portfolioReturns';
+
+// O dinheiro que a pessoa mete ou tira: não é ganho nem perda (as transferências são
+// entre o dinheiro e as ações da mesma conta, ficam dentro)
+const EXTERNAL_FLOW: Record<string, number> = { deposit: 1, withdrawal: -1 };
 
 // Sem moeda pedida, a das transações mais usada, senão o euro
 const FALLBACK_CURRENCY = 'EUR';
@@ -197,8 +202,12 @@ export async function summarizePortfolios(
     push({ label: isoDay(before), day: isoDay(before), hour: null }, false);
   }
 
+  // A partir daqui, um ponto por slot: o que entrou e saiu em cada um, para a rentabilidade
+  const lead = points.length;
+  const steps: ReturnStep[] = [];
   let next = 0;
   for (const slot of slots) {
+    let flow = 0;
     for (; nextPrice < series.length && isoDay(series[nextPrice].date) <= slot.day; nextPrice += 1)
       closes.set(series[nextPrice].instrumentId, series[nextPrice].close);
     for (const [id, list] of hourSeries) {
@@ -225,10 +234,24 @@ export async function summarizePortfolios(
         const byCurrency = cash.get(tx.portfolioId) ?? new Map<string, number>();
         byCurrency.set(tx.currencyId, (byCurrency.get(tx.currencyId) ?? 0) + (CASH_SIGN[tx.kind] ?? 0) * amount);
         cash.set(tx.portfolioId, byCurrency);
+        // À cotação desse ponto, como o valor
+        if (tx.kind in EXTERNAL_FLOW)
+          flow += EXTERNAL_FLOW[tx.kind] * converter.convert(amount, tx.currency, slot.day, slot.hour);
       }
     }
     push(slot, true);
+    const start = slot.hour ? slot.hour.getTime() : midnight(slot.day).getTime();
+    steps.push({ start, end: slot.until.getTime(), value: points[points.length - 1].total, flow });
   }
+
+  // A rentabilidade de cada ponto (os de antes, a 0, valem 0 %)
+  const returns = computeReturns(steps, range === 'all');
+  const zero: ReturnPoint = { invested: 0, gain: 0, simplePct: 0, twrPct: 0, mwrPct: 0 };
+  const withReturns = points.map((point, index) => ({
+    ...point,
+    ...(index < lead ? zero : returns.points[index - lead]),
+  }));
+  const last = withReturns[withReturns.length - 1];
 
   return {
     currency: currency ? { id: currency.id, shortCode: currency.shortCode, symbol: currency.symbol } : null,
@@ -236,6 +259,18 @@ export async function summarizePortfolios(
     granularity: hourly ? 'hour' : 'day',
     estimatedRates: converter.estimated(),
     portfolios: portfolios.map((p) => ({ id: p.id, name: p.name, source: p.source, platform: p.platform })),
-    points,
+    points: withReturns,
+    // O resultado do período: o último ponto e a TIR anual
+    returns: last
+      ? {
+          invested: last.invested,
+          gain: last.gain,
+          simplePct: last.simplePct,
+          twrPct: last.twrPct,
+          mwrPct: last.mwrPct,
+          xirrPct: returns.xirrPct,
+          days: returns.days,
+        }
+      : null,
   };
 }
