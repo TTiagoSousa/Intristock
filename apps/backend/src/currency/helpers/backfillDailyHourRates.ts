@@ -15,7 +15,7 @@ const isoDay = (date: Date) => date.toISOString().slice(0, 10);
  * Enche o passado da `CurrencyHourRate` desde o dia da primeira transação de um
  * portefólio até ontem. A CurrencyBeacon não tem horas para trás, só o
  * `historical` de cada dia: entra uma linha por dia, à meia-noite UTC. Um dia
- * que já tem alguma hora não se pede. Devolve quantos dias gravou.
+ * em que todas as moedas já têm alguma hora não se pede (o que já está fica). Devolve quantos dias gravou.
  */
 export async function backfillDailyHourRates(
   currencyRepository: PrismaCurrencyRepository,
@@ -29,7 +29,18 @@ export async function backfillDailyHourRates(
   const start = new Date(`${isoDay(first)}T00:00:00.000Z`);
   if (start >= today) return 0;
 
-  const have = await hourRateRepository.daysWithRates(start, today);
+  const currencies = (
+    await Promise.all(
+      AVAILABLE_CURRENCIES.map((code) =>
+        currencyRepository.findByShortCode(code),
+      ),
+    )
+  ).filter((currency) => currency !== null);
+  const have = await hourRateRepository.daysWithRates(
+    start,
+    today,
+    currencies.map((currency) => currency.id),
+  );
   const missing: string[] = [];
   for (
     const day = new Date(start);
@@ -39,13 +50,6 @@ export async function backfillDailyHourRates(
     if (!have.has(isoDay(day))) missing.push(isoDay(day));
   if (!missing.length) return 0;
 
-  const currencies = (
-    await Promise.all(
-      AVAILABLE_CURRENCIES.map((code) =>
-        currencyRepository.findByShortCode(code),
-      ),
-    )
-  ).filter((currency) => currency !== null);
   const symbols = AVAILABLE_CURRENCIES.filter((code) => code !== 'USD');
   const config = await apiConfig();
 

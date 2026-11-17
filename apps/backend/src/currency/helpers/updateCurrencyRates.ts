@@ -15,9 +15,11 @@ export async function updateCurrencyRates(
 
   const rates = quoted ?? (await fetchLatestRates(api!));
 
-  await Promise.all(
-    currencies.map((currency) => currencyRepository.updateRate(currency.id, rates[currency.shortCode] ?? currency.rate)),
+  // Num só pedido à base; as que a API não traz ficam como estão
+  const quotedRates = currencies.flatMap((currency) =>
+    rates[currency.shortCode] !== undefined ? [{ id: currency.id, rate: rates[currency.shortCode] }] : [],
   );
+  await currencyRepository.updateRates(quotedRates);
 
-  return { updated: currencies.length };
+  return { updated: quotedRates.length };
 }

@@ -29,4 +29,5 @@ export interface CurrencyRepository {
   findByShortCode(shortCode: string): Promise<Currency | null>;
   findById(id: string): Promise<Currency | null>;
   updateRate(id: string, rate: number): Promise<Currency>;
+  updateRates(rates: { id: string; rate: number }[]): Promise<number>;
 }

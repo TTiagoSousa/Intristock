@@ -38,13 +38,20 @@ export class PrismaCurrencyHourRateRepository {
   }
 
   // Os dias (YYYY-MM-DD) entre os dois que já têm alguma hora guardada
-  async daysWithRates(from: Date, until: Date) {
+  // Os dias em que todas estas moedas têm pelo menos uma hora (uma moeda nova, como a
+  // libra, faz faltar os dias que só têm as outras)
+  async daysWithRates(from: Date, until: Date, currencyIds: string[]) {
     const rows = await this.prisma.currencyHourRate.findMany({
-      where: { hour: { gte: from, lt: until } },
-      select: { hour: true },
-      distinct: ['hour'],
+      where: { hour: { gte: from, lt: until }, currencyId: { in: currencyIds } },
+      select: { hour: true, currencyId: true },
+      distinct: ['hour', 'currencyId'],
     });
-    return new Set(rows.map((row) => row.hour.toISOString().slice(0, 10)));
+    const byDay = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const day = row.hour.toISOString().slice(0, 10);
+      byDay.set(day, (byDay.get(day) ?? new Set()).add(row.currencyId));
+    }
+    return new Set([...byDay].filter(([, ids]) => ids.size >= currencyIds.length).map(([day]) => day));
   }
 
   // O dia da primeira transação de um portefólio (de quem for): daí para cá
