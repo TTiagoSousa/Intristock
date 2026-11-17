@@ -2,6 +2,7 @@ import { PrismaCurrencyRepository } from '../repositories/prisma/prisma-currency
 import { PrismaCurrencyHourRateRepository } from '../repositories/prisma/prisma-currency-hour-rate-repository';
 import { CurrencyApiConfig, fetchLatestRates } from './currencyBeaconClient';
 import { AVAILABLE_CURRENCIES } from './findAllCurrencies';
+import { updateCurrencyRates } from './updateCurrencyRates';
 
 /** A hora certa em que estamos, em UTC (14:37 → 14:00). */
 export const currentHour = (now = new Date()) => {
@@ -12,8 +13,8 @@ export const currentHour = (now = new Date()) => {
 
 /**
  * Guarda as cotações desta hora das moedas do site (um pedido `latest` à
- * CurrencyBeacon, base USD). Se a hora já está guardada, não pede nada.
- * Devolve se gravou.
+ * CurrencyBeacon, base USD) e, com o mesmo pedido, o `Currency.rate` de todas
+ * as do catálogo. Se a hora já está guardada, não pede nada. Devolve se gravou.
  */
 export async function saveCurrentHourRates(
   currencyRepository: PrismaCurrencyRepository,
@@ -23,10 +24,9 @@ export async function saveCurrentHourRates(
   const hour = currentHour();
   if (await hourRateRepository.hasHour(hour)) return false;
 
-  const quoted = await fetchLatestRates(
-    await apiConfig(),
-    AVAILABLE_CURRENCIES,
-  );
+  // Todas as moedas: as do site para a hora, as outras só para o catálogo
+  const quoted = await fetchLatestRates(await apiConfig());
+  await updateCurrencyRates(currencyRepository, null, quoted);
   const rows: { currencyId: string; rate: number }[] = [];
   for (const code of AVAILABLE_CURRENCIES) {
     const currency = await currencyRepository.findByShortCode(code);
