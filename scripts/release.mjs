@@ -109,7 +109,8 @@ function notes(version, commits) {
 /** Moves [Unreleased] to [version] - date (filled from the notes when empty) and updates the compare links. */
 function changelog(version, tag, generated) {
   const file = 'CHANGELOG.md';
-  let s = readFileSync(join(root, file), 'utf8');
+  // Num checkout do Windows o ficheiro vem com CRLF: as contas fazem-se em LF
+  let s = readFileSync(join(root, file), 'utf8').replace(/\r\n/g, '\n');
   const date = new Date().toISOString().slice(0, 10);
   const m = /## \[Unreleased\]\n([\s\S]*?)(?=\n## \[|\n\[Unreleased\]:|$)/.exec(s);
   if (!m) fail('CHANGELOG.md has no "## [Unreleased]" section');
