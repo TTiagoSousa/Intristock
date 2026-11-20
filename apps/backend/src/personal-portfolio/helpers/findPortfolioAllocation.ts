@@ -1,7 +1,7 @@
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { PortfolioCurrency } from '../repositories/personal-portfolio-repository';
-import { applyToPosition, CASH_SIGN, emptyPosition, Position, POSITION_SIGN, priceCurrency, priceMarketOf } from './portfolioLedger';
+import { applyToPosition, CASH_SIGN, compareLedger, emptyPosition, Position, POSITION_SIGN, priceCurrency, priceMarketOf } from './portfolioLedger';
 
 // As categorias gerais da distribuição, por esta ordem
 export const ALLOCATION_CATEGORIES = ['cash', 'securities', 'crypto', 'property', 'goods', 'other'] as const;
@@ -47,7 +47,7 @@ export async function findPortfolioAllocation(
   repository: PrismaPersonalPortfolioRepository,
   currencyService: CurrencyService,
 ) {
-  const transactions = await repository.findUserTransactions(userId);
+  const transactions = (await repository.findUserTransactions(userId)).sort(compareLedger);
   const currency =
     (currencyId ? await repository.findCurrency(currencyId) : null) ??
     (await repository.findCurrencyByCode(FALLBACK_CURRENCY));

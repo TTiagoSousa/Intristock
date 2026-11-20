@@ -4,7 +4,7 @@ import {
   PortfolioCurrency,
   PortfolioTransactionWithRefs,
 } from '../repositories/personal-portfolio-repository';
-import { applyToPosition, emptyPosition, Position, POSITION_SIGN, priceCurrency, priceMarketOf } from './portfolioLedger';
+import { applyToPosition, compareLedger, emptyPosition, Position, POSITION_SIGN, priceCurrency, priceMarketOf } from './portfolioLedger';
 
 const round = (value: number, digits = 2) => Math.round(value * 10 ** digits) / 10 ** digits;
 
@@ -23,7 +23,7 @@ export async function findPortfolioPositions(
 
   const transactions = (await repository.findTransactions(portfolioId))
     .filter((tx) => tx.kind in POSITION_SIGN)
-    .reverse();
+    .sort(compareLedger);
 
   type Row = Position & { first: PortfolioTransactionWithRefs; currency: PortfolioCurrency };
   const rows = new Map<string, Row>();
@@ -51,6 +51,7 @@ export async function findPortfolioPositions(
     const price = market ? latest.get(market.id) : undefined;
     const unit = market ? priceCurrency(market.quote) : null;
     const valueCurrency = unit ? (currencies.get(unit.code) ?? null) : null;
+    const goods = row.first.asset.subClass === 'vehicle';
     return {
       asset: row.first.asset,
       symbol: row.first.instrument?.symbol ?? null,
@@ -65,7 +66,9 @@ export async function findPortfolioPositions(
           ? { close: price.close, date: price.date, quote: market!.quote, currency: valueCurrency }
           : null,
       // Na moeda do preço (GBX já em libras)
-      value: price && unit ? round(row.quantity * price.close * unit.factor) : null,
+      // Num bem (uma mota), a última avaliação, na moeda dele
+      value: price && unit ? round(row.quantity * price.close * unit.factor) : goods ? round(row.quantity * row.lastUnitPrice) : null,
+      goods,
     };
   });
   return result.sort((a, b) => Number(b.quantity > 0) - Number(a.quantity > 0) || a.asset.name.localeCompare(b.asset.name));

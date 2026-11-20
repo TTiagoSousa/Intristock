@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import http from '../../Service/httpService';
 import { End_Points } from '../../Service/endPoints';
 import { getErrorMessage } from '../useAsyncRequest';
 import type { Personal_Bank_Account } from './usePersonalIncome';
 
 // Os tipos de ativo que se escolhem ao adicionar uma transação; para já só o dinheiro passivo
-export const PORTFOLIO_ASSET_TYPES = ['securities', 'crypto', 'cash', 'metals', 'property', 'other'] as const;
+export const PORTFOLIO_ASSET_TYPES = ['securities', 'crypto', 'cash', 'motorcycle', 'metals', 'property', 'other'] as const;
 export type Portfolio_Asset_Type = (typeof PORTFOLIO_ASSET_TYPES)[number];
-export const AVAILABLE_ASSET_TYPES: Portfolio_Asset_Type[] = ['securities', 'crypto', 'cash'];
+export const AVAILABLE_ASSET_TYPES: Portfolio_Asset_Type[] = ['securities', 'crypto', 'cash', 'motorcycle'];
 
 // As corretoras de cripto onde se diz que se comprou (o preço vem do mercado delas)
 export const CRYPTO_SOURCES = ['binance', 'coinbase'] as const;
@@ -81,7 +81,7 @@ export interface Personal_Portfolio {
   transactionCount: number;
 }
 
-type Portfolio_Currency = { id: string; name: string; shortCode: string; symbol: string };
+export type Portfolio_Currency = { id: string; name: string; shortCode: string; symbol: string };
 
 /** Uma transação de um portefólio (o valor sempre positivo: o tipo diz o lado). */
 export interface Portfolio_Transaction {
@@ -122,7 +122,8 @@ export const KIND_SIGN: Record<string, number> = {
 };
 
 // Os tipos que mexem na quantidade de um ativo (não no dinheiro)
-export const POSITION_KINDS = ['buy', 'sell', 'adjust'];
+// `valuation`: o valor de um bem (uma mota) nessa data, sem mexer na quantidade
+export const POSITION_KINDS = ['buy', 'sell', 'adjust', 'valuation'];
 
 // Os tipos do filtro das transações, por esta ordem
 export const TRANSACTION_KINDS = [...Object.keys(KIND_SIGN), ...POSITION_KINDS];
@@ -139,9 +140,15 @@ export interface Portfolio_Position {
   realized: number;
   currency: Portfolio_Currency;
   price: { close: number; date: string; quote: string; currency: Portfolio_Currency } | null;
-  // Na moeda do preço
+  // Na moeda do preço; num bem, a última avaliação na moeda dele
   value: number | null;
+  // Um bem (uma mota): abre o painel dele
+  goods?: boolean;
 }
+
+/** De quantas em quantas horas uma ligação sincroniza sozinha: hora a hora, por dia, por semana. */
+export const SYNC_INTERVAL_HOURS = [1, 24, 168] as const;
+export type Sync_Interval_Hours = (typeof SYNC_INTERVAL_HOURS)[number];
 
 /** Uma ligação a uma corretora (sem a chave, que nunca volta ao browser). */
 export interface Broker_Connection {
@@ -151,6 +158,7 @@ export interface Broker_Connection {
   fromDate: string | null;
   // active · error · paused
   status: 'active' | 'error' | 'paused';
+  syncEveryHours: Sync_Interval_Hours;
   lastError: string | null;
   syncedAt: string | null;
   syncing: boolean;
@@ -416,6 +424,14 @@ export const usePortfolioTransactions = (
   const [assets, setAssets] = useState<Portfolio_Transaction_Page['assets']>([]);
   const [portfolios, setPortfolios] = useState<Personal_Portfolio[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Depois de gravar (no popover de adicionar ou no de uma mota), a lista e os portefólios voltam a pedir-se
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setVersion((value) => value + 1);
+    window.addEventListener(PORTFOLIO_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(PORTFOLIO_CHANGED_EVENT, refresh);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -426,7 +442,7 @@ export const usePortfolioTransactions = (
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [version]);
 
   useEffect(() => {
     let cancelled = false;
@@ -448,7 +464,7 @@ export const usePortfolioTransactions = (
     return () => {
       cancelled = true;
     };
-  }, [filters, page, take, currencyId]);
+  }, [filters, page, take, currencyId, version]);
 
   return { data, assets, portfolios, error };
 };
@@ -487,9 +503,17 @@ export const usePortfolioDetail = (portfolioId: string) => {
   return { portfolio, transactions, error };
 };
 
-/** As posições (ações) de um portefólio. */
+/** As posições (ações) de um portefólio; voltam a pedir-se depois de gravar (uma compra, uma avaliação, uma venda). */
 export const usePortfolioPositions = (portfolioId: string) => {
   const [positions, setPositions] = useState<Portfolio_Position[] | null>(null);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setVersion((value) => value + 1);
+    window.addEventListener(PORTFOLIO_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(PORTFOLIO_CHANGED_EVENT, refresh);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     http
@@ -499,7 +523,7 @@ export const usePortfolioPositions = (portfolioId: string) => {
     return () => {
       cancelled = true;
     };
-  }, [portfolioId]);
+  }, [portfolioId, version]);
   return positions;
 };
 
@@ -508,6 +532,7 @@ export interface Broker_Connection_Body {
   apiSecret?: string;
   fromDate?: string | null;
   paused?: boolean;
+  syncEveryHours?: Sync_Interval_Hours;
 }
 
 /**
@@ -521,13 +546,17 @@ export const useBrokerConnections = () => {
   const [busy, setBusy] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((value) => value + 1), []);
+  // Sobe a cada ação (mudar, sincronizar, apagar): uma leitura que começou antes dela já
+  // vem velha e não pode pisar a ligação que a ação devolveu
+  const mutation = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
+    const startedAt = mutation.current;
     http
       .get<Broker_Connection[]>(End_Points.Broker_Connections_Endpoint())
       .then(({ data }) => {
-        if (cancelled) return;
+        if (cancelled || startedAt !== mutation.current) return;
         setConnections(data);
         setError(null);
       })
@@ -551,8 +580,11 @@ export const useBrokerConnections = () => {
   const run = useCallback(async (key: string, action: () => Promise<Broker_Connection | null>) => {
     setBusy(key);
     setActionError(null);
+    mutation.current += 1;
     try {
       const updated = await action();
+      // E outra vez no fim: uma leitura que partiu durante a ação também pode ser de antes dela
+      mutation.current += 1;
       if (updated)
         setConnections((current) => {
           const list = current ?? [];

@@ -44,6 +44,22 @@ async function freeName(
   return taken && taken.id !== selfId ? `${name} (${connection.externalAccountId})` : name;
 }
 
+/**
+ * Um portefólio da ligação pelo `externalId`. Se a ligação da mesma conta foi apagada e
+ * se voltou a ligar, o portefólio que ficou solto (com o que já foi importado) volta a
+ * ser desta ligação.
+ */
+async function findPortfolioOf(
+  connection: Connection,
+  externalId: string,
+  repository: PrismaPersonalPortfolioRepository,
+): Promise<PersonalPortfolio | null> {
+  const existing = await repository.findConnectionPortfolio(connection.id, externalId);
+  if (existing) return existing;
+  const detached = await repository.findDetachedApiPortfolio(connection.userId, connection.platformId, externalId);
+  return detached ? repository.attachPortfolio(detached.id, connection.id) : null;
+}
+
 /** Um portefólio da ligação pelo `externalId`: o que já existe ou um novo (só de leitura). */
 async function ensurePortfolio(
   connection: Connection,
@@ -51,7 +67,7 @@ async function ensurePortfolio(
   name: string,
   repository: PrismaPersonalPortfolioRepository,
 ): Promise<PersonalPortfolio> {
-  const existing = await repository.findConnectionPortfolio(connection.id, externalId);
+  const existing = await findPortfolioOf(connection, externalId, repository);
   if (existing) return existing;
   return repository.createApiPortfolio({
     userId: connection.userId,
@@ -71,36 +87,29 @@ export const ensureCashPortfolio = (
 
 /**
  * O portefólio antigo (todas as moedas num só) passa a ser o da moeda da conta, e as
- * transações das outras moedas vão para o portefólio de cada uma.
+ * transações das outras moedas vão para o portefólio de cada uma. Cada volta passa as que
+ * ainda lá estejam (uma passagem que parou a meio acaba-se na seguinte).
  */
 async function splitLegacyPortfolio(
   connection: Connection,
   accountCurrency: string,
   repository: PrismaPersonalPortfolioRepository,
 ) {
-  const legacy = await repository.findConnectionPortfolio(
-    connection.id,
-    legacyExternalId(connection.externalAccountId),
-  );
-  if (!legacy) return;
-  if (
-    await repository.findConnectionPortfolio(
-      connection.id,
-      cashPortfolioExternalId(connection.externalAccountId, accountCurrency),
-    )
-  )
-    return;
-
-  await repository.updateApiPortfolio(legacy.id, {
-    name: await freeName(connection, cashName(accountCurrency), repository, legacy.id),
-    externalId: cashPortfolioExternalId(connection.externalAccountId, accountCurrency),
-  });
-  const others = new Map<string, PortfolioCurrency>();
-  for (const tx of await repository.findTransactions(legacy.id))
-    if (tx.currency.shortCode !== accountCurrency) others.set(tx.currency.id, tx.currency);
-  for (const currency of others.values()) {
+  const accountExternalId = cashPortfolioExternalId(connection.externalAccountId, accountCurrency);
+  let main = await findPortfolioOf(connection, accountExternalId, repository);
+  if (!main) {
+    const legacy = await findPortfolioOf(connection, legacyExternalId(connection.externalAccountId), repository);
+    if (!legacy) return;
+    await repository.updateApiPortfolio(legacy.id, {
+      name: await freeName(connection, cashName(accountCurrency), repository, legacy.id),
+      externalId: accountExternalId,
+    });
+    main = legacy;
+  }
+  // No da moeda da conta só fica essa moeda (as ordens e os dividendos vão para o da moeda deles)
+  for (const currency of await repository.findOtherCurrencies(main.id, accountCurrency)) {
     const target = await ensureCashPortfolio(connection, currency.shortCode, repository);
-    await repository.moveTransactions(legacy.id, target.id, currency.id);
+    await repository.moveTransactions(main.id, target.id, currency.id);
   }
 }
 
@@ -163,6 +172,9 @@ export async function syncTrading212(
     : null;
   const movements = await fetchTrading212CashMovements(credentials, since);
   let lastAt = connection.cashSyncedUntil;
+  // O primeiro movimento que ficou de fora (moeda fora do catálogo): o cursor não passa dele,
+  // para entrar quando a moeda aparecer
+  let firstSkippedAt: Date | null = null;
   for (const movement of movements) {
     const at = new Date(movement.dateTime);
     if (!lastAt || at > lastAt) lastAt = at;
@@ -171,6 +183,7 @@ export async function syncTrading212(
     const target = await resolve(movement.currency);
     if (!target) {
       skippedCurrencies.add(movement.currency);
+      if (!firstSkippedAt || at < firstSkippedAt) firstSkippedAt = at;
       continue;
     }
     rows.push({
@@ -303,10 +316,11 @@ export async function syncTrading212(
       portfolioId: target.portfolioId,
       assetId: listing.assetId,
       instrumentId: listing.instrumentId,
-      kind: value > 0 ? 'dividend' : 'withdrawal',
+      // Um estorno fica dividendo, com o valor negativo: é perda, não um levantamento
+      kind: 'dividend',
       date: isoDay(dividend.paidOn),
       quantity: dividend.quantity,
-      amount: Math.abs(value),
+      amount: value,
       currencyId: target.currency.id,
       externalId: `dividend:${dividend.reference}`,
       externalType: `DIVIDEND_${dividend.type}`,
@@ -320,11 +334,13 @@ export async function syncTrading212(
 
   const now = new Date();
   for (const portfolioId of await portfolioIds()) await repository.markPortfolioSynced(portfolioId, now);
+  // A pausa vê-se agora, não no início: uma posta enquanto isto corria fica
+  const current = await repository.findConnection(connection.id);
   await repository.updateConnection(connection.id, {
     syncedAt: now,
-    cashSyncedUntil: lastAt,
+    cashSyncedUntil: firstSkippedAt && (!lastAt || firstSkippedAt < lastAt) ? firstSkippedAt : lastAt,
     // Em pausa continua em pausa (um sincronizar à mão não a tira)
-    status: connection.status === 'paused' ? 'paused' : 'active',
+    status: (current ?? connection).status === 'paused' ? 'paused' : 'active',
     lastError: skippedCurrencies.size
       ? `Moedas que não estão no catálogo: ${[...skippedCurrencies].join(', ')}`
       : null,

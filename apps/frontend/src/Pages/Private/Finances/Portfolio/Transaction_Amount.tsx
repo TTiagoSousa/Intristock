@@ -25,10 +25,12 @@ export const Transaction_Amount = ({ tx, rated }: { tx: Portfolio_Transaction; r
       <td className="Right Num">
         {amount ? <Converted_Amount value={rated.money(amount, tx.currency, day)} /> : '—'}
         <div className="Earnings_Sub">
-          {amount && quantity
+          {tx.kind === 'valuation'
+            ? t('goods.valuationSub')
+            : amount && quantity
             ? t('portfolio.quantityAt', {
                 quantity: quantityFormat.format(Math.abs(quantity)),
-                price: formatIn(amount / Math.abs(quantity), tx.currency.shortCode),
+                price: formatIn(amount / Math.abs(quantity), tx.currency),
               })
             : `${quantity > 0 ? '+' : ''}${quantityFormat.format(quantity)}`}
         </div>

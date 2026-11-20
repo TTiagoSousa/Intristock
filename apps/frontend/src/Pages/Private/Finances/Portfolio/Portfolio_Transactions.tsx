@@ -16,6 +16,7 @@ import Global_Pagination from '../../../../Components/Pagination/Global_Paginati
 import { Transaction_Amount, Transaction_Asset } from './Transaction_Amount';
 import { formatDay, localeOf } from '../Earnings/earningsLabels';
 import Platform_Badge from './Platform_Badge';
+import Goods_Popover from './Goods/Goods_Popover';
 import '../Earnings/Earnings.scss';
 import './Portfolio.scss';
 
@@ -36,6 +37,8 @@ const Portfolio_Transactions = () => {
   const currencyId = currencies.find((currency) => currency.shortCode === selectedCurrency)?.id ?? '';
   const [filters, setFilters] = useState<Portfolio_Transaction_Filters>(EMPTY_TRANSACTION_FILTERS);
   const [page, setPage] = useState(1);
+  // A mota aberta (o painel dela)
+  const [goodsId, setGoodsId] = useState<string | null>(null);
   const { data, assets, portfolios, error } = usePortfolioTransactions(filters, page, PAGE_SIZE, currencyId);
   const transactions = data?.transactions ?? null;
   // Só as da página se convertem no browser
@@ -182,13 +185,20 @@ const Portfolio_Transactions = () => {
                   </thead>
                   <tbody>
                     {transactions.map((tx) => (
-                      <tr key={tx.id}>
+                      <tr
+                        key={tx.id}
+                        className={tx.asset.subClass === 'vehicle' ? 'Clickable' : undefined}
+                        onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined}
+                      >
                         <td className="Num">{formatDay(tx.date.slice(0, 10), locale)}</td>
                         <td>
                           <button
                             type="button"
                             className="Portfolio_Link"
-                            onClick={() => navigate(`/Portefolio/p/${tx.portfolioId}`)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/Portefolio/p/${tx.portfolioId}`);
+                            }}
                           >
                             <Platform_Badge platform={tx.portfolio?.platform ?? null} />
                             {tx.portfolio?.name}
@@ -196,7 +206,7 @@ const Portfolio_Transactions = () => {
                         </td>
                         <Transaction_Asset tx={tx} />
                         <td>{t(`portfolio.kind_${tx.kind}`)}</td>
-                        <td className="Portfolio_Muted">{tx.notes ?? (tx.externalType ? t('portfolio.fromBroker') : '—')}</td>
+                        <td className="Portfolio_Muted">{tx.notes ?? (tx.externalType && tx.externalType !== 'in_kind' ? t('portfolio.fromBroker') : '—')}</td>
                         <Transaction_Amount tx={tx} rated={rated} />
                       </tr>
                     ))}
@@ -214,6 +224,7 @@ const Portfolio_Transactions = () => {
           )}
         </div>
       </div>
+      {goodsId && <Goods_Popover assetId={goodsId} onClose={() => setGoodsId(null)} />}
     </div>
   );
 };

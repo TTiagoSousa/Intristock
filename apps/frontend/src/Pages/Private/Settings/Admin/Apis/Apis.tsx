@@ -8,6 +8,7 @@ import Simple_Button from '../../../../../Components/Buttons/Simple_Button/Simpl
 import Api_Card, { type Api_Card_Sync } from './Api_Card';
 import Prop_Firms_Data from './Prop_Firms_Data';
 import Exchanges_Data from './Exchanges_Data';
+import Api_Keys_Card from './Api_Keys_Card';
 import * as Icon from '../../../../../Imports/icons';
 import '../Admin.scss';
 import './Apis.scss';
@@ -222,6 +223,8 @@ const Apis = () => {
               extra={api.extra?.(formatDateTime)}
             />
           ))}
+          {/* As APIs com várias chaves (usadas por ordem): os preços das motas */}
+          <Api_Keys_Card kind="motorcycle_prices" icon={<Icon.Search />} />
         </div>
       )}
     </div>

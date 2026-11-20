@@ -58,7 +58,8 @@ export type MarketAssetData = {
   subClass: string;
 };
 
-export type PortfolioTransactionWithRefs = PersonalPortfolioTransaction & {
+// O relatório dos preços (`valuationReport`) só vem quando se pede um bem: nas listas e nas contas não
+export type PortfolioTransactionWithRefs = Omit<PersonalPortfolioTransaction, 'valuationReport'> & {
   asset: { id: string; name: string; assetClass: string; subClass: string };
   currency: PortfolioCurrency;
   bankAccount: { id: string; name: string } | null;
@@ -110,6 +111,21 @@ export type PortfolioTransactionData = {
   notes: string | null;
   // Nas compras e vendas (e no dinheiro delas): o mercado
   instrumentId?: string | null;
+  // Nos bens: como se obteve, o relatório dos preços e `in_kind` (sem dinheiro ligado)
+  acquisition?: string | null;
+  valuationReport?: object | null;
+  externalType?: string | null;
+};
+
+/** Um bem da pessoa (por agora as motas): o ativo com os detalhes e a atualização automática. */
+export type GoodsAssetData = {
+  ownerUserId: string;
+  assetClass: string;
+  subClass: string;
+  name: string;
+  details: object;
+  valuationEveryDays: number | null;
+  valuationNextAt: Date | null;
 };
 
 export interface PersonalPortfolioRepository {
@@ -154,7 +170,8 @@ export interface PersonalPortfolioRepository {
     platformId: string,
     externalAccountId: string,
   ): Promise<BrokerConnection | null>;
-  findConnectionsToSync(syncedBefore: Date): Promise<{ id: string }[]>;
+  /** As ligações não pausadas, com a última sincronização e o intervalo (quem está em atraso vê-o o serviço). */
+  findConnectionsToSync(): Promise<{ id: string; syncedAt: Date | null; syncEveryHours: number }[]>;
   createConnection(data: BrokerConnectionData): Promise<BrokerConnection>;
   updateConnection(
     connectionId: string,
@@ -162,6 +179,9 @@ export interface PersonalPortfolioRepository {
   ): Promise<BrokerConnection>;
   deleteConnection(connectionId: string): Promise<void>;
   findConnectionPortfolio(connectionId: string, externalId: string): Promise<PersonalPortfolio | null>;
+  findDetachedApiPortfolio(userId: string, platformId: string, externalId: string): Promise<PersonalPortfolio | null>;
+  attachPortfolio(portfolioId: string, connectionId: string): Promise<PersonalPortfolio>;
+  findOtherCurrencies(portfolioId: string, shortCode: string): Promise<PortfolioCurrency[]>;
   createApiPortfolio(data: {
     userId: string;
     name: string;

@@ -32,6 +32,7 @@ import { CompanyAssetModule } from './company-asset/company-asset.module';
 import { CompanyStockModule } from './company-stock/company-stock.module';
 import { CompanyPaymentDocumentModule } from './company-payment-document/company-payment-document.module';
 import { AppSettingModule } from './app-setting/app-setting.module';
+import { ApiKeyModule } from './api-key/api-key.module';
 import { CatalogSeedModule } from './catalog-seed/catalog-seed.module';
 import { SystemModule } from './system/system.module';
 import { MarketDataModule } from './market-data/market-data.module';
@@ -75,6 +76,7 @@ import { NotificationModule } from './notification/notification.module';
     CompanyStockModule,
     CompanyPaymentDocumentModule,
     AppSettingModule,
+    ApiKeyModule,
     CatalogSeedModule,
     SystemModule,
     MarketDataModule,

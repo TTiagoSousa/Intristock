@@ -35,6 +35,12 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/setup/apis` | apiSettings | admin |
 | GET | `/setup/apis/health` | apisHealth | admin |
 | PUT | `/setup/apis` | saveApiSettings | admin |
+| GET | `/setup/api-keys?kind` | list | admin |
+| POST | `/setup/api-keys` | add | admin |
+| POST | `/setup/api-keys/refresh?kind` | refresh | admin |
+| POST | `/setup/api-keys/reorder` | reorder | admin |
+| PATCH | `/setup/api-keys/:id` | update | admin |
+| DELETE | `/setup/api-keys/:id` | remove | admin |
 
 ### auth-user
 
@@ -329,12 +335,39 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | PATCH | `/personal-portfolio/connections/:connectionId` | updateConnection | user |
 | POST | `/personal-portfolio/connections/:connectionId/sync` | syncConnection | user |
 | DELETE | `/personal-portfolio/connections/:connectionId` | deleteConnection | user |
+| POST | `/personal-portfolio/goods` | create | user |
+| POST | `/personal-portfolio/goods/prices` | prices | user |
+| GET | `/personal-portfolio/goods/prices/available` | pricesAvailable | user |
+| GET | `/personal-portfolio/goods/locations?q` | locations | user |
+| GET | `/personal-portfolio/goods/:assetId` | find | user |
+| PATCH | `/personal-portfolio/goods/:assetId` | update | user |
+| POST | `/personal-portfolio/goods/:assetId/valuations` | addValuation | user |
+| POST | `/personal-portfolio/goods/:assetId/sell` | sell | user |
 
 Broker connections (Trading 212, cash only for now): `POST /connections` takes `apiKey`, `apiSecret` and an optional
 `fromDate`, checks the key against the broker, stores it encrypted and creates a read-only cash portfolio; the first
-sync (the whole history) runs in the background and then every hour. The key never comes back in a response.
+sync (the whole history) runs in the background and then on the connection's own interval, `syncEveryHours` (1, 24
+or 168; every hour by default, changed with `PATCH`; a paused connection does not sync on its own). The key never
+comes back in a response.
 Portfolios that come from a connection reject manual transactions. Each sync looks 7 days back from the last imported
 cash movement, so movements the broker books late with an earlier date still come in (repeats are skipped by id).
+
+Goods (motorcycles for now, `/goods`): `POST /goods` registers one in a manual portfolio (`portfolioId`, `details` with
+`vehicleType`, `brand`, `model`, `version`, `year`, `plate` and the price search `searchQuery`, `location`, `radiusKm`;
+`acquisition` purchase, gift, inheritance or other; an optional `price`; `cash` new, portfolio or none; an optional
+`valuation`; `valuationEveryDays` 7, 30, 90 or null). It writes a `buy` (quantity 1, worth the price or, without one, the
+valuation; with no cash linked it is `in_kind`, an outside flow for the returns) and a `valuation` row (quantity 0, the
+value in `amount`, the report in `valuationReport`). `POST /goods/prices` runs 2 SerpApi searches on Facebook
+Marketplace (for sale and sold, around `location` within `radiusKm`) and returns the report without saving: the
+listings with the automatic exclusions (token prices, parts or projects, other models), the stats (average, median,
+min, max, p10, p25, p75, p90) and the value of the chosen condition (restore p10, below p25, average median, above p75,
+mint p90). A valuation is a manual value or that report with the person's choices (`excludedIds`, `includedIds`,
+`condition`); the server recomputes the stats. `GoodsValuationService` refreshes, every hour, the goods whose
+`valuationNextAt` has passed, with the saved search and the last condition. Opening a good never searches.
+
+Keys with several accounts (`/setup/api-keys`, `kind` motorcycle_prices): each key is checked with SerpApi
+(`account.json`, no searches used) and stored encrypted; they are used in `position` order, and one that runs out of
+searches is skipped until its plan renews (`exhaustedUntil`).
 
 Manual buys and sells (`POST /:portfolioId/transactions/position`): `kind` buy or sell, `date`, `quantity`, `price` per
 unit, optional `fee`, `currencyId`, and the market, either `yahooSymbol` (a stock or ETF, created on first use) or

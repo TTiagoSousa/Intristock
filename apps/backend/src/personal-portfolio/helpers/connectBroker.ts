@@ -51,6 +51,12 @@ export async function connectBroker(
     apiSecret: encryptSecret(apiSecret),
     fromDate: dto.fromDate ? new Date(dto.fromDate) : null,
   });
-  await ensureCashPortfolio(connection, account.currency ?? 'EUR', repository);
+  // Sem o portefólio a ligação não fica (senão a conta ficava "já ligada" e sem nada)
+  try {
+    await ensureCashPortfolio(connection, account.currency ?? 'EUR', repository);
+  } catch (error) {
+    await repository.deleteConnection(connection.id).catch(() => undefined);
+    throw error;
+  }
   return (await repository.findConnectionView(userId, connection.id))!;
 }

@@ -1,0 +1,287 @@
+// --- as motas nos portefólios: o registo, a pesquisa de preços e o painel de cada uma ---
+
+// Mais largo que os outros popovers: os anúncios precisam de espaço
+.Popover_Card.Goods_Card{
+  max-width: 760px;
+}
+
+.Goods_Section_Title{
+  padding-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Goods_Triple{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 560px){ grid-template-columns: 1fr; }
+}
+
+.Goods_Actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// --- a pesquisa: o que se procura, a localidade (com as sugestões) e o raio ---
+.Goods_Search{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Goods_Search_Form{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+
+  .Goods_Search_Radius,
+  .Goods_Search_Action{ grid-column: 1 / -1; }
+
+  @media (max-width: 560px){ grid-template-columns: 1fr; }
+}
+
+.Goods_Search_Location{
+  position: relative;
+}
+
+.Goods_Locations{
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--cards-background);
+  box-shadow: var(--shadow-pop);
+}
+
+.Goods_Location{
+  padding: 8px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible{
+    background-color: var(--surface-2);
+    outline: none;
+  }
+}
+
+.Goods_Search_Action{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// --- os números: média, mediana, mínimo, máximo (e no painel: valor, custo, diferença) ---
+.Goods_Stats{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+
+  @media (max-width: 560px){ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.Goods_Stat{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+
+  & + &{ border-left: 1px solid var(--line); }
+
+  @media (max-width: 560px){
+    &:nth-child(3){ border-left: none; }
+    &:nth-child(n + 3){ border-top: 1px solid var(--line); }
+  }
+}
+
+.Goods_Stat_Label{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Goods_Stat_Value{
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+
+  &.Gain{ color: var(--gain); }
+  &.Loss{ color: var(--loss); }
+}
+
+// --- o estado da mota: cinco botões, cada um com o valor que dá ---
+.Goods_Conditions{
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 640px){ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.Goods_Condition{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background-color: var(--cards-background);
+  color: var(--text-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+
+  &:hover:not(:disabled){ background-color: var(--surface-2); }
+
+  &.Active{
+    border-color: var(--accent-line);
+    background-color: var(--accent-faint);
+    color: var(--text);
+  }
+
+  &:disabled{ cursor: default; }
+  &:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+.Goods_Condition_Name{ font-size: 12px; }
+
+.Goods_Condition_Value{
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+// --- os anúncios ---
+.Goods_Listings{
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overscroll-behavior: contain;
+}
+
+.Goods_Listing{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+
+  & + &{ border-top: 1px solid var(--line); }
+
+  &.Excluded{
+    .Goods_Listing_Photo,
+    .Goods_Listing_Text,
+    .Goods_Listing_Price{ opacity: 0.45; }
+    .Goods_Listing_Price{ text-decoration: line-through; }
+  }
+}
+
+.Goods_Listing_Photo{
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+  background-color: var(--surface-3);
+}
+
+.Goods_Listing_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Goods_Listing_Title{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+
+  &:hover{ text-decoration: underline; }
+}
+
+.Goods_Listing_Meta{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Goods_Listing_Reason{ color: var(--warn); }
+
+.Goods_Listing_Price{
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.Goods_Listing_Toggle{
+  flex-shrink: 0;
+  width: 56px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover{ text-decoration: underline; }
+  &:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+// --- as avaliações ao longo do tempo ---
+.Goods_History{
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.Goods_History_Row{
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-2);
+
+  & + &{ border-top: 1px solid var(--line); }
+}
+
+.Goods_History_Value{
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

@@ -14,15 +14,22 @@ const KIND_BY_TYPE: Record<string, string> = {
 // O lado para que cada tipo conta no saldo
 const SIGN_BY_KIND: Record<string, number> = { deposit: 1, interest: 1, withdrawal: -1, fee: -1 };
 
+// Os tipos que são ganho ou custo (não dinheiro que a pessoa mete ou tira)
+const RESULT_KINDS = ['fee', 'interest'];
+
 /**
- * Um movimento de dinheiro como transação: o tipo e o valor sempre positivo (o tipo
- * diz o lado). Um valor com o sinal ao contrário do tipo (ou um TRANSFER) entra como
- * depósito ou levantamento; os de 0 não entram.
+ * Um movimento de dinheiro como transação: o tipo e o valor positivo (o tipo diz o lado).
+ * Uma comissão ou um juro com o sinal ao contrário (uma comissão devolvida, um juro
+ * estornado) fica com o tipo e o valor negativo, para continuar a ser ganho ou custo;
+ * um depósito ou levantamento ao contrário (ou um TRANSFER) entra como o outro. Os de 0
+ * não entram.
  */
 export function mapTrading212Cash(movement: Trading212CashMovement) {
   const amount = Math.round(movement.amount * 100) / 100;
   if (!amount) return null;
-  let kind = KIND_BY_TYPE[movement.type];
-  if (!kind || Math.sign(amount) !== SIGN_BY_KIND[kind]) kind = amount > 0 ? 'deposit' : 'withdrawal';
+  const kind = KIND_BY_TYPE[movement.type];
+  if (kind && RESULT_KINDS.includes(kind)) return { kind, amount: amount * SIGN_BY_KIND[kind] };
+  if (!kind || Math.sign(amount) !== SIGN_BY_KIND[kind])
+    return { kind: amount > 0 ? 'deposit' : 'withdrawal', amount: Math.abs(amount) };
   return { kind, amount: Math.abs(amount) };
 }

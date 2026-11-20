@@ -17,6 +17,10 @@ import {
   type Position_Transaction_Body,
 } from '../../../../Hooks/Finances/usePersonalPortfolio';
 import Portfolio_Position_Form from './Portfolio_Position_Form';
+import Goods_Form from './Goods/Goods_Form';
+import { createGoods, type Create_Goods_Body } from '../../../../Hooks/Finances/usePortfolioGoods';
+import { getErrorMessage } from '../../../../Hooks/useAsyncRequest';
+import { localToday, parseAmount } from '../../../../Hooks/Finances/portfolioInput';
 import './Portfolio.scss';
 
 interface Portfolio_Transaction_Popover_Props {
@@ -26,14 +30,12 @@ interface Portfolio_Transaction_Popover_Props {
 type Step = 'portfolio' | 'asset' | 'form';
 
 const NONE = '';
-const number = (value: string) => Number(value.replace(',', '.'));
-const today = () => new Date().toISOString().slice(0, 10);
 
 /**
  * Adicionar uma transação, em três passos: o portefólio (um dos que há, ou um
  * novo só com o nome), o tipo de ativo e o formulário dele: o dinheiro passivo,
- * e as compras e vendas de títulos (Yahoo) e de cripto (Binance, Coinbase). Os
- * outros tipos aparecem como «Em breve».
+ * as compras e vendas de títulos (Yahoo) e de cripto (Binance, Coinbase) e as motas
+ * (`Goods_Form`, com a pesquisa de preços). Os outros tipos aparecem como «Em breve».
  */
 const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popover_Props) => {
   const { t } = useTranslation();
@@ -63,9 +65,10 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
   const [chosenCurrencyId, setCurrencyId] = useState('');
   const currencyId =
     chosenCurrencyId || (currencies.find((currency) => currency.shortCode === selectedCurrency) ?? currencies[0])?.id || '';
-  const [date, setDate] = useState(today());
+  const [date, setDate] = useState(localToday);
   const [bankAccountId, setBankAccountId] = useState(NONE);
   const [notes, setNotes] = useState('');
+  const [goodsSaving, setGoodsSaving] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -100,15 +103,16 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
     goTo('form');
   };
 
-  const value = number(amount);
+  // Escrito à portuguesa ou à inglesa ("1.200,50", "1200.5"); inválido = nulo
+  const value = parseAmount(amount);
   const accounts = bankAccounts.filter(
     (account) => (account.status === 'active' || account.id === bankAccountId) && account.currencyId === currencyId,
   );
-  const valid = Boolean(portfolio) && value > 0 && Boolean(currencyId) && Boolean(date);
+  const valid = Boolean(portfolio) && value !== null && value > 0 && Boolean(currencyId) && Boolean(date);
 
   const submitCash = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!valid || !portfolio) return;
+    if (!valid || !portfolio || value === null || saving) return;
     const saved = await createCashTransaction(portfolio.id, {
       kind,
       date,
@@ -129,6 +133,20 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
     if (await createPositionTransaction(portfolio.id, body)) {
       window.dispatchEvent(new Event(PORTFOLIO_CHANGED_EVENT));
       onClose();
+    }
+  };
+
+  const submitGoods = async (body: Create_Goods_Body) => {
+    setGoodsSaving(true);
+    setError(null);
+    try {
+      await createGoods(body);
+      window.dispatchEvent(new Event(PORTFOLIO_CHANGED_EVENT));
+      onClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setGoodsSaving(false);
     }
   };
 
@@ -222,6 +240,18 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
           </div>
         </div>
       </div>
+    );
+  } else if (portfolio && assetType === 'motorcycle') {
+    content = (
+      <Goods_Form
+        portfolio={portfolio}
+        portfolios={portfolios}
+        header={header}
+        errorLine={errorLine}
+        saving={goodsSaving}
+        onBack={() => goTo('asset')}
+        onSubmit={(body) => void submitGoods(body)}
+      />
     );
   } else if (portfolio && (assetType === 'securities' || assetType === 'crypto')) {
     content = (

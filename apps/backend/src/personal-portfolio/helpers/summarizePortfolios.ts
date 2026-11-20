@@ -5,6 +5,7 @@ import {
   applyToPosition,
   CASH_SIGN,
   emptyPosition,
+  inKindFlow,
   priceMarketOf,
   PriceMarket,
   Position,
@@ -89,7 +90,12 @@ export async function summarizePortfolios(
       const clamped = from && tx.date < from;
       return { ...tx, date: clamped ? from : tx.date, at: clamped ? from : (tx.externalAt ?? tx.date) };
     })
-    .sort((a, b) => a.at.getTime() - b.at.getTime());
+    // No mesmo instante as avaliações por último (como no `compareLedger`); o resto fica pela
+    // ordem em que se gravaram (a do repositório)
+    .sort(
+      (a, b) =>
+        a.at.getTime() - b.at.getTime() || Number(a.kind === 'valuation') - Number(b.kind === 'valuation'),
+    );
 
   let currency = currencyId ? await repository.findCurrency(currencyId) : null;
   if (!currency) {
@@ -234,6 +240,9 @@ export async function summarizePortfolios(
         applyToPosition(position, tx.kind, Number(tx.quantity), amount);
         byKey.set(key, position);
         positions.set(tx.portfolioId, byKey);
+        // Um bem sem dinheiro ligado: o valor entra ou sai de fora
+        const inKind = inKindFlow(tx.kind, tx.externalType, amount);
+        if (inKind) flow += converter.convert(inKind, tx.currency, slot.day, slot.hour);
       } else {
         const byCurrency = cash.get(tx.portfolioId) ?? new Map<string, number>();
         byCurrency.set(tx.currencyId, (byCurrency.get(tx.currencyId) ?? 0) + (CASH_SIGN[tx.kind] ?? 0) * amount);

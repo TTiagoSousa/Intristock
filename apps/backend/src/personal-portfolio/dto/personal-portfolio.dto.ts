@@ -216,7 +216,10 @@ export class ConnectBrokerDto {
   fromDate?: string | null;
 }
 
-/** Mudar uma ligação: a chave (as duas juntas), o dia a partir do qual se vê, a pausa. */
+/** De quantas em quantas horas uma ligação sincroniza sozinha: hora a hora, por dia, por semana. */
+export const SYNC_INTERVAL_HOURS = [1, 24, 168] as const;
+
+/** Mudar uma ligação: a chave (as duas juntas), o dia a partir do qual se vê, a pausa, o intervalo. */
 export class UpdateBrokerConnectionDto {
   @IsOptional()
   @IsString()
@@ -236,6 +239,10 @@ export class UpdateBrokerConnectionDto {
   @IsOptional()
   @IsBoolean()
   paused?: boolean;
+
+  @IsOptional()
+  @IsIn(SYNC_INTERVAL_HOURS)
+  syncEveryHours?: number;
 }
 
 /** Uma transação de dinheiro passivo: o ativo é o dinheiro da moeda escolhida. */

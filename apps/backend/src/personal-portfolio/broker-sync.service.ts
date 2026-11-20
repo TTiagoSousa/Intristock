@@ -7,16 +7,16 @@ import {
 import { StockPriceService } from 'src/market-data/stock-price.service';
 import { PrismaPersonalPortfolioRepository } from './repositories/prisma/prisma-personal-portfolio-repository';
 import { syncTrading212 } from './helpers/syncTrading212';
+import { isConnectionDue } from './helpers/isConnectionDue';
 
 // De quanto em quanto tempo se vê se há ligações por sincronizar
 const CHECK_EVERY_MS = 5 * 60 * 1000;
-// Cada ligação sincroniza-se de hora a hora (com folga para a volta não escorregar)
-const SYNC_EVERY_MS = 55 * 60 * 1000;
 
 /**
- * Sincroniza as ligações às corretoras de hora a hora, uma de cada vez (os limites da
- * API são por conta). Uma ligação nunca corre duas vezes ao mesmo tempo; uma que
- * falhe fica com o erro e tenta-se outra vez na hora seguinte.
+ * Sincroniza as ligações às corretoras no intervalo de cada uma (`syncEveryHours`: de hora
+ * a hora, uma vez por dia ou de 7 em 7 dias), uma de cada vez (os limites da API são por
+ * conta). Uma ligação nunca corre duas vezes ao mesmo tempo; uma que falhe fica com o erro
+ * e tenta-se outra vez no intervalo seguinte.
  */
 @Injectable()
 export class BrokerSyncService implements OnModuleInit, OnModuleDestroy {
@@ -60,8 +60,14 @@ export class BrokerSyncService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       const message = (error as Error).message;
       this.logger.warn(`Corretora ${connectionId} por sincronizar: ${message}`);
+      // Uma em pausa fica em pausa (com o erro à vista): senão voltava a sincronizar sozinha
+      const current = await this.repository.findConnection(connectionId).catch(() => null);
       await this.repository
-        .updateConnection(connectionId, { status: 'error', lastError: message, syncedAt: new Date() })
+        .updateConnection(connectionId, {
+          status: current?.status === 'paused' ? 'paused' : 'error',
+          lastError: message,
+          syncedAt: new Date(),
+        })
         .catch(() => undefined);
       return { imported: 0 };
     }
@@ -71,7 +77,10 @@ export class BrokerSyncService implements OnModuleInit, OnModuleDestroy {
     if (this.checking) return;
     this.checking = true;
     try {
-      const due = await this.repository.findConnectionsToSync(new Date(Date.now() - SYNC_EVERY_MS));
+      const now = new Date();
+      const due = (await this.repository.findConnectionsToSync()).filter((connection) =>
+        isConnectionDue(connection, now),
+      );
       for (const { id } of due) await this.sync(id);
     } catch (error) {
       this.logger.warn(`Ligações por ver: ${(error as Error).message}`);

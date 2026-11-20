@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import type { Broker_Connection, Broker_Connection_Body } from '../../../../Hooks/Finances/usePersonalPortfolio';
+import type { Platform } from '../../../../Hooks/usePlatforms';
+import Broker_Picker from './Broker_Picker';
 import './Portfolio.scss';
 
 interface Broker_Connection_Popover_Props {
@@ -16,14 +18,18 @@ interface Broker_Connection_Popover_Props {
 }
 
 /**
- * Ligar uma conta da Trading 212 (a chave e o segredo da API e, opcional, o dia a
- * partir do qual se vê) ou trocar a chave de uma que já está ligada.
+ * Ligar uma corretora em dois passos — escolhê-la na lista (`Broker_Picker`) e depois a
+ * chave e o segredo da API e, opcional, o dia a partir do qual se vê — ou trocar a chave
+ * de uma que já está ligada (só o segundo passo).
  */
 const Broker_Connection_Popover = ({ connection, saving, error, onClose, onSave }: Broker_Connection_Popover_Props) => {
   const { t } = useTranslation();
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [fromDate, setFromDate] = useState('');
+  // Ligar: a corretora escolhida no primeiro passo (nula = ainda na lista)
+  const [platform, setPlatform] = useState<Platform | null>(null);
+  const picking = !connection && !platform;
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -45,12 +51,36 @@ const Broker_Connection_Popover = ({ connection, saving, error, onClose, onSave 
     });
   };
 
+  if (picking)
+    return createPortal(
+      <div className="Popover_Backdrop" onClick={onClose}>
+        <div className="Popover_Card Narrow" onClick={(e) => e.stopPropagation()}>
+          <div className="Popover_Header">
+            <div className="Popover_Header_Text">
+              <span className="Popover_Title">{t('portfolio.connectBroker')}</span>
+              <span className="Popover_Subtitle">{t('portfolio.pickBrokerSub')}</span>
+            </div>
+            <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+              ×
+            </button>
+          </div>
+          <Broker_Picker onPick={setPlatform} />
+          <div className="Popover_Footer">
+            <div className="Form_Action">
+              <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
+            </div>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+
   return createPortal(
     <div className="Popover_Backdrop" onClick={onClose}>
       <form className="Popover_Card Narrow" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="Popover_Header">
           <div className="Popover_Header_Text">
-            <span className="Popover_Title">{connection ? t('portfolio.changeKeyTitle') : t('portfolio.connectTitle')}</span>
+            <span className="Popover_Title">{connection ? t('portfolio.changeKeyTitle') : t('portfolio.connectTitle', { name: platform?.name })}</span>
             <span className="Popover_Subtitle">
               {connection ? t('portfolio.accountNumber', { number: connection.externalAccountId }) : t('portfolio.connectSub')}
             </span>
@@ -87,7 +117,11 @@ const Broker_Connection_Popover = ({ connection, saving, error, onClose, onSave 
         </div>
         <div className="Popover_Footer">
           <div className="Form_Action">
-            <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
+            {connection ? (
+              <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
+            ) : (
+              <Simple_Button text={t('common.back')} onClick={() => setPlatform(null)} variant="Ghost" />
+            )}
           </div>
           <div className="Form_Action">
             <Simple_Button

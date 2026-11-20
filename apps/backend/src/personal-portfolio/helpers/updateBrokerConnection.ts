@@ -6,7 +6,7 @@ import { checkTrading212Key } from './connectBroker';
 
 /**
  * Muda uma ligação: a chave nova (validada, e tem de ser da mesma conta), o dia a
- * partir do qual se vê (nulo = tudo) e a pausa. Não mexe no que já foi importado.
+ * partir do qual se vê (nulo = tudo), a pausa e o intervalo da sincronização automática. Não mexe no que já foi importado.
  */
 export async function updateBrokerConnection(
   userId: string,
@@ -33,6 +33,7 @@ export async function updateBrokerConnection(
   }
   if (dto.fromDate !== undefined) data.fromDate = dto.fromDate ? new Date(dto.fromDate) : null;
   if (dto.paused !== undefined) data.status = dto.paused ? 'paused' : 'active';
+  if (dto.syncEveryHours !== undefined) data.syncEveryHours = dto.syncEveryHours;
 
   await repository.updateConnection(connectionId, data);
   return (await repository.findConnectionView(userId, connectionId))!;

@@ -14,6 +14,7 @@ import {
   type Personal_Portfolio,
   type Position_Transaction_Body,
 } from '../../../../Hooks/Finances/usePersonalPortfolio';
+import { amountInput, localToday, parseAmount } from '../../../../Hooks/Finances/portfolioInput';
 
 interface Portfolio_Position_Form_Props {
   // securities: ações e ETF do Yahoo · crypto: um par da Binance ou da Coinbase
@@ -28,8 +29,6 @@ interface Portfolio_Position_Form_Props {
   onSubmit: (body: Position_Transaction_Body) => void;
 }
 
-const number = (value: string) => Number(value.replace(',', '.'));
-const today = () => new Date().toISOString().slice(0, 10);
 // As stablecoins do dólar pagam-se em dólares; os pence ingleses em libras
 const STABLE_USD = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'DAI', 'TUSD', 'USDP'];
 const currencyOfQuote = (quote: string | null) =>
@@ -65,11 +64,12 @@ const Portfolio_Position_Form = ({
   const [market, setMarket] = useState<Market_Result | null>(null);
 
   const [kind, setKind] = useState<'buy' | 'sell'>('buy');
-  const [date, setDate] = useState(today());
+  const [date, setDate] = useState(localToday);
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
-  // O preço proposto (o fecho do dia); escrever um à mão para de o propor
-  const [suggested, setSuggested] = useState<{ price: number; date: string } | null>(null);
+  // O preço proposto (o fecho do dia, na moeda dele); escrever um à mão para de o propor.
+  // `available`: a moeda do mercado está na lista (sem ela não se propõe: o preço iria noutra moeda)
+  const [suggested, setSuggested] = useState<{ price: number; date: string; code: string | null; available: boolean } | null>(null);
   const priceTyped = useRef(false);
   const [fee, setFee] = useState('');
   const [currencyId, setCurrencyId] = useState('');
@@ -103,16 +103,32 @@ const Portfolio_Position_Form = ({
     let cancelled = false;
     findMarketPrice(market, date)
       .then((found) => {
-        if (cancelled || !found) return;
+        if (cancelled) return;
+        // Sem fecho nesse dia: o que se propôs para o dia anterior já não vale
+        if (!found) {
+          setSuggested(null);
+          if (!priceTyped.current) setPrice('');
+          return;
+        }
         const code = currencyOfQuote(found.quote ?? market.quote);
         // Os pence ingleses passam a libras
         const value = found.quote === 'GBX' ? found.close / 100 : found.close;
-        setSuggested({ price: value, date: found.date });
-        if (!priceTyped.current) setPrice(String(Number(value.toPrecision(8))));
         const currency = currencies.find((item) => item.shortCode === code);
-        if (currency) setCurrencyId((current) => current || currency.id);
+        setSuggested({ price: value, date: found.date, code, available: Boolean(currency) });
+        if (!currency) {
+          // Numa moeda que não há (CHF, SEK…) não se põe o preço: ficava gravado noutra moeda
+          if (!priceTyped.current) setPrice('');
+          return;
+        }
+        // Com a vírgula decimal: o "65.125" de um preço lia-se como milhares
+        if (!priceTyped.current) setPrice(amountInput(value));
+        setCurrencyId((current) => current || currency.id);
       })
-      .catch(() => !cancelled && setSuggested(null));
+      .catch(() => {
+        if (cancelled) return;
+        setSuggested(null);
+        if (!priceTyped.current) setPrice('');
+      });
     return () => {
       cancelled = true;
     };
@@ -131,12 +147,14 @@ const Portfolio_Position_Form = ({
     setSuggested(null);
   };
 
-  const qty = number(quantity);
-  const unit = number(price);
-  const fees = fee ? number(fee) : 0;
-  const total = qty > 0 && unit > 0 ? (kind === 'buy' ? qty * unit + fees : qty * unit - fees) : 0;
+  // Escritos à portuguesa ou à inglesa; na quantidade o ponto é sempre decimal ("1.500" BTC = 1,5)
+  const qty = parseAmount(quantity, { groupDot: false }) ?? 0;
+  const unit = parseAmount(price) ?? 0;
+  const fees = fee.trim() ? parseAmount(fee) : 0;
+  const total = qty > 0 && unit > 0 && fees !== null ? (kind === 'buy' ? qty * unit + fees : qty * unit - fees) : 0;
   const code = currencies.find((item) => item.id === currencyId)?.shortCode;
-  const valid = Boolean(market) && qty > 0 && unit > 0 && fees >= 0 && total > 0 && Boolean(currencyId) && Boolean(date);
+  const valid =
+    Boolean(market) && qty > 0 && unit > 0 && fees !== null && fees >= 0 && total > 0 && Boolean(currencyId) && Boolean(date);
 
   const others = portfolios.filter((item) => item.id !== portfolio.id);
   const cashOptions = [
@@ -147,7 +165,7 @@ const Portfolio_Position_Form = ({
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!valid || !market) return;
+    if (!valid || !market || fees === null || saving) return;
     onSubmit({
       kind,
       date,
@@ -273,9 +291,18 @@ const Portfolio_Position_Form = ({
                 setPrice(e.target.value);
               }}
             />
-            {suggested && code && (
+            {suggested && suggested.available && code && (
               <span className="Field_Hint">
                 {t('portfolio.priceSuggested', { price: formatIn(suggested.price, code), date: suggested.date })}
+              </span>
+            )}
+            {suggested && !suggested.available && (
+              <span className="Field_Hint Portfolio_Error">
+                {t('portfolio.priceCurrencyUnavailable', {
+                  price: formatIn(suggested.price, suggested.code),
+                  date: suggested.date,
+                  currency: suggested.code ?? '—',
+                })}
               </span>
             )}
           </div>

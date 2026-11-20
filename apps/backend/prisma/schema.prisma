@@ -178,6 +178,37 @@ model User {
 /// Configuração da instalação que o admin edita na app (APIs externas e afins).
 /// Os valores sensíveis (chaves de API) vão cifrados com a ENCRYPTION_KEY do ambiente —
 /// quem tiver só a base de dados não as consegue ler.
+/// As chaves de uma API com várias contas (por agora a SerpApi, para os preços das motas). Usam-se
+/// por ordem: quando uma esgota as pesquisas do mês, passa-se à seguinte.
+model ApiKey {
+  id             String    @id @default(uuid())
+  /// A API a que pertence: "motorcycle_prices"
+  kind           String
+  /// Só para quem as gere: "Conta pessoal", "Conta 2"
+  label          String?
+  /// Cifrada (secret-box); nunca volta ao browser
+  key            String
+  /// Os últimos 4 caracteres, para se reconhecer
+  keyHint        String
+  /// A ordem em que se usa (0 primeiro)
+  position       Int
+  /// O que a API diz: pesquisas por mês, usadas e as que faltam
+  monthlyLimit   Int?
+  usedThisMonth  Int       @default(0)
+  remaining      Int?
+  /// Quando se atualizaram os números acima
+  checkedAt      DateTime? @db.Timestamptz
+  /// Esgotada: só volta a ser usada depois disto (quando o plano renova)
+  exhaustedUntil DateTime? @db.Timestamptz
+  active         Boolean   @default(true)
+  lastUsedAt     DateTime? @db.Timestamptz
+  lastError      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([kind, position])
+}
+
 model AppSetting {
   key       String   @id
   value     String
@@ -1013,6 +1044,14 @@ model Asset {
   /// Só no ativo de dinheiro (liquidity/cash): a moeda que ele é, um por moeda
   currencyId  String?   @unique
   currency    Currency? @relation(fields: [currencyId], references: [id])
+  /// Só nos bens (por agora as motas): o tipo, a marca, o modelo, a versão, o ano, a matrícula e
+  /// a pesquisa de preços — { vehicleType: "motorcycle", brand, model, version, year, plate,
+  /// searchQuery, location, radiusKm }
+  details     Json?
+  /// De quantos em quantos dias o valor se atualiza sozinho pela pesquisa online (7, 30, 90); nulo = só à mão
+  valuationEveryDays Int?
+  /// A próxima atualização automática
+  valuationNextAt    DateTime? @db.Timestamptz
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1023,6 +1062,7 @@ model Asset {
   @@index([assetClass, subClass])
   @@index([subClass, ticker])
   @@index([ownerUserId])
+  @@index([valuationNextAt])
 }
 
 /// Um mercado concreto onde um ativo tem preço (o BTCUSDT spot da Binance e o
@@ -1951,6 +1991,8 @@ model BrokerConnection {
   fromDate          DateTime? @db.Date
   /// active | error | paused
   status            String    @default("active")
+  /// De quantas em quantas horas sincroniza sozinha: 1, 24 ou 168 (7 dias)
+  syncEveryHours    Int       @default(1)
   lastError         String?
   syncedAt          DateTime?
   /// O instante do último movimento de dinheiro importado (de onde parte a volta seguinte)
@@ -1975,6 +2017,7 @@ model PersonalPortfolioTransaction {
   asset         Asset             @relation(fields: [assetId], references: [id])
   /// Dinheiro: deposit | withdrawal | interest | fee | tax | dividend | transfer_in | transfer_out
   /// Posições: buy | sell | adjust (só a quantidade, com sinal: splits e afins)
+  /// Bens: buy | sell | valuation (o valor do bem nessa data, no `amount`; quantidade 0)
   kind          String
   date          DateTime          @db.Date
   /// Quanto do ativo; no dinheiro é o próprio valor
@@ -2001,6 +2044,11 @@ model PersonalPortfolioTransaction {
   externalType  String?
   /// O instante exato na corretora (o `date` fica só com o dia)
   externalAt    DateTime?         @db.Timestamptz
+  /// Nos bens, como se obteve: purchase | gift | inheritance | other (o preço pode ficar vazio)
+  acquisition   String?
+  /// O relatório da pesquisa de preços que deu o valor (à venda, vendidos, estatísticas, o estado
+  /// escolhido e o valor): ver `valuationReport.ts`
+  valuationReport Json?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 

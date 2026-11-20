@@ -70,7 +70,7 @@ export class PersonalPortfolioController {
     return this.portfolioService.findAllTransactions(req.user.id, query);
   }
 
-  // As ligações às corretoras (Trading 212): o dinheiro, sincronizado de hora a hora
+  // As ligações às corretoras (Trading 212): sincronizadas no intervalo de cada uma (1 h, 1 dia, 7 dias)
   @Get('connections')
   findConnections(@Req() req: AuthRequest) {
     return this.portfolioService.findConnections(req.user.id);

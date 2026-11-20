@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
@@ -16,6 +16,7 @@ import Global_Pagination from '../../../../Components/Pagination/Global_Paginati
 import { usePagedList } from '../../../../Hooks/usePagedList';
 import { formatDay, localeOf } from '../Earnings/earningsLabels';
 import Platform_Badge from './Platform_Badge';
+import Goods_Popover from './Goods/Goods_Popover';
 import { Transaction_Amount, Transaction_Asset } from './Transaction_Amount';
 import '../Earnings/Earnings.scss';
 import './Portfolio.scss';
@@ -39,6 +40,8 @@ const Portfolio_Page = () => {
   const locale = localeOf(i18n.language);
   const { portfolio, transactions, error } = usePortfolioDetail(portfolioId);
   const positions = usePortfolioPositions(portfolioId);
+  // A mota aberta (o painel dela)
+  const [goodsId, setGoodsId] = useState<string | null>(null);
   useBreadcrumbSegmentLabel(portfolioId, portfolio?.name);
   const list = useMemo(() => transactions ?? [], [transactions]);
   const page = usePagedList(transactions, 10);
@@ -85,7 +88,9 @@ const Portfolio_Page = () => {
   const valued = (positions ?? []).map((position) => {
     const value = position.price && position.value !== null
       ? rated.convert(position.value, position.price.currency)
-      : rated.convert(position.cost, position.currency);
+      : position.goods && position.value !== null
+        ? rated.convert(position.value, position.currency)
+        : rated.convert(position.cost, position.currency);
     const cost = rated.convert(position.cost, position.currency);
     const realized = rated.convert(position.realized, position.currency);
     return { position, value, cost, realized, gain: value !== null && cost !== null ? value - cost : null };
@@ -163,7 +168,7 @@ const Portfolio_Page = () => {
             <span className="Portfolio_Stat_Value Num">{balances.length ? balanceTotal : '—'}</span>
             {balances.length > 1 && (
               <span className="Portfolio_Stat_Sub Num">
-                {balances.map((item) => formatIn(item.amount, item.currency.shortCode)).join(' · ')}
+                {balances.map((item) => formatIn(item.amount, item.currency)).join(' · ')}
               </span>
             )}
           </div>
@@ -218,7 +223,11 @@ const Portfolio_Page = () => {
                   </thead>
                   <tbody>
                     {valued.map(({ position, value, gain, realized }) => (
-                      <tr key={position.symbol ?? position.asset.id} className={position.quantity ? '' : 'Portfolio_Closed'}>
+                      <tr
+                        key={position.symbol ?? position.asset.id}
+                        className={[position.quantity ? '' : 'Portfolio_Closed', position.goods ? 'Clickable' : ''].join(' ').trim()}
+                        onClick={position.goods ? () => setGoodsId(position.asset.id) : undefined}
+                      >
                         <td>
                           <span className="Earnings_Strong">{position.asset.name}</span>
                           <div className="Earnings_Sub">
@@ -227,10 +236,20 @@ const Portfolio_Page = () => {
                         </td>
                         <td className="Right Num">{quantityFormat.format(position.quantity)}</td>
                         <td className="Right Num">
-                          {position.averageCost !== null ? formatIn(position.averageCost, position.currency.shortCode) : '—'}
+                          {position.averageCost !== null ? formatIn(position.averageCost, position.currency) : '—'}
                         </td>
                         <td className="Right Num">
-                          {position.price ? formatIn(position.price.close, position.price.quote === 'GBX' ? 'GBP' : position.price.quote) : t('portfolio.noPrice')}
+                          {/* O fecho vem na cotada do mercado: os pence (GBX) passam a libras e as
+                              stablecoins vão na moeda que o servidor já resolveu (USDT → USD) */}
+                          {position.price
+                            ? formatIn(
+                                position.price.quote === 'GBX' ? position.price.close / 100 : position.price.close,
+                                position.price.currency,
+                              )
+                            : position.goods && position.value !== null
+                              ? formatIn(position.value, position.currency)
+                              : t('portfolio.noPrice')}
+                          {position.goods && <div className="Earnings_Sub">{t('goods.valuedLabel')}</div>}
                           {position.price && (
                             <div className="Earnings_Sub">
                               {t('portfolio.priceFrom', {
@@ -332,7 +351,11 @@ const Portfolio_Page = () => {
                   </thead>
                   <tbody>
                     {page.pageItems.map((tx) => (
-                      <tr key={tx.id}>
+                      <tr
+                        key={tx.id}
+                        className={tx.asset.subClass === 'vehicle' ? 'Clickable' : undefined}
+                        onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined}
+                      >
                         <td className="Num">{formatDay(day(tx), locale)}</td>
                         <td>{t(`portfolio.kind_${tx.kind}`)}</td>
                         <Transaction_Asset tx={tx} />
@@ -354,6 +377,7 @@ const Portfolio_Page = () => {
           )}
         </div>
       </div>
+      {goodsId && <Goods_Popover assetId={goodsId} onClose={() => setGoodsId(null)} />}
     </div>
   );
 };

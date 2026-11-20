@@ -212,6 +212,88 @@
   &.Warn{ color: var(--warn); }
 }
 
+// --- as APIs com várias chaves: uma linha por chave, pela ordem em que se usam ---
+.Api_Keys_Body{
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.Api_Key_Row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+
+  &:last-child{ border-bottom: none; }
+
+  @media (max-width: 560px){ flex-wrap: wrap; }
+}
+
+.Api_Key_Order{
+  width: 20px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.Api_Key_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.Api_Key_Hint{
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+// As pesquisas gastas do mês
+.Api_Key_Bar{
+  display: block;
+  height: 4px;
+  max-width: 220px;
+  border-radius: 2px;
+  background-color: var(--surface-3);
+  overflow: hidden;
+
+  > span{
+    display: block;
+    height: 100%;
+    background-color: var(--accent);
+  }
+}
+
+.Api_Key_Actions{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.Api_Key_Move{
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background-color: var(--cards-background);
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover:not(:disabled){ background-color: var(--surface-2); color: var(--text); }
+  &:disabled{ opacity: 0.4; cursor: default; }
+  &:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+}
+
+.Api_Key_Add{
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0;
+}
+
 // O guardar no rodapé, como o cabeçalho mas em baixo
 .Api_Card_Foot{
   display: flex;

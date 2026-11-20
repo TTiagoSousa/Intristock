@@ -1,10 +1,11 @@
 import { latestRateHour } from 'src/currency/helpers/latestRateHour';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { BrokerConnection, PersonalPortfolio } from 'src/generated/prisma/client/client';
+import { BrokerConnection, PersonalPortfolio, Prisma } from 'src/generated/prisma/client/client';
 import {
   BrokerConnectionData,
   BrokerConnectionView,
+  GoodsAssetData,
   ImportedTransactionData,
   InstrumentClose,
   MarketAssetData,
@@ -20,6 +21,9 @@ import {
 const CURRENCY = {
   select: { id: true, name: true, shortCode: true, symbol: true, rate: true },
 };
+
+// As listas e as contas não levam o relatório dos preços (pode ter dezenas de anúncios)
+const NO_REPORT = { valuationReport: true } as const;
 
 const TRANSACTION_INCLUDE = {
   asset: {
@@ -147,6 +151,7 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     return this.prisma.personalPortfolioTransaction.findMany({
       where: { portfolioId, ...(fromDate ? { date: { gte: fromDate } } : {}) },
       orderBy: [{ date: 'desc' }, { externalAt: 'desc' }, { createdAt: 'desc' }],
+      omit: NO_REPORT,
       include: TRANSACTION_INCLUDE,
     });
   }
@@ -157,9 +162,11 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     return this.prisma.personalPortfolioTransaction.create({
       data: {
         ...data,
+        valuationReport: (data.valuationReport ?? undefined) as Prisma.InputJsonValue | undefined,
         // A hora das cotações com que se converte (a mais recente guardada)
         rateHour: await latestRateHour(this.prisma),
       },
+      omit: NO_REPORT,
       include: TRANSACTION_INCLUDE,
     });
   }
@@ -169,7 +176,11 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     const rateHour = await latestRateHour(this.prisma);
     return this.prisma.$transaction(
       rows.map((data) =>
-        this.prisma.personalPortfolioTransaction.create({ data: { ...data, rateHour }, include: TRANSACTION_INCLUDE }),
+        this.prisma.personalPortfolioTransaction.create({
+          data: { ...data, valuationReport: (data.valuationReport ?? undefined) as Prisma.InputJsonValue | undefined, rateHour },
+          omit: NO_REPORT,
+          include: TRANSACTION_INCLUDE,
+        }),
       ),
     );
   }
@@ -178,7 +189,7 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
   async findPositionTransactions(portfolioId: string, instrumentId: string) {
     return this.prisma.personalPortfolioTransaction.findMany({
       where: { portfolioId, instrumentId, kind: { in: ['buy', 'sell', 'adjust'] } },
-      select: { kind: true, quantity: true },
+      select: { kind: true, quantity: true, date: true, externalAt: true, createdAt: true },
     });
   }
 
@@ -189,6 +200,7 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     return this.prisma.personalPortfolioTransaction.findMany({
       where: { portfolio: { userId } },
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      omit: NO_REPORT,
       include: TRANSACTION_INCLUDE,
     });
   }
@@ -247,6 +259,7 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
       where: this.transactionWhere(userId, filters),
       ...(page ? { skip: page.skip, take: page.take } : {}),
       orderBy: [{ date: 'desc' }, { externalAt: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+      omit: NO_REPORT,
       include: {
         ...TRANSACTION_INCLUDE,
         portfolio: {
@@ -287,6 +300,54 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
   }
 
   // Um ativo de dinheiro por moeda, no catálogo partilhado; nasce da primeira vez
+  // --- bens (as motas): o ativo da pessoa, as transações dele com os relatórios ---
+
+  async createGoodsAsset(data: GoodsAssetData) {
+    return this.prisma.asset.create({ data, select: { id: true } });
+  }
+
+  async findGoodsAsset(userId: string, assetId: string) {
+    return this.prisma.asset.findFirst({
+      where: { id: assetId, ownerUserId: userId, details: { not: Prisma.DbNull } },
+      select: {
+        id: true,
+        name: true,
+        assetClass: true,
+        subClass: true,
+        details: true,
+        valuationEveryDays: true,
+        valuationNextAt: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateGoodsAsset(
+    assetId: string,
+    data: Partial<Pick<GoodsAssetData, 'name' | 'details' | 'valuationEveryDays' | 'valuationNextAt'>>,
+  ) {
+    return this.prisma.asset.update({ where: { id: assetId }, data, select: { id: true } });
+  }
+
+  // As transações de um bem, das mais antigas, com os relatórios
+  async findGoodsTransactions(userId: string, assetId: string) {
+    return this.prisma.personalPortfolioTransaction.findMany({
+      where: { assetId, portfolio: { userId } },
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      include: { currency: CURRENCY, portfolio: { select: { id: true, name: true } } },
+    });
+  }
+
+  // Os bens com a atualização automática vencida, dos mais atrasados
+  async findDueGoods(now: Date, take: number) {
+    return this.prisma.asset.findMany({
+      where: { valuationEveryDays: { not: null }, valuationNextAt: { lte: now }, ownerUserId: { not: null } },
+      orderBy: { valuationNextAt: 'asc' },
+      take,
+      select: { id: true, ownerUserId: true },
+    });
+  }
+
   async ensureCashAsset(currency: PortfolioCurrency) {
     return this.prisma.asset.upsert({
       where: { currencyId: currency.id },
@@ -346,14 +407,11 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
   }
 
   // As que não estão em pausa e não se sincronizam desde `syncedBefore` (ou nunca)
-  async findConnectionsToSync(syncedBefore: Date) {
+  async findConnectionsToSync() {
     return this.prisma.brokerConnection.findMany({
-      where: {
-        status: { not: 'paused' },
-        OR: [{ syncedAt: null }, { syncedAt: { lt: syncedBefore } }],
-      },
+      where: { status: { not: 'paused' } },
       orderBy: { syncedAt: { sort: 'asc', nulls: 'first' } },
-      select: { id: true },
+      select: { id: true, syncedAt: true, syncEveryHours: true },
     });
   }
 
@@ -368,12 +426,38 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     return this.prisma.brokerConnection.update({ where: { id: connectionId }, data });
   }
 
+  // Os portefólios ficam, soltos: soltam-se aqui (e não pelo `SetNull` da base) para o
+  // `updatedAt` deles mudar e o resumo em cache se refazer
   async deleteConnection(connectionId: string): Promise<void> {
-    await this.prisma.brokerConnection.delete({ where: { id: connectionId } });
+    await this.prisma.$transaction([
+      this.prisma.personalPortfolio.updateMany({ where: { connectionId }, data: { connectionId: null } }),
+      this.prisma.brokerConnection.delete({ where: { id: connectionId } }),
+    ]);
   }
 
   async findConnectionPortfolio(connectionId: string, externalId: string) {
     return this.prisma.personalPortfolio.findFirst({ where: { connectionId, externalId } });
+  }
+
+  // Um portefólio de uma ligação que já foi apagada (a mesma conta na mesma corretora)
+  async findDetachedApiPortfolio(userId: string, platformId: string, externalId: string) {
+    return this.prisma.personalPortfolio.findFirst({
+      where: { userId, platformId, externalId, source: 'api', connectionId: null },
+    });
+  }
+
+  async attachPortfolio(portfolioId: string, connectionId: string): Promise<PersonalPortfolio> {
+    return this.prisma.personalPortfolio.update({ where: { id: portfolioId }, data: { connectionId } });
+  }
+
+  // As moedas das transações de um portefólio que não são esta
+  async findOtherCurrencies(portfolioId: string, shortCode: string): Promise<PortfolioCurrency[]> {
+    const rows = await this.prisma.personalPortfolioTransaction.findMany({
+      where: { portfolioId, currency: { shortCode: { not: shortCode } } },
+      distinct: ['currencyId'],
+      select: { currency: CURRENCY },
+    });
+    return rows.map((row) => row.currency);
   }
 
   async createApiPortfolio(data: {
@@ -450,13 +534,25 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     await this.prisma.personalPortfolio.update({ where: { id: portfolioId }, data });
   }
 
-  // Passa as transações de uma moeda de um portefólio para outro
+  // Passa as transações de uma moeda de um portefólio para outro. As que o outro já tem (o
+  // mesmo `externalId`, importadas de novo depois de uma passagem a meio) saem daqui
   async moveTransactions(fromPortfolioId: string, toPortfolioId: string, currencyId: string) {
-    const result = await this.prisma.personalPortfolioTransaction.updateMany({
-      where: { portfolioId: fromPortfolioId, currencyId },
-      data: { portfolioId: toPortfolioId },
+    return this.prisma.$transaction(async (tx) => {
+      const known = await tx.personalPortfolioTransaction.findMany({
+        where: { portfolioId: toPortfolioId, externalId: { not: null } },
+        select: { externalId: true },
+      });
+      const duplicated = known.map((row) => row.externalId!);
+      if (duplicated.length)
+        await tx.personalPortfolioTransaction.deleteMany({
+          where: { portfolioId: fromPortfolioId, currencyId, externalId: { in: duplicated } },
+        });
+      const result = await tx.personalPortfolioTransaction.updateMany({
+        where: { portfolioId: fromPortfolioId, currencyId },
+        data: { portfolioId: toPortfolioId },
+      });
+      return result.count;
     });
-    return result.count;
   }
 
   async markPortfolioSynced(portfolioId: string, syncedAt: Date): Promise<void> {

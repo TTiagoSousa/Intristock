@@ -26,7 +26,8 @@ export const useCurrencyFormat = () => {
       /\B(?=(\d{3})+(?!\d))/g,
       currency.thousandsSeparator,
     );
-    const formatted = `${withThousands}${currency.decimalMark}${decimalPart}`;
+    // Sem casas decimais não leva a vírgula (era "1.800,undefined")
+    const formatted = decimalPart === undefined ? withThousands : `${withThousands}${currency.decimalMark}${decimalPart}`;
 
     return currency.symbolFirst ? `${currency.symbol}${formatted}` : `${formatted}${currency.symbol}`;
   };
@@ -69,9 +70,11 @@ export const useCurrencyFormat = () => {
     const known = shortCode ? currencies.find((c) => c.shortCode === shortCode) : undefined;
     const partial = typeof currency === 'string' ? undefined : currency;
 
+    // Uma moeda que não está na lista (USDT, CHF…) leva o símbolo que veio ou o próprio
+    // código — nunca o da moeda escolhida, que dizia "90.000,00€" num preço em USDT
     const resolved: FormattableCurrency = known ?? {
-      symbol: partial?.symbol ?? selected?.symbol ?? FALLBACK.symbol,
-      symbolFirst: partial?.symbolFirst ?? selected?.symbolFirst ?? FALLBACK.symbolFirst,
+      symbol: partial?.symbol ?? (shortCode ? ` ${shortCode}` : (selected?.symbol ?? FALLBACK.symbol)),
+      symbolFirst: partial?.symbolFirst ?? (partial?.symbol || !shortCode ? (selected?.symbolFirst ?? FALLBACK.symbolFirst) : false),
       decimalMark: partial?.decimalMark ?? selected?.decimalMark ?? FALLBACK.decimalMark,
       thousandsSeparator:
         partial?.thousandsSeparator ?? selected?.thousandsSeparator ?? FALLBACK.thousandsSeparator,
