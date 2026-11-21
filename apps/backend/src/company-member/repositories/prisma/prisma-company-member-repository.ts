@@ -57,6 +57,32 @@ export class PrismaCompanyMemberRepository implements CompanyMemberRepository {
     });
   }
 
+  /** Cria e, se vier, fecha o salário que este substitui — tudo ou nada. */
+  async createPayReplacing(
+    memberId: string,
+    kind: string,
+    data: MemberPayData,
+    closeReplaced: { id: string; endDate: Date } | null,
+  ): Promise<CompanyMemberPay> {
+    return this.prisma.$transaction(async (tx) => {
+      const pay = await tx.companyMemberPay.create({
+        data: { memberId, kind, ...data, grossAmount: data.grossAmount ?? 0 },
+      });
+      if (closeReplaced) {
+        await tx.companyMemberPay.update({
+          where: { id: closeReplaced.id },
+          data: { endDate: closeReplaced.endDate },
+        });
+      }
+      return pay;
+    });
+  }
+
+  // Os ganhos pessoais que já apontam para este salário (o membro confirmou que recebeu)
+  async countPayIncomes(payId: string): Promise<number> {
+    return this.prisma.personalIncome.count({ where: { memberPayId: payId } });
+  }
+
   async updatePay(
     payId: string,
     data: MemberPayData,
@@ -152,7 +178,8 @@ export class PrismaCompanyMemberRepository implements CompanyMemberRepository {
 
   async findCompanyPays(companyId: string): Promise<MemberPayWithMember[]> {
     return this.prisma.companyMemberPay.findMany({
-      where: { member: { companyId } },
+      // As propostas por aceitar (e as recusadas) ainda não se pagam
+      where: { status: 'accepted', member: { companyId } },
       include: {
         member: {
           select: {
@@ -170,7 +197,8 @@ export class PrismaCompanyMemberRepository implements CompanyMemberRepository {
   async findPaidPeriods(payIds: string[]): Promise<Set<string>> {
     if (payIds.length === 0) return new Set();
     const payments = await this.prisma.companyPayment.findMany({
-      where: { memberPayId: { in: payIds }, status: { not: 'cancelled' } },
+      // Só os concluídos: um rascunho não tira o período dos próximos pagamentos
+      where: { memberPayId: { in: payIds }, status: 'completed' },
       select: { memberPayId: true, memberPayPeriod: true },
     });
     return new Set(

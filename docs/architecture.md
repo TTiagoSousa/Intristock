@@ -34,9 +34,40 @@ controller  →  service  →  helper (one function per file)  →  repository (
 - **Helpers** hold the logic, one exported function each, so they are easy to find and test.
 - **Repositories** are the only place that talks to Prisma.
 
-Background work runs inside the backend as Nest services with timers: the market sync every 24 h, the prop firm sync from PropFirmMap, the hourly exchange rates (`CurrencyHourRateService`) and the version watcher that announces new releases.
+## Scheduled jobs
 
-External APIs (CurrencyBeacon for exchange rates, a countries API, PropFirmMap, CoinGecko for the crypto exchanges) are configured in Settings → APIs. Their keys are stored encrypted in `AppSetting` with the install's `ENCRYPTION_KEY`.
+Background work runs inside the backend as Nest services with timers. The periodic ones use `startScheduledJob` (`src/common/scheduledJob.ts`): the time of the last run is kept in `AppSetting` (`jobs.<name>.lastRunAt`), so on boot a job only runs if its interval has passed, and never before its own delay (`staggerMs`). A deploy restarts the backend, and this keeps it from firing every job at the external APIs at once. A failed run also counts; it is tried again on the next interval. The per-connection jobs read each row's own `syncedAt` / `valuationNextAt` instead.
+
+| Job | Service | Interval | First run after boot | External API | Limits |
+|---|---|---|---|---|---|
+| Hourly exchange rates | `CurrencyHourRateService` | checks every 5 min, fetches once per hour | at once (only calls the API if the current hour is missing) | CurrencyBeacon (`latest`, `historical` for the daily backfill) | 1 request per hour; backfill up to 60 days per round |
+| Missing day rates | `CurrencyRateFillService` | on demand (a queue) | when a conversion finds a missing day | CurrencyBeacon (`historical`) | batches of 60 days, duplicates merged; paused 10 min when the API is down or not configured |
+| Market list (instruments) | `MarketDataService` (`market-data.instruments`) | 24 h | ≥ 15 s, and only if 24 h have passed | Binance, Coinbase (public) | one exchange at a time; one down does not stop the other |
+| Stock and crypto closes | `StockPriceService` (`market-data.stock-prices`) | 6 h (and after each broker sync) | ≥ 45 s, and only if 6 h have passed | Yahoo (unofficial, no key), Binance, Coinbase | 3 retries on 429/5xx (`Retry-After` up to 30 s); hourly prices cached 10 min, at most 500 markets |
+| Version watch | `VersionWatchService` (`system.version-watch`) | 6 h | the installed-version check at once; the new-version check ≥ 90 s, only if 6 h have passed | none (local git tags, fetched by `intristock-fetch.timer`) | — |
+| Backup watch | `BackupWatchService` (`system.backup-watch`) | 1 h | ≥ 150 s | none (reads `backup.json` from `backup.sh`) | notifies the admins once per failure (`backup_failed`) |
+| Retention cleanup | `RetentionService` (`retention.cleanup`) | 24 h | ≥ 240 s | none | read notifications older than 90 days (not those awaiting an answer); live-test `condition` events older than 30 days of ended tests; in batches |
+| Broker sync | `BrokerSyncService` | checks every 5 min; each connection every 1, 24 or 168 h (`syncEveryHours`) | 2 min | Trading 212 | one connection at a time; up to 5 waits on 429 |
+| Time-tracking sync | `TimeTrackingSyncService` | checks every 5 min; each connection every 1, 24 or 168 h | 2–5 min (random) | solidtime | one connection at a time; up to 5 waits on 429; a failed connection retried after at most 1 h, keeping its `syncedAt` |
+| Goods valuation | `GoodsValuationService` | 1 h | 3 min | SerpApi (Facebook Marketplace) | 20 goods per round, 2 searches each; a failure retried the next day; no key with searches left → waits a day |
+
+On-demand syncs (admin buttons, no timer): the prop firms from PropFirmMap (`PropFirmSyncService`, one detail request every 1.1 s, about 5 min in the background) and the crypto exchanges from CoinGecko (`ExchangeSyncService`, also when the API card is saved).
+
+## External APIs and keys
+
+| API | Used for | Where the key lives |
+|---|---|---|
+| CurrencyBeacon | exchange rates (daily and hourly) | `AppSetting` (Settings → APIs) |
+| CountryStateCity | the countries list | `AppSetting` |
+| CoinGecko | crypto exchanges (`Platform`) | `AppSetting` (optional Demo key) |
+| PropFirmMap | prop firms and their plans | none (public API) |
+| SerpApi | motorcycle prices (goods valuations) | `ApiKey` (several accounts, `kind` `motorcycle_prices`, used in order, skipped while exhausted) |
+| Trading 212 | broker cash, orders and dividends | `BrokerConnection` (per user: key and secret) |
+| solidtime | time entries for the company time bank | `TimeTrackingConnection` (per company: the token; the host may not be loopback, link-local or `0.0.0.0`) |
+| Yahoo Finance | stock prices and search (unofficial) | none |
+| Binance, Coinbase | markets, candles for charts and closes (backend); one-minute candles (downloader); live candles (simulator) | none (public endpoints) |
+
+Every stored key is encrypted with `utils/crypto/secret-box.ts` (AES-256-GCM, from the install's `ENCRYPTION_KEY`). Values are `v2`: the context `table:owner:field` (`secretContext`) is the AAD, so a value copied to another row or field does not decrypt; `v1` values (no AAD) are still read and become `v2` when saved again. Keys never come back to the browser, and changing an API's URL asks for the key again.
 
 ## Database
 
@@ -54,9 +85,12 @@ The backend and the Python apps talk through PostgreSQL tables and `LISTEN` / `N
 | `SimulationRun` | backend (`NOTIFY`) | simulator, once its candles are downloaded |
 | `LiveTest` / `LiveTestEvent` | backend (`NOTIFY live_test`) | simulator's live process; events go back to the browser by SSE |
 
+The downloader runs `DOWNLOADER_WORKERS` requests at once (3 by default) with a shared per-exchange rate limiter, so a short request is not stuck behind a years-long one. The live process runs the engine in a process pool (`LIVE_ENGINE_PROCESSES`, half the cores between 1 and 4). On `SIGTERM` both Python apps put their unfinished work back in the queue at once.
+
 ## Frontend
 
 - Pages live in `src/Pages`, shared pieces in `src/Components`, data hooks in `src/Hooks` and the API endpoints in one place.
+- Each area (Companies, Finances, Portfolio, Trading, Markets, Admin) is loaded on demand (`React.lazy` over `src/Imports/Areas/*Pages.ts`), the chart library is its own chunk, and only the active language's translations are loaded.
 - The shell is a rail of modules (Companies, Finances, Portfolio, Trading, Calculators, Versions, Settings) with a side panel per module.
 - Colours come only from CSS tokens (`src/Styles/Theme/`), with a light and a dark theme.
 - Charts use [OpenChartsCandle](https://github.com/TTiagoSousa/OpenChartsCandle): the candlestick chart for the simulator and the line, bar, heatmap, scatter, calendar and gauge families elsewhere.

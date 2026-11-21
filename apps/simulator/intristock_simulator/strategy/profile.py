@@ -282,7 +282,6 @@ def _key(bars, tf_ms: int, operand: dict) -> tuple:
 def _compute(bars, tf_ms: int, operand: dict) -> dict:
     """Todos os valores do perfil em cada vela, como se sabem na abertura dela:
     {(fonte, nível): série}, com a sessão N para trás em ("session", N)."""
-    n = len(bars)
     va_pct = min(100.0, max(1.0, float(operand.get("vaPct") or 70))) / 100
     first, last = _spans(np.asarray(bars.time, np.int64), tf_ms, operand)
 

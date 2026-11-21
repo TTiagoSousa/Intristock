@@ -3,6 +3,10 @@
 Vêm sempre as de 1 minuto. As do timeframe da simulação fazem-se a partir delas
 aqui (e não noutra query), e as de 1 minuto ficam para ver, minuto a minuto, o
 que bateu primeiro: o stop ou o take profit.
+
+As leituras vêm direto para o numpy (`query_np` do clickhouse-connect, as
+colunas de cada bloco já em arrays), sem passar milhões de valores por listas de
+Python.
 """
 
 from dataclasses import dataclass
@@ -45,10 +49,25 @@ class Bars(Candles):
     first_minute: np.ndarray
 
 
+def _columns(rows: np.ndarray, names: tuple[str, ...], dtypes: tuple) -> list[np.ndarray] | None:
+    """As colunas de um resultado do `query_np`, cada uma num array contíguo. Com
+    tipos diferentes vem um array estruturado (uma coluna por nome); com todos
+    iguais, um 2D (uma coluna por posição). Nulo sem linhas."""
+    if rows.size == 0:
+        return None
+    if rows.dtype.names:
+        return [np.ascontiguousarray(rows[name], dtype=dtype) for name, dtype in zip(names, dtypes)]
+    return [np.ascontiguousarray(rows[:, index], dtype=dtype) for index, dtype in enumerate(dtypes)]
+
+
+_MINUTE_COLUMNS = ("t", "o", "h", "l", "c", "v")
+_MINUTE_TYPES = (np.int64, np.float64, np.float64, np.float64, np.float64, np.float64)
+
+
 def load_minutes(client: Client, instrument_id: str, start: datetime, end: datetime) -> Candles:
-    result = client.query(
+    rows = client.query_np(
         """
-        SELECT toUnixTimestamp64Milli(open_time), open, high, low, close, volume
+        SELECT toUnixTimestamp64Milli(open_time) AS t, open AS o, high AS h, low AS l, close AS c, volume AS v
           FROM market_candles FINAL
          WHERE instrument_id = {instrument:UUID}
            AND open_time >= {start:DateTime64(3, 'UTC')}
@@ -57,26 +76,18 @@ def load_minutes(client: Client, instrument_id: str, start: datetime, end: datet
         """,
         parameters={"instrument": instrument_id, "start": start, "end": end},
     )
-    columns = result.result_columns
-    if not columns or not columns[0]:
+    columns = _columns(rows, _MINUTE_COLUMNS, _MINUTE_TYPES)
+    if columns is None:
         empty = np.array([], dtype=np.float64)
         return Candles(np.array([], dtype=np.int64), empty, empty, empty, empty, empty)
-
-    return Candles(
-        time=np.asarray(columns[0], dtype=np.int64),
-        open=np.asarray(columns[1], dtype=np.float64),
-        high=np.asarray(columns[2], dtype=np.float64),
-        low=np.asarray(columns[3], dtype=np.float64),
-        close=np.asarray(columns[4], dtype=np.float64),
-        volume=np.asarray(columns[5], dtype=np.float64),
-    )
+    return Candles(*columns)
 
 
 def load_funding(client: Client, instrument_id: str, start: datetime, end: datetime):
     """As taxas de funding (horas em ms e taxas em fração) de um perpétuo."""
-    result = client.query(
+    rows = client.query_np(
         """
-        SELECT toUnixTimestamp64Milli(funding_time), rate
+        SELECT toUnixTimestamp64Milli(funding_time) AS t, rate AS r
           FROM market_funding FINAL
          WHERE instrument_id = {instrument:UUID}
            AND funding_time >= {start:DateTime64(3, 'UTC')}
@@ -85,10 +96,10 @@ def load_funding(client: Client, instrument_id: str, start: datetime, end: datet
         """,
         parameters={"instrument": instrument_id, "start": start, "end": end},
     )
-    columns = result.result_columns
-    if not columns or not columns[0]:
+    columns = _columns(rows, ("t", "r"), (np.int64, np.float64))
+    if columns is None:
         return np.array([], dtype=np.int64), np.array([], dtype=np.float64)
-    return np.asarray(columns[0], dtype=np.int64), np.asarray(columns[1], dtype=np.float64)
+    return columns[0], columns[1]
 
 
 def to_bars(minutes: Candles, timeframe: str) -> Bars:

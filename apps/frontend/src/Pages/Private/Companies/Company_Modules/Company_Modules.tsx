@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyModules, type SystemModule } from '../../../../Hooks/Companies/useCompanyModules';
@@ -89,7 +89,7 @@ const Company_Modules = () => {
               <button
                 key={key}
                 type="button"
-                className={filter === key ? 'Active' : ''}
+                className={filter === key ? 'Active' : ''} aria-pressed={filter === key}
                 onClick={() => setFilter(key)}
               >
                 {t(`modules.filter_${key}`, {

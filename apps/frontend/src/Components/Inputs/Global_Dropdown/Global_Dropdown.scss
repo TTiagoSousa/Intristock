@@ -138,7 +138,9 @@
       color: var(--text-2);
       transition: background-color var(--dur-fast), color var(--dur-fast);
 
-      &:hover{
+      // A opção ativa pelo teclado (as setas) fica como a do rato
+      &:hover,
+      &.Active{
         background-color: var(--global-dropdown-option-hover-background);
         color: var(--text);
       }

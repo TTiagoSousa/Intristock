@@ -1,4 +1,4 @@
-import { decryptSecret } from 'src/utils/crypto/secret-box';
+import { decryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { PrismaAppSettingRepository } from '../repositories/prisma/prisma-app-setting-repository';
 import { ApiKind, settingKey } from './apiProviders';
 
@@ -21,7 +21,7 @@ export async function readApiSettings(
   const value = (field: 'provider' | 'url' | 'key') => {
     const row = rows.find((r) => r.key === settingKey(kind, field));
     if (!row) return null;
-    return row.encrypted ? decryptSecret(row.value) : row.value;
+    return row.encrypted ? decryptSecret(row.value, secretContext('app_setting', row.key, 'value')) : row.value;
   };
 
   return { provider: value('provider'), url: value('url'), key: value('key') };

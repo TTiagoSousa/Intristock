@@ -1,3 +1,5 @@
+import { isoDay as day } from 'src/utils/dates';
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { BadRequestException } from '@nestjs/common';
 import { PrismaPersonalIncomeRepository } from '../repositories/prisma/prisma-personal-income-repository';
@@ -9,11 +11,10 @@ import {
   MAX_SUMMARY_RANGE_MONTHS,
 } from '../dto/income-query.dto';
 import { expectedWindowStart } from './expectedWindowStart';
+import { PrismaTimeTrackingRepository } from 'src/time-tracking/repositories/prisma/prisma-time-tracking-repository';
 import { findExpectedIncomes } from './findExpectedIncomes';
 import { findIncomes } from './findIncomes';
 
-// Sem moeda escolhida nem ganhos, conta-se nesta
-const FALLBACK_CURRENCY = 'EUR';
 // Quantos por receber vão na lista do dashboard
 const UPCOMING_LIMIT = 8;
 
@@ -33,6 +34,7 @@ export async function summarizeIncomes(
   query: IncomeSummaryQueryDto,
   repository: PrismaPersonalIncomeRepository,
   currencyService: CurrencyService,
+  timeTracking?: PrismaTimeTrackingRepository,
 ) {
   const months = query.months ?? DEFAULT_SUMMARY_MONTHS;
   const future = query.future ?? DEFAULT_SUMMARY_FUTURE;
@@ -67,7 +69,6 @@ export async function summarizeIncomes(
         `O intervalo não pode ter mais de ${MAX_SUMMARY_RANGE_MONTHS} meses`,
       );
   }
-  const day = (date: Date) => date.toISOString().slice(0, 10);
   const cardFrom = day(firstMonth);
   const cardTo = day(until);
   const inRange = (date: string) =>
@@ -89,22 +90,15 @@ export async function summarizeIncomes(
     windowStart > spanStart ? windowStart : spanStart,
     spanEnd,
     repository,
+    timeTracking,
   );
 
   // A moeda: a pedida, senão a dos ganhos mais usada, senão o euro
-  let currency: IncomeCurrency | null = query.currencyId
-    ? await repository.findCurrency(query.currencyId)
-    : null;
-  if (!currency) {
-    const uses = new Map<string, number>();
-    for (const income of recorded)
-      uses.set(income.currencyId, (uses.get(income.currencyId) ?? 0) + 1);
-    const top = [...uses.entries()].sort((a, b) => b[1] - a[1])[0];
-    currency = top
-      ? await repository.findCurrency(top[0])
-      : await repository.findCurrencyByCode(FALLBACK_CURRENCY);
-  }
-  const target = currency;
+  const target: IncomeCurrency | null = await pickDisplayCurrency(
+    query.currencyId,
+    recorded.map((income) => income.currencyId),
+    repository,
+  );
   const converter = await currencyService.converter(target, [
     ...recorded.map((income) => ({
       currency: income.currency,
@@ -150,7 +144,7 @@ export async function summarizeIncomes(
   >();
   const pending: {
     id: string | null;
-    origin: 'record' | 'source' | 'company';
+    origin: 'record' | 'source' | 'company' | 'time_tracking';
     name: string | null;
     kind: string;
     part: string | null;
@@ -160,6 +154,9 @@ export async function summarizeIncomes(
     amount: number;
     currency: IncomeCurrency;
     companyPaid: boolean;
+    // A empresa da linha (nas horas, quem paga) e, se já pagou e falta confirmar, o pagamento
+    company?: { id: string; name: string; slug: string } | null;
+    payoutId?: string;
   }[] = [];
   const today = now.toISOString().slice(0, 10);
   let received = 0;
@@ -234,6 +231,8 @@ export async function summarizeIncomes(
       amount: income.amount,
       currency: income.currency,
       companyPaid: income.companyPaid,
+      company: income.company,
+      ...(income.payoutId ? { payoutId: income.payoutId } : {}),
     });
   }
   pending.sort((a, b) => a.date.localeCompare(b.date));

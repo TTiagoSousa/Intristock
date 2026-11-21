@@ -139,8 +139,8 @@ def data_quality(bars: Bars, minutes: Candles, first_bar: int, start_ms: int, en
     ativo nos fechos diários UTC (√365)."""
     size = TIMEFRAME_MINUTES.get(timeframe or "", 0) * MINUTE_MS
     simulated = slice(first_bar, len(bars))
-    opens, highs, lows, closes = (bars.open[simulated].astype(float), bars.high[simulated].astype(float),
-                                  bars.low[simulated].astype(float), bars.close[simulated].astype(float))
+    opens, highs, lows = (bars.open[simulated].astype(float), bars.high[simulated].astype(float),
+                                  bars.low[simulated].astype(float))
     count = len(opens)
     # As velas paradas (os buracos que o `to_bars` enche) contam como em falta
     real = ~empty_bars(bars, len(minutes))[simulated]

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import http from '../../../../../../Service/httpService';
 import { End_Points } from '../../../../../../Service/endPoints';
@@ -8,6 +8,7 @@ import { getErrorMessage } from '../../../../../../Hooks/useAsyncRequest';
 import '../../Admin.scss';
 import '../Apis.scss';
 import './Prop_Firms.scss';
+import { localeOf } from '../../../../../../utils/locale';
 
 // Um plano da tabela `PlatformPlan` (os decimais chegam como texto)
 interface Prop_Firm_Plan {
@@ -96,7 +97,7 @@ const TEXT_RULES: [keyof Prop_Firm_Detail, string][] = [
 ];
 
 const pct = (value: string | null) => (value === null ? '—' : `${Number(value)}%`);
-const amount = (value: string | null) => (value === null ? '—' : Number(value).toLocaleString());
+const amount = (value: string | null, locale: string) => (value === null ? '—' : Number(value).toLocaleString(locale));
 
 /**
  * Uma prop firm como está na base: o resumo, os planos (tabela `PlatformPlan`),
@@ -118,7 +119,7 @@ const Prop_Firm_Page = () => {
       .catch((err) => setError(getErrorMessage(err)));
   }, [platformId]);
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const formatDate = (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 
   const back = (
@@ -226,9 +227,9 @@ const Prop_Firm_Page = () => {
                         {plan.step ?? '—'}
                         {plan.name && <div className="Admin_Muted_Cell">{plan.name}</div>}
                       </td>
-                      <td className="Num Right">{amount(plan.accountSize)}</td>
+                      <td className="Num Right">{amount(plan.accountSize, locale)}</td>
                       <td className="Num Right Admin_Nowrap">
-                        {plan.price === null ? '—' : `${amount(plan.price)} ${plan.currency ?? ''}`.trim()}
+                        {plan.price === null ? '—' : `${amount(plan.price, locale)} ${plan.currency ?? ''}`.trim()}
                       </td>
                       <td className="Num Right">{pct(plan.profitTargetPct)}</td>
                       <td className="Num Right">{pct(plan.maxDailyLossPct)}</td>

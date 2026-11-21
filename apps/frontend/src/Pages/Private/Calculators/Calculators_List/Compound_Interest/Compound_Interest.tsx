@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import Line_Chart from '../../../../../Components/Charts/Line_Chart/Line_Chart';
 import Global_Input from '../../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../../Components/Buttons/Simple_Button/Simple_Button';
-import { useCompoundInterestSimulation } from '../../../../../Hooks/Calculators/Compound_Interest/useCompoundInterestSimulation';
+import { COMPOUND_LIMITS, useCompoundInterestSimulation } from '../../../../../Hooks/Calculators/Compound_Interest/useCompoundInterestSimulation';
 import { useSavedCompoundInterestSimulations } from '../../../../../Hooks/Calculators/Compound_Interest/useSavedCompoundInterestSimulations';
 import type { SavedCompoundInterestSimulation } from '../../../../../Hooks/Calculators/Compound_Interest/useSavedCompoundInterestSimulations';
 import { useCurrencyFormat } from '../../../../../Hooks/useCurrencyFormat';
 import * as Icon from '../../../../../Imports/icons';
 import './Compound_Interest.scss';
+import { localeOf } from '../../../../../utils/locale';
+import { activateOnKey } from '../../../../../utils/rowKeyboard';
 
 type BreakdownTab = 'yearly' | 'quarterly' | 'monthly';
 
@@ -21,7 +23,7 @@ const BREAKDOWN_TAB_LABEL_KEY: Record<BreakdownTab, string> = {
 };
 
 const Compound_Interest = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const {
     savedSimulations,
@@ -145,6 +147,8 @@ const Compound_Interest = () => {
               <Global_Input
                 id="initialInvestment"
                 type="number"
+                min={COMPOUND_LIMITS.amount.min}
+                max={COMPOUND_LIMITS.amount.max}
                 placeholder="10000"
                 value={initialInvestment}
                 onChange={(e) => setInitialInvestment(e.target.value)}
@@ -156,6 +160,8 @@ const Compound_Interest = () => {
               <Global_Input
                 id="term"
                 type="number"
+                min={COMPOUND_LIMITS.term.min}
+                max={COMPOUND_LIMITS.term.max}
                 placeholder="5"
                 value={term}
                 onChange={(e) => setTerm(e.target.value)}
@@ -167,6 +173,8 @@ const Compound_Interest = () => {
               <Global_Input
                 id="additionalInvestment"
                 type="number"
+                min={COMPOUND_LIMITS.amount.min}
+                max={COMPOUND_LIMITS.amount.max}
                 placeholder="100"
                 value={additionalInvestment}
                 onChange={(e) => setAdditionalInvestment(e.target.value)}
@@ -192,6 +200,8 @@ const Compound_Interest = () => {
               <Global_Input
                 id="interestRate"
                 type="number"
+                min={COMPOUND_LIMITS.interestRate.min}
+                max={COMPOUND_LIMITS.interestRate.max}
                 placeholder="5"
                 value={interestRate}
                 onChange={(e) => setInterestRate(e.target.value)}
@@ -218,6 +228,8 @@ const Compound_Interest = () => {
                 <Global_Input
                   id="transactionFeeValue"
                   type="number"
+                  min={COMPOUND_LIMITS.amount.min}
+                  max={COMPOUND_LIMITS.amount.max}
                   placeholder="0"
                   value={transactionFeeValue}
                   onChange={(e) => setTransactionFeeValue(e.target.value)}
@@ -239,6 +251,8 @@ const Compound_Interest = () => {
                 <Global_Input
                   id="maintenanceFeeValue"
                   type="number"
+                  min={COMPOUND_LIMITS.amount.min}
+                  max={COMPOUND_LIMITS.amount.max}
                   placeholder="0"
                   value={maintenanceFeeValue}
                   onChange={(e) => setMaintenanceFeeValue(e.target.value)}
@@ -259,6 +273,8 @@ const Compound_Interest = () => {
               <Global_Input
                 id="missedPeriods"
                 type="number"
+                min={COMPOUND_LIMITS.missedPeriods.min}
+                max={COMPOUND_LIMITS.missedPeriods.max}
                 placeholder="0"
                 value={missedPeriods}
                 onChange={(e) => setMissedPeriods(e.target.value)}
@@ -270,6 +286,8 @@ const Compound_Interest = () => {
               <Global_Input
                 id="inflationRate"
                 type="number"
+                min={COMPOUND_LIMITS.inflationRate.min}
+                max={COMPOUND_LIMITS.inflationRate.max}
                 placeholder="2"
                 value={inflationRate}
                 onChange={(e) => setInflationRate(e.target.value)}
@@ -279,14 +297,14 @@ const Compound_Interest = () => {
             <div className="Simulate_Button">
               <div className="Simulate_Button_Item">
                 <Simple_Button
-                  text={loading ? t('compoundInterest.simulating') : t('compoundInterest.simulate')}
+                  text={t('compoundInterest.simulate')}
                   onClick={simulate}
                   disabled={loading}
                 />
               </div>
               <div className="Simulate_Button_Item">
                 <Simple_Button
-                  text={saving ? t('compoundInterest.saving') : t('compoundInterest.save')}
+                  text={t('compoundInterest.save')}
                   onClick={save}
                   disabled={saving || !result}
                 />
@@ -513,9 +531,9 @@ const Compound_Interest = () => {
                       <tr
                         key={simulation.id}
                         className="Saved_Simulation_Row"
-                        onClick={() => handleLoadSavedSimulation(simulation)}
+                        onClick={() => handleLoadSavedSimulation(simulation)} tabIndex={0} onKeyDown={activateOnKey}
                       >
-                        <td>{new Date(simulation.createdAt).toLocaleDateString()}</td>
+                        <td>{new Date(simulation.createdAt).toLocaleDateString(localeOf(i18n.language))}</td>
                         <td>{formatAmount(simulation.inputs.initialInvestment)}</td>
                         <td>{simulation.inputs.term}</td>
                         <td>{formatAmount(simulation.result.summary.totalTransactionFeesPaid ?? 0)}</td>

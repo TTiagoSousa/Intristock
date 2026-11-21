@@ -76,6 +76,8 @@ export function listMemberPaymentsDue(
       const date = new Date(
         Date.UTC(year, month, Math.min(pay.payDay, daysInMonth)),
       );
+      // O último mês corta no `until` (o dia do salário pode cair depois dele)
+      if (date > until) continue;
       if (date < pay.startDate || (pay.endDate && date > pay.endDate)) continue;
 
       const period = `${year}-${String(month + 1).padStart(2, '0')}`;

@@ -14,7 +14,9 @@ export class TaxController {
     return this.taxService.create(dto);
   }
 
+  // Com sessão: o ecrã de login não precisa do catálogo
   @Get()
+  @UseGuards(JwtUserAuthGuard)
   findAll(@Query('countryId') countryId?: string) {
     return this.taxService.findAll(countryId);
   }

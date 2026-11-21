@@ -30,8 +30,9 @@ export class GoodsValuationService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     this.timer = setInterval(() => void this.check(), CHECK_EVERY_MS);
-    // Não no arranque: deixa o resto da app arrancar primeiro
-    setTimeout(() => void this.check(), 60_000).unref();
+    // Não no arranque: deixa o resto da app arrancar primeiro (e as outras tarefas, que
+    // têm outros tempos). Quando cada bem vence fica na base (`valuationNextAt`)
+    setTimeout(() => void this.check(), 180_000).unref();
   }
 
   onModuleDestroy() {

@@ -7,26 +7,6 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL!, max:
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const adminJobType = await prisma.jobType.upsert({
-    where: { name: 'Admin' },
-    update: {},
-    create: { name: 'Admin' },
-  });
-
-  await prisma.employee.upsert({
-    where: { email: 'admin@intristock.com' },
-    update: {},
-    create: {
-      employeeNumber: 'EMP-001',
-      email: 'admin@intristock.com',
-      fullName: 'Admin',
-      firstName: 'Admin',
-      lastName: '',
-      hashedPassword: await bcrypt.hash('admin123456', 12),
-      jobTypeId: adminJobType.id,
-    },
-  });
-
   await prisma.currency.upsert({
     where: { shortCode: 'USD' },
     update: {},

@@ -1,3 +1,4 @@
+import { isoDay } from 'src/utils/dates';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { StockPriceService } from 'src/market-data/stock-price.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
@@ -11,7 +12,6 @@ const CRYPTO_SOURCES = ['binance', 'coinbase'];
 const AMOUNT_DIGITS = 8;
 const PRICE_DIGITS = 10;
 const round = (value: number, digits = 2) => Math.round(value * 10 ** digits) / 10 ** digits;
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 // A fila de cada mercado num portefólio (só neste processo)
 const queues = new Map<string, Promise<unknown>>();

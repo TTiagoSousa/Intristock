@@ -1,10 +1,11 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveLiveTests } from '../../../../Hooks/Trading/useLiveTests';
 import type { Live_Test } from '../../../../Hooks/Trading/useLiveTests';
 import { formatNumber, formatPct, formatPrice, toneOf } from '../Trading_Simulator/format';
 import '../Trading_Simulations/Trading_Simulations.scss';
 import '../Trading_Simulation/Run_Live.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 /**
  * Os testes ao vivo que estão a decorrer (à espera do início, a correr ou a
@@ -67,7 +68,7 @@ const Trading_Live = () => {
                     <tr
                       key={test.id}
                       className="Simulation_Row"
-                      onClick={() => navigate(`/Trading/simulacoes/${test.runId}?view=live&test=${test.id}`)}
+                      onClick={() => navigate(`/Trading/simulacoes/${test.runId}?view=live&test=${test.id}`)} tabIndex={0} onKeyDown={activateOnKey}
                     >
                       <td>
                         <span className="Simulation_Market">{marketOf(test)}</span>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import Simple_Button from '../../../../../../Components/Buttons/Simple_Button/Simple_Button';
 import { usePropFirmSync } from '../../../../../../Hooks/Admin/usePropFirmSync';
@@ -8,6 +8,7 @@ import Prop_Firms_Diff from './Prop_Firms_Diff';
 import '../../Admin.scss';
 import '../Apis.scss';
 import './Prop_Firms.scss';
+import { localeOf } from '../../../../../../utils/locale';
 
 type Tab = 'stored' | 'diff';
 
@@ -21,7 +22,7 @@ const Prop_Firms_Page = () => {
   const { status, starting, error, start, refresh } = usePropFirmSync();
   const [tab, setTab] = useState<Tab>('stored');
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const formatDate = (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 
   const running = Boolean(status?.running);
@@ -41,7 +42,7 @@ const Prop_Firms_Page = () => {
         </div>
         <div className="Page_Head_Actions">
           <Simple_Button
-            text={running ? t('adminApis.sync.running') : t('adminApis.propFirms.syncNow')}
+            text={t('adminApis.propFirms.syncNow')}
             onClick={start}
             disabled={running || starting}
             auto
@@ -105,7 +106,7 @@ const Prop_Firms_Page = () => {
       <div className="Card Admin_Block Full">
         <div className="Card_Header Prop_Firms_Tabs_Head">
           <div className="Tabs">
-            <button type="button" className={tab === 'stored' ? 'Active' : ''} onClick={() => setTab('stored')}>
+            <button type="button" className={tab === 'stored' ? 'Active' : ''} aria-pressed={tab === 'stored'} onClick={() => setTab('stored')}>
               {t('adminApis.propFirms.tabStored')}
             </button>
             <button type="button" className={tab === 'diff' ? 'Active' : ''} onClick={() => setTab('diff')}>

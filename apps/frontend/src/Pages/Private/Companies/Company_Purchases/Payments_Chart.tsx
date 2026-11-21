@@ -1,18 +1,5 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import type { Company } from '../../../../Hooks/Companies/useCompanies';
 import { useMonthlyPayments, type MonthlyPaymentsFilters } from '../../../../Hooks/Companies/useMonthlyPayments';
 import {
@@ -22,6 +9,9 @@ import {
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
+import Month_Chart, { type Month_Chart_Series } from '../../../../Components/Charts/Month_Chart/Month_Chart';
+import { localMonth } from '../../../../utils/dates';
+import { localeOf } from '../../../../utils/locale';
 
 type Chart_Kind = 'bars' | 'lines';
 type Serie_Key = 'receive' | 'pay' | 'plannedPay';
@@ -54,7 +44,8 @@ const readKind = (): Chart_Kind => {
   }
 };
 
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+// O mês de hoje no browser (não em UTC)
+const currentMonth = () => localMonth();
 
 // Vazio (null) onde a linha não deve passar: o realizado nos meses futuros e a
 // previsão nos meses sem ela
@@ -68,38 +59,10 @@ interface Point {
   plannedCount: number;
 }
 
-interface Tooltip_Props {
-  active?: boolean;
-  payload?: { dataKey: Serie_Key; name: string; color: string; payload: Point }[];
-  format: (value: number) => string;
-  countLabel: (count: number) => string;
-}
-
-const COUNT_OF: Record<Serie_Key, keyof Point> = {
+const COUNT_OF: Record<Serie_Key, 'payCount' | 'receiveCount' | 'plannedCount'> = {
   receive: 'receiveCount',
   pay: 'payCount',
   plannedPay: 'plannedCount',
-};
-
-const Monthly_Tooltip = ({ active, payload, format, countLabel }: Tooltip_Props) => {
-  if (!active || !payload?.length) return null;
-  const point = payload[0].payload;
-  return (
-    <div className="Monthly_Tooltip">
-      <span className="Monthly_Tooltip_Label">{point.label}</span>
-      {payload
-        // A previsão a 0 não diz nada
-        .filter((entry) => point[entry.dataKey] !== null && (entry.dataKey !== 'plannedPay' || point.plannedCount > 0))
-        .map((entry) => (
-          <div key={entry.dataKey} className="Monthly_Tooltip_Row">
-            <span className="Monthly_Tooltip_Dot" style={{ backgroundColor: entry.color }} />
-            <span className="Monthly_Tooltip_Name">{entry.name}</span>
-            <span className="Monthly_Tooltip_Value Num">{format(point[entry.dataKey] ?? 0)}</span>
-            <span className="Monthly_Tooltip_Count">{countLabel(Number(point[COUNT_OF[entry.dataKey]]))}</span>
-          </div>
-        ))}
-    </div>
-  );
 };
 
 /**
@@ -111,6 +74,7 @@ const Monthly_Tooltip = ({ active, payload, format, countLabel }: Tooltip_Props)
  */
 const Payments_Chart = ({ company }: { company: Company }) => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const { formatIn } = useCurrencyFormat();
   const [kind, setKind] = useState<Chart_Kind>(readKind);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -135,8 +99,8 @@ const Payments_Chart = ({ company }: { company: Company }) => {
   // Ao abrir as datas propõe-se o que já estava à vista
   const openCustom = () => {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (filters.months - 1), 1));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + filters.future, 1));
+    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth() - (filters.months - 1), 1));
+    const end = new Date(Date.UTC(now.getFullYear(), now.getMonth() + filters.future, 1));
     setFilters((current) => ({
       ...current,
       from: current.from || start.toISOString().slice(0, 7),
@@ -145,7 +109,7 @@ const Payments_Chart = ({ company }: { company: Company }) => {
     setCustom(true);
   };
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   // O sinal fica antes do símbolo: "-€17,87" e não "€-17,87"
   const format = (value: number) => `${value < 0 ? '-' : ''}${formatIn(Math.abs(value), company.currency)}`;
   const monthDate = (month: string) => new Date(`${month}-01T00:00:00Z`);
@@ -171,9 +135,9 @@ const Payments_Chart = ({ company }: { company: Company }) => {
 
   // As receitas primeiro, as despesas ao lado; a previsão por cima das despesas
   const series: { key: Serie_Key; name: string; color: string }[] = [
-    { key: 'receive', name: t('purchasesDashboard.flow_receive'), color: 'var(--gain)' },
-    { key: 'pay', name: t('purchasesDashboard.flow_pay'), color: 'var(--loss)' },
-    ...(hasPlanned ? [{ key: 'plannedPay' as const, name: t('purchasesDashboard.planned'), color: 'var(--loss)' }] : []),
+    { key: 'receive', name: t('purchasesDashboard.flow_receive'), color: '--gain' },
+    { key: 'pay', name: t('purchasesDashboard.flow_pay'), color: '--loss' },
+    ...(hasPlanned ? [{ key: 'plannedPay' as const, name: t('purchasesDashboard.planned'), color: '--loss' }] : []),
   ];
 
   const hasData = points.some((point) => point.payCount + point.receiveCount + point.plannedCount > 0);
@@ -189,33 +153,21 @@ const Payments_Chart = ({ company }: { company: Company }) => {
   );
 
   // A linha do "hoje", quando há meses à frente
-  const todayLabel = hasFuture && points.some((point) => point.month === currentMonth()) ? shortLabel(currentMonth()) : null;
+  const todayIndex = hasFuture ? points.findIndex((point) => point.month === currentMonth()) : -1;
 
-  const axisTick = { fill: 'var(--text-3)', fontSize: 10.5 };
   const compact = (value: number) =>
     new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value);
-  const chartParts = (
-    <>
-      <CartesianGrid vertical={false} stroke="var(--grid-line)" />
-      <XAxis dataKey="short" tick={axisTick} axisLine={{ stroke: 'var(--line)' }} tickLine={false} />
-      <YAxis tick={axisTick} axisLine={false} tickLine={false} width={48} tickFormatter={compact} />
-      <Tooltip
-        content={
-          <Monthly_Tooltip format={format} countLabel={(count) => t('purchasesDashboard.payments', { count })} />
-        }
-        cursor={kind === 'bars' ? { fill: 'var(--accent-soft)' } : { stroke: 'var(--line-strong)' }}
-      />
-      <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
-      {todayLabel && (
-        <ReferenceLine
-          x={todayLabel}
-          stroke="var(--line-strong)"
-          strokeDasharray="4 4"
-          label={{ value: t('purchasesDashboard.today'), position: 'insideTopRight', fill: 'var(--text-3)', fontSize: 10 }}
-        />
-      )}
-    </>
-  );
+
+  // As receitas ao lado; as despesas e a previsão (mais clara, a tracejado nas linhas) empilhadas
+  const chartSeries: Month_Chart_Series[] = series.map((serie) => ({
+    id: serie.key,
+    name: serie.name,
+    values: points.map((point) => point[serie.key]),
+    colorToken: serie.color,
+    faded: serie.key === 'plannedPay',
+    stack: serie.key === 'receive' ? 'receive' : 'out',
+    notes: points.map((point) => t('purchasesDashboard.payments', { count: point[COUNT_OF[serie.key]] })),
+  }));
 
   return (
     <div className="Card Monthly_Card">
@@ -230,7 +182,7 @@ const Payments_Chart = ({ company }: { company: Company }) => {
               <button
                 key={option}
                 type="button"
-                className={kind === option ? 'Active' : ''}
+                className={kind === option ? 'Active' : ''} aria-pressed={kind === option}
                 onClick={() => chooseKind(option)}
               >
                 {t(`purchasesDashboard.${option}`)}
@@ -243,13 +195,13 @@ const Payments_Chart = ({ company }: { company: Company }) => {
       {/* A zona dos filtros: o que muda as contas vai ao backend */}
       <div className="Monthly_Filters">
         <div className="Monthly_Filter">
-          <span className="Eyebrow">{t('purchasesDashboard.filterPeriod')}</span>
-          <div className="Tabs">
+          <span className="Eyebrow" id={`${groupId}-filterPeriod`}>{t('purchasesDashboard.filterPeriod')}</span>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterPeriod`}>
             {PERIODS.map((period) => (
               <button
                 key={period}
                 type="button"
-                className={!custom && filters.months === period ? 'Active' : ''}
+                className={!custom && filters.months === period ? 'Active' : ''} aria-pressed={!custom && filters.months === period}
                 onClick={() => {
                   setCustom(false);
                   setFilter('months', period);
@@ -258,7 +210,7 @@ const Payments_Chart = ({ company }: { company: Company }) => {
                 {t('purchasesDashboard.months', { count: period })}
               </button>
             ))}
-            <button type="button" className={custom ? 'Active' : ''} onClick={openCustom}>
+            <button type="button" className={custom ? 'Active' : ''} aria-pressed={custom} onClick={openCustom}>
               {t('purchasesDashboard.customDates')}
             </button>
           </div>
@@ -266,7 +218,7 @@ const Payments_Chart = ({ company }: { company: Company }) => {
 
         {custom ? (
           <div className="Monthly_Filter Monthly_Range">
-            <span className="Eyebrow">{t('purchasesDashboard.filterRange')}</span>
+            <label className="Eyebrow" htmlFor="payments-chart-from">{t('purchasesDashboard.filterRange')}</label>
             <div className="Monthly_Range_Fields">
               <Global_Input
                 id="payments-chart-from"
@@ -285,13 +237,13 @@ const Payments_Chart = ({ company }: { company: Company }) => {
           </div>
         ) : (
           <div className="Monthly_Filter">
-            <span className="Eyebrow">{t('purchasesDashboard.filterFuture')}</span>
-            <div className="Tabs">
+            <span className="Eyebrow" id={`${groupId}-filterFuture`}>{t('purchasesDashboard.filterFuture')}</span>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterFuture`}>
               {FUTURES.map((future) => (
                 <button
                   key={future}
                   type="button"
-                  className={filters.future === future ? 'Active' : ''}
+                  className={filters.future === future ? 'Active' : ''} aria-pressed={filters.future === future}
                   onClick={() => setFilter('future', future)}
                 >
                   {future === 0 ? t('purchasesDashboard.noFuture') : t('purchasesDashboard.months', { count: future })}
@@ -302,7 +254,7 @@ const Payments_Chart = ({ company }: { company: Company }) => {
         )}
 
         <div className="Monthly_Filter Wide">
-          <span className="Eyebrow">{t('purchasesDashboard.filterSupplier')}</span>
+          <label className="Eyebrow" htmlFor="payments-chart-supplier">{t('purchasesDashboard.filterSupplier')}</label>
           <Global_Dropdown
             id="payments-chart-supplier"
             value={filters.supplierId}
@@ -315,7 +267,7 @@ const Payments_Chart = ({ company }: { company: Company }) => {
         </div>
 
         <div className="Monthly_Filter Wide">
-          <span className="Eyebrow">{t('purchasesDashboard.filterGroup')}</span>
+          <label className="Eyebrow" htmlFor="payments-chart-group">{t('purchasesDashboard.filterGroup')}</label>
           <Global_Dropdown
             id="payments-chart-group"
             value={filters.supplierGroupId}
@@ -328,18 +280,18 @@ const Payments_Chart = ({ company }: { company: Company }) => {
         </div>
 
         <div className="Monthly_Filter">
-          <span className="Eyebrow">{t('purchasesDashboard.filterStatus')}</span>
-          <div className="Tabs">
+          <span className="Eyebrow" id={`${groupId}-filterStatus`}>{t('purchasesDashboard.filterStatus')}</span>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterStatus`}>
             <button
               type="button"
-              className={filters.includeDrafts ? '' : 'Active'}
+              className={filters.includeDrafts ? '' : 'Active'} aria-pressed={!(filters.includeDrafts)}
               onClick={() => setFilter('includeDrafts', false)}
             >
               {t('purchasesDashboard.status_completed')}
             </button>
             <button
               type="button"
-              className={filters.includeDrafts ? 'Active' : ''}
+              className={filters.includeDrafts ? 'Active' : ''} aria-pressed={filters.includeDrafts}
               onClick={() => setFilter('includeDrafts', true)}
             >
               {t('purchasesDashboard.status_withDrafts')}
@@ -374,45 +326,17 @@ const Payments_Chart = ({ company }: { company: Company }) => {
         ) : !hasData ? (
           <span className="Monthly_Message">{t('purchasesDashboard.noData')}</span>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            {kind === 'bars' ? (
-              <BarChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                {chartParts}
-                {series.map((serie) => (
-                  <Bar
-                    key={serie.key}
-                    dataKey={serie.key}
-                    name={serie.name}
-                    fill={serie.color}
-                    // A previsão empilhada por cima das despesas, mais clara
-                    fillOpacity={serie.key === 'plannedPay' ? 0.4 : 1}
-                    stackId={serie.key === 'receive' ? undefined : 'out'}
-                    radius={serie.key === 'pay' && hasPlanned ? [0, 0, 0, 0] : [4, 4, 0, 0]}
-                    maxBarSize={36}
-                  />
-                ))}
-              </BarChart>
-            ) : (
-              <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                {chartParts}
-                {series.map((serie) => (
-                  <Line
-                    key={serie.key}
-                    type="monotone"
-                    dataKey={serie.key}
-                    name={serie.name}
-                    stroke={serie.color}
-                    strokeWidth={2}
-                    // A previsão a tracejado
-                    strokeDasharray={serie.key === 'plannedPay' ? '5 4' : undefined}
-                    strokeOpacity={serie.key === 'plannedPay' ? 0.7 : 1}
-                    dot={{ r: 3, fill: serie.color }}
-                    activeDot={{ r: 5 }}
-                  />
-                ))}
-              </LineChart>
-            )}
-          </ResponsiveContainer>
+          <Month_Chart
+            kind={kind}
+            categories={points.map((point) => point.short)}
+            labels={points.map((point) => point.label)}
+            series={chartSeries}
+            stacked
+            todayIndex={todayIndex >= 0 ? todayIndex : undefined}
+            todayLabel={t('purchasesDashboard.today')}
+            format={format}
+            compact={compact}
+          />
         )}
       </div>
     </div>

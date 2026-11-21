@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   CompanyPayment,
@@ -8,6 +8,8 @@ import { useCompany } from '../../../../Contexts/Company_Context';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Payment_Documents from './Payment_Documents';
+import { localeOf } from '../../../../utils/locale';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Payment_Details_Popover_Props {
   companyId: string;
@@ -40,15 +42,6 @@ const Payment_Details_Popover = ({
   const [companyDraft, setCompanyDraft] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
   const toNumber = (value: string | null) => {
     if (value === null || value === '') return null;
 
@@ -63,7 +56,7 @@ const Payment_Details_Popover = ({
 
     if (parsed === null) return '—';
 
-    const formatted = parsed.toLocaleString(i18n.language, {
+    const formatted = parsed.toLocaleString(localeOf(i18n.language), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -74,11 +67,11 @@ const Payment_Details_Popover = ({
   const formatQuantity = (value: string) => {
     const parsed = Number(value);
 
-    return Number.isNaN(parsed) ? value : parsed.toLocaleString(i18n.language);
+    return Number.isNaN(parsed) ? value : parsed.toLocaleString(localeOf(i18n.language));
   };
 
   const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString(i18n.language, {
+    new Date(value).toLocaleDateString(localeOf(i18n.language), {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
@@ -102,7 +95,7 @@ const Payment_Details_Popover = ({
   const companyTotal = Math.round(total * exchangeRate * 100) / 100;
 
   const formatCompany = (value: number) =>
-    `${value.toLocaleString(i18n.language, {
+    `${value.toLocaleString(localeOf(i18n.language), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })} ${companyCurrency.symbol}`;
@@ -129,223 +122,221 @@ const Payment_Details_Popover = ({
   ].filter((detail) => Boolean(detail.value));
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <div className="Popover_Card" onClick={(e) => e.stopPropagation()}>
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{t('payments.detailsTitle')}</span>
-            <span className="Popover_Subtitle">{formatDate(payment.paymentDate)}</span>
-          </div>
-
-          <button
-            type="button"
-            className="Popover_Close"
-            onClick={onClose}
-            aria-label={t('common.close')}
-          >
-            ×
-          </button>
+    <Popover_Shell onClose={onClose}>
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{t('payments.detailsTitle')}</span>
+          <span className="Popover_Subtitle">{formatDate(payment.paymentDate)}</span>
         </div>
 
-        <div className="Popover_Body">
-          {/* O valor é a razão de se abrir isto — vem primeiro e sozinho */}
-          <div className="Detail_Hero">
-            <div className="Detail_Hero_Main">
-              <span className="Detail_Hero_Amount">{formatMoney(payment.amount)}</span>
-              <span className={`Pill ${STATUS_TONE[payment.status] ?? ''}`}>
-                <span className="Dot" />
-                {t(`payments.status_${payment.status}`)}
-              </span>
+        <button
+          type="button"
+          className="Popover_Close"
+          onClick={onClose}
+          aria-label={t('common.close')}
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="Popover_Body">
+        {/* O valor é a razão de se abrir isto — vem primeiro e sozinho */}
+        <div className="Detail_Hero">
+          <div className="Detail_Hero_Main">
+            <span className="Detail_Hero_Amount">{formatMoney(payment.amount)}</span>
+            <span className={`Pill ${STATUS_TONE[payment.status] ?? ''}`}>
+              <span className="Dot" />
+              {t(`payments.status_${payment.status}`)}
+            </span>
+          </div>
+          <span className="Detail_Hero_Meta">{counterparty}</span>
+        </div>
+
+        <div className="Detail_Grid">
+          {details.map((detail) => (
+            <div className="Detail" key={detail.key}>
+              <span className="Detail_Label">{detail.label}</span>
+              <span className="Detail_Value">{detail.value}</span>
             </div>
-            <span className="Detail_Hero_Meta">{counterparty}</span>
-          </div>
+          ))}
+        </div>
 
-          <div className="Detail_Grid">
-            {details.map((detail) => (
-              <div className="Detail" key={detail.key}>
-                <span className="Detail_Label">{detail.label}</span>
-                <span className="Detail_Value">{detail.value}</span>
-              </div>
-            ))}
+        {payment.description && (
+          <div className="Detail_Note">
+            <span className="Detail_Label">{t('payments.description')}</span>
+            <p>{payment.description}</p>
           </div>
+        )}
 
-          {payment.description && (
-            <div className="Detail_Note">
-              <span className="Detail_Label">{t('payments.description')}</span>
-              <p>{payment.description}</p>
+        <div className="Detail_Section">
+          <span className="Detail_Section_Title">{t('payments.linesTitle')}</span>
+
+          {payment.items.length === 0 ? (
+            <span className="Lines_Empty">{t('payments.noLinesRecorded')}</span>
+          ) : (
+            <div className="Table_Wrap">
+              <table className="Table">
+                <thead>
+                  <tr>
+                    <th>{t('payments.item')}</th>
+                    <th className="Right">{t('payments.quantity')}</th>
+                    <th className="Right">{t('payments.unitPrice')}</th>
+                    <th className="Right">{t('payments.lineTotal')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payment.items.map((line) => (
+                    <tr key={line.id}>
+                      <td>{line.item?.name ?? '—'}</td>
+                      <td className="Right Num">
+                        {formatQuantity(line.quantity)}
+                        {line.item?.unit ? ` ${line.item.unit}` : ''}
+                      </td>
+                      <td className="Right Num">{formatMoney(line.unitPrice)}</td>
+                      <td className="Right Num Strong">{formatMoney(line.totalPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
+        </div>
 
+        {payment.taxes.length > 0 && (
           <div className="Detail_Section">
-            <span className="Detail_Section_Title">{t('payments.linesTitle')}</span>
+            <span className="Detail_Section_Title">{t('payments.taxesTitle')}</span>
 
-            {payment.items.length === 0 ? (
-              <span className="Lines_Empty">{t('payments.noLinesRecorded')}</span>
-            ) : (
-              <div className="Table_Wrap">
-                <table className="Table">
-                  <thead>
-                    <tr>
-                      <th>{t('payments.item')}</th>
-                      <th className="Right">{t('payments.quantity')}</th>
-                      <th className="Right">{t('payments.unitPrice')}</th>
-                      <th className="Right">{t('payments.lineTotal')}</th>
+            <div className="Table_Wrap">
+              <table className="Table">
+                <thead>
+                  <tr>
+                    <th>{t('payments.tax')}</th>
+                    <th className="Right">{t('payments.rate')}</th>
+                    <th className="Right">{t('payments.taxBase')}</th>
+                    <th className="Right">{t('payments.taxAmount')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payment.taxes.map((line) => (
+                    <tr key={line.id}>
+                      <td>{line.tax?.name ?? '—'}</td>
+                      <td className="Right Num">{line.rate}%</td>
+                      <td className="Right Num">{formatMoney(line.netAmount)}</td>
+                      <td className="Right Num Strong">{formatMoney(line.taxAmount)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {payment.items.map((line) => (
-                      <tr key={line.id}>
-                        <td>{line.item?.name ?? '—'}</td>
-                        <td className="Right Num">
-                          {formatQuantity(line.quantity)}
-                          {line.item?.unit ? ` ${line.item.unit}` : ''}
-                        </td>
-                        <td className="Right Num">{formatMoney(line.unitPrice)}</td>
-                        <td className="Right Num Strong">{formatMoney(line.totalPrice)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+        )}
 
-          {payment.taxes.length > 0 && (
-            <div className="Detail_Section">
-              <span className="Detail_Section_Title">{t('payments.taxesTitle')}</span>
-
-              <div className="Table_Wrap">
-                <table className="Table">
-                  <thead>
-                    <tr>
-                      <th>{t('payments.tax')}</th>
-                      <th className="Right">{t('payments.rate')}</th>
-                      <th className="Right">{t('payments.taxBase')}</th>
-                      <th className="Right">{t('payments.taxAmount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payment.taxes.map((line) => (
-                      <tr key={line.id}>
-                        <td>{line.tax?.name ?? '—'}</td>
-                        <td className="Right Num">{line.rate}%</td>
-                        <td className="Right Num">{formatMoney(line.netAmount)}</td>
-                        <td className="Right Num Strong">{formatMoney(line.taxAmount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {/* Como se fecha a conta: base, impostos, e o que saiu do banco.
+            Reaproveita o mesmo bloco de totais do formulário de criação. */}
+        <div className="Amount_Summary">
+          <div className="Amount_Row">
+            <span>{t('payments.baseAmount')}</span>
+            <span>{formatMoney(baseAmount)}</span>
+          </div>
+          {taxTotal > 0 && (
+            <div className="Amount_Row">
+              <span>{t('payments.taxTotal')}</span>
+              <span>{formatMoney(taxTotal)}</span>
             </div>
           )}
-
-          {/* Como se fecha a conta: base, impostos, e o que saiu do banco.
-              Reaproveita o mesmo bloco de totais do formulário de criação. */}
-          <div className="Amount_Summary">
-            <div className="Amount_Row">
-              <span>{t('payments.baseAmount')}</span>
-              <span>{formatMoney(baseAmount)}</span>
-            </div>
-            {taxTotal > 0 && (
-              <div className="Amount_Row">
-                <span>{t('payments.taxTotal')}</span>
-                <span>{formatMoney(taxTotal)}</span>
-              </div>
-            )}
-            <div className="Amount_Row Total">
-              <span>{t('payments.summaryTotal')}</span>
-              <span>{formatMoney(total)}</span>
-            </div>
+          <div className="Amount_Row Total">
+            <span>{t('payments.summaryTotal')}</span>
+            <span>{formatMoney(total)}</span>
           </div>
+        </div>
 
-          {/* Noutra moeda: quanto saiu na moeda da empresa. Fica fixo com a
-              taxa do dia em que foi gravado; corrige-se aqui com o valor do
-              extrato, e o stock e os ativos da compra acompanham. */}
-          {isForeign && (
-            <div className="Detail_Section">
-              <span className="Detail_Section_Title">
-                {t('payments.companyAmount', { code: companyCurrency.shortCode })}
+        {/* Noutra moeda: quanto saiu na moeda da empresa. Fica fixo com a
+            taxa do dia em que foi gravado; corrige-se aqui com o valor do
+            extrato, e o stock e os ativos da compra acompanham. */}
+        {isForeign && (
+          <div className="Detail_Section">
+            <span className="Detail_Section_Title">
+              {t('payments.companyAmount', { code: companyCurrency.shortCode })}
+            </span>
+
+            <div className="Amount_Summary">
+              <div className="Amount_Row Total">
+                <span>
+                  {payment.rateSource === 'manual'
+                    ? t('payments.rateSource_manual')
+                    : t('payments.rateSource_market', {
+                        date: new Date(payment.paymentDate).toLocaleDateString(localeOf(i18n.language)),
+                      })}
+                </span>
+                <span>{formatCompany(companyTotal)}</span>
+              </div>
+              <span className="Amount_Hint">
+                {t('payments.rateLine', {
+                  from: payment.currency?.shortCode ?? '',
+                  rate: exchangeRate.toLocaleString(localeOf(i18n.language), { maximumFractionDigits: 6 }),
+                  to: companyCurrency.shortCode,
+                })}
               </span>
 
-              <div className="Amount_Summary">
-                <div className="Amount_Row Total">
-                  <span>
-                    {payment.rateSource === 'manual'
-                      ? t('payments.rateSource_manual')
-                      : t('payments.rateSource_market', {
-                          date: new Date(payment.paymentDate).toLocaleDateString(i18n.language),
-                        })}
-                  </span>
-                  <span>{formatCompany(companyTotal)}</span>
-                </div>
-                <span className="Amount_Hint">
-                  {t('payments.rateLine', {
-                    from: payment.currency?.shortCode ?? '',
-                    rate: exchangeRate.toLocaleString(i18n.language, { maximumFractionDigits: 6 }),
-                    to: companyCurrency.shortCode,
-                  })}
-                </span>
-
-                {!can('payments.edit') ? null : companyDraft === null ? (
-                  <div className="Rate_Actions">
+              {!can('payments.edit') ? null : companyDraft === null ? (
+                <div className="Rate_Actions">
+                  <Simple_Button
+                    text={t('payments.editCompanyAmount')}
+                    variant="Ghost"
+                    small
+                    auto
+                    onClick={() => setCompanyDraft(companyTotal.toFixed(2))}
+                  />
+                  {payment.rateSource === 'manual' && (
                     <Simple_Button
-                      text={t('payments.editCompanyAmount')}
-                      variant="Ghost"
-                      small
-                      auto
-                      onClick={() => setCompanyDraft(companyTotal.toFixed(2))}
-                    />
-                    {payment.rateSource === 'manual' && (
-                      <Simple_Button
-                        text={t('payments.rateUseMarket')}
-                        variant="Quiet"
-                        small
-                        auto
-                        disabled={saving}
-                        onClick={() => saveCompanyAmount({ useMarketRate: true })}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div className="Rate_Actions">
-                    <div className="Rate_Input">
-                      <Global_Input
-                        type="number"
-                        value={companyDraft}
-                        onChange={(e) => setCompanyDraft(e.target.value)}
-                      />
-                    </div>
-                    <Simple_Button
-                      text={saving ? t('common.saving') : t('common.save')}
-                      small
-                      auto
-                      disabled={saving || !draftValid}
-                      onClick={() => saveCompanyAmount({ companyAmount: draftValue })}
-                    />
-                    <Simple_Button
-                      text={t('common.cancel')}
+                      text={t('payments.rateUseMarket')}
                       variant="Quiet"
                       small
                       auto
                       disabled={saving}
-                      onClick={() => setCompanyDraft(null)}
+                      onClick={() => saveCompanyAmount({ useMarketRate: true })}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="Rate_Actions">
+                  <div className="Rate_Input">
+                    <Global_Input
+                      type="number"
+                      value={companyDraft}
+                      onChange={(e) => setCompanyDraft(e.target.value)}
                     />
                   </div>
-                )}
-              </div>
+                  <Simple_Button
+                    text={t('common.save')}
+                    small
+                    auto
+                    disabled={saving || !draftValid}
+                    onClick={() => saveCompanyAmount({ companyAmount: draftValue })}
+                  />
+                  <Simple_Button
+                    text={t('common.cancel')}
+                    variant="Quiet"
+                    small
+                    auto
+                    disabled={saving}
+                    onClick={() => setCompanyDraft(null)}
+                  />
+                </div>
+              )}
             </div>
-          )}
-
-          <Payment_Documents companyId={companyId} paymentId={payment.id} />
-        </div>
-
-        <div className="Popover_Footer">
-          <div className="Form_Action">
-            <Simple_Button text={t('common.close')} onClick={onClose} />
           </div>
+        )}
+
+        <Payment_Documents companyId={companyId} paymentId={payment.id} />
+      </div>
+
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={t('common.close')} onClick={onClose} />
         </div>
       </div>
-    </div>
+    </Popover_Shell>
   );
 };
 

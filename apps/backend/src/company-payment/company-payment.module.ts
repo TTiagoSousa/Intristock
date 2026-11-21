@@ -13,6 +13,7 @@ import { StorageModule } from 'src/storage/storage.module';
 import { CurrencyModule } from 'src/currency/currency.module';
 import { AppSettingModule } from 'src/app-setting/app-setting.module';
 import { CompanyMemberModule } from 'src/company-member/company-member.module';
+import { CompanyInvitationModule } from 'src/company-invitation/company-invitation.module';
 
 @Module({
   imports: [
@@ -34,6 +35,8 @@ import { CompanyMemberModule } from 'src/company-member/company-member.module';
     AppSettingModule,
     // Os salários por pagar entram na previsão do gráfico por mês
     CompanyMemberModule,
+    // Um pagamento a um membro com conta pede-lhe que confirme que recebeu
+    CompanyInvitationModule,
   ],
   controllers: [CompanyPaymentController],
   providers: [

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import { useAuth } from '../../../../Contexts/Auth_Context';
@@ -7,9 +7,10 @@ import { useBreadcrumbSegmentLabel } from '../../../../Contexts/Breadcrumb_Conte
 import { useCompanyAccessAdmin, type Company_Member } from '../../../../Hooks/Companies/useCompanyAccessAdmin';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import Member_Popover from './Member_Popover';
-import Confirm_Popover from './Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import * as Icon from '../../../../Imports/icons';
 import './Company_Members.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 /**
  * Quem trabalha na empresa: o dono (tudo) e os membros — com conta (entram na
@@ -95,7 +96,7 @@ const Company_Members = () => {
                     <tr
                       key={member.id}
                       className="Clickable"
-                      onClick={() => navigate(`/Companies/${company.slug}/membros/pessoa/${member.id}`)}
+                      onClick={() => navigate(`/Companies/${company.slug}/membros/pessoa/${member.id}`)} tabIndex={0} onKeyDown={activateOnKey}
                     >
                       <td>
                         <span className="Member_Name">{member.name}</span>
@@ -106,6 +107,10 @@ const Company_Members = () => {
                       <td>
                         {!member.user ? (
                           <span className="Pill">{t('companyMembers.noAccount')}</span>
+                        ) : member.status !== 'active' ? (
+                          <span className={`Pill ${member.status === 'invited' ? 'Warn' : 'Bad'}`}>
+                            {t(`companyMembers.status_${member.status}`)}
+                          </span>
                         ) : member.role ? (
                           <span className="Pill Info">{member.role.name}</span>
                         ) : (
@@ -199,7 +204,7 @@ const Company_Members = () => {
             name: toRemove.name,
           })}
           confirmText={t('companyMembers.remove')}
-          saving={saving}
+          busy={saving}
           onClose={() => setToRemove(null)}
           onConfirm={async () => {
             if (await removeMember(toRemove.id)) setToRemove(null);

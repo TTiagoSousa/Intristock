@@ -15,6 +15,7 @@ import {
   CompanyMember,
   CompanyMemberPay,
   CompanyPayment,
+  Prisma,
 } from 'src/generated/prisma/client/client';
 
 @Injectable()
@@ -47,7 +48,52 @@ export class PrismaCompanyPaymentRepository implements CompanyPaymentRepository 
     stockMovements: CompanyStockMovementInput[];
     assets: CompanyAssetInput[];
     companyCurrencyId: string;
-  }): Promise<CompanyPaymentWithLines> {
+  }): Promise<CompanyPaymentWithLines | null> {
+    // Um período de um salário paga-se uma vez: a verificação e a criação vão juntas, com o
+    // trinco do período (ver `lockMemberPeriod`). `null` se já está pago.
+    const { memberPayId, memberPayPeriod: period } = data;
+    if (memberPayId && period) {
+      return this.prisma.$transaction(async (tx) => {
+        await this.lockMemberPeriod(tx, memberPayId, period);
+        if (await this.findCompletedPeriod(tx, memberPayId, period)) return null;
+        return this.createPayment(tx, data);
+      });
+    }
+
+    return this.createPayment(this.prisma, data);
+  }
+
+  /**
+   * Um trinco (até ao fim da transação) por salário e período: dois pedidos ao mesmo tempo
+   * para o mesmo período esperam um pelo outro, e o segundo já vê o primeiro. A base não o
+   * garante sozinha — um índice único parcial não se escreve no schema do Prisma.
+   */
+  private lockMemberPeriod(tx: Prisma.TransactionClient, memberPayId: string, period: string) {
+    return tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('company-member-pay'), hashtext(${memberPayId}::text || '|' || ${period}::text))`;
+  }
+
+  // Um pagamento concluído (que não este) desse período desse salário
+  private findCompletedPeriod(
+    tx: Prisma.TransactionClient,
+    memberPayId: string,
+    period: string,
+    exceptId?: string,
+  ) {
+    return tx.companyPayment.findFirst({
+      where: {
+        memberPayId,
+        memberPayPeriod: period,
+        status: 'completed',
+        ...(exceptId ? { id: { not: exceptId } } : {}),
+      },
+      select: { id: true },
+    });
+  }
+
+  private createPayment(
+    client: Prisma.TransactionClient,
+    data: Parameters<PrismaCompanyPaymentRepository['createWithLines']>[0],
+  ): Promise<CompanyPaymentWithLines> {
     const {
       taxes,
       items,
@@ -59,7 +105,7 @@ export class PrismaCompanyPaymentRepository implements CompanyPaymentRepository 
 
     // Pagamento, impostos, itens, movimentos de stock e ativos são criados
     // juntos — tudo ou nada
-    return this.prisma.companyPayment.create({
+    return client.companyPayment.create({
       data: {
         ...payment,
         taxes: {
@@ -123,8 +169,16 @@ export class PrismaCompanyPaymentRepository implements CompanyPaymentRepository 
   async updateWithEffects(
     id: string,
     change: CompanyPaymentChange,
-  ): Promise<CompanyPaymentWithLines> {
+  ): Promise<CompanyPaymentWithLines | null> {
     return this.prisma.$transaction(async (tx) => {
+      // Passa a concluído um pagamento de um período de salário: o mesmo trinco do criar, e
+      // `null` se outro já o pagou entretanto
+      if (change.memberPeriod) {
+        const { memberPayId, period } = change.memberPeriod;
+        await this.lockMemberPeriod(tx, memberPayId, period);
+        if (await this.findCompletedPeriod(tx, memberPayId, period, id)) return null;
+      }
+
       if (change.clearEffects) {
         await tx.companyStockMovement.deleteMany({ where: { paymentId: id } });
       }
@@ -262,10 +316,20 @@ export class PrismaCompanyPaymentRepository implements CompanyPaymentRepository 
     return this.prisma.companyMemberPay.findFirst({ where: { id: memberPayId, memberId } });
   }
 
+  // Só os concluídos contam como pagos: um rascunho ainda é uma intenção (e não tira o
+  // período dos próximos pagamentos)
   async findPaidMemberPeriod(memberPayId: string, period: string): Promise<CompanyPayment | null> {
     return this.prisma.companyPayment.findFirst({
-      where: { memberPayId, memberPayPeriod: period, status: { not: 'cancelled' } },
+      where: { memberPayId, memberPayPeriod: period, status: 'completed' },
     });
+  }
+
+  /** Apaga um pagamento acabado de criar (o que vinha a seguir falhou), com as linhas dele. */
+  async discard(companyId: string, id: string): Promise<boolean> {
+    const payment = await this.prisma.companyPayment.findFirst({ where: { id, companyId }, select: { id: true } });
+    if (!payment) return false;
+    await this.delete(id);
+    return true;
   }
 
   async findAllByCompanyId(

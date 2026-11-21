@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -10,6 +10,7 @@ import Month_Chart from '../../../../Components/Charts/Month_Chart/Month_Chart';
 import { localeOf } from '../Earnings/earningsLabels';
 import '../Earnings/Earnings.scss';
 import './Expenses.scss';
+import { localMonth } from '../../../../utils/dates';
 
 const PERIODS = [6, 12, 24] as const;
 type Chart_Kind = 'bars' | 'lines';
@@ -31,6 +32,7 @@ const readKind = (): Chart_Kind => {
  */
 const Expenses_Dashboard = () => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const navigate = useNavigate();
   const { currencies, selectedCurrency } = useCurrency();
   const { formatIn } = useCurrencyFormat();
@@ -49,10 +51,10 @@ const Expenses_Dashboard = () => {
   // Abre as datas com o período que estava à vista
   const openCustom = () => {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth() - (months - 1), 1));
     setRange((current) => ({
       from: current.from || start.toISOString().slice(0, 7),
-      to: current.to || now.toISOString().slice(0, 7),
+      to: current.to || localMonth(now),
     }));
     setCustom(true);
   };
@@ -76,7 +78,7 @@ const Expenses_Dashboard = () => {
     label: monthDate(entry.month).toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
   }));
   // A linha do «Hoje» só quando há meses à frente à vista (as datas à mão)
-  const todayPosition = points.findIndex((point) => point.month === new Date().toISOString().slice(0, 7));
+  const todayPosition = points.findIndex((point) => point.month === localMonth());
   const todayIndex = todayPosition >= 0 && todayPosition < points.length - 1 ? todayPosition : undefined;
   const hasData = points.some((point) => point.paid + (point.pending ?? 0) > 0);
   const merchantMax = Math.max(...(data?.merchants ?? []).map((item) => item.total), 1);
@@ -142,13 +144,13 @@ const Expenses_Dashboard = () => {
       {/* Os filtros do gráfico e o registo, num cartão esticado por cima dele */}
       <div className="Card Earnings_Toolbar">
         <div className="Earnings_Filter Inline">
-          <span className="Eyebrow">{t('purchasesDashboard.filterPeriod')}</span>
-          <div className="Tabs">
+          <span className="Eyebrow" id={`${groupId}-filterPeriod`}>{t('purchasesDashboard.filterPeriod')}</span>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterPeriod`}>
             {PERIODS.map((period) => (
               <button
                 key={period}
                 type="button"
-                className={!custom && months === period ? 'Active' : ''}
+                className={!custom && months === period ? 'Active' : ''} aria-pressed={!custom && months === period}
                 onClick={() => {
                   setCustom(false);
                   setMonths(period);
@@ -157,14 +159,14 @@ const Expenses_Dashboard = () => {
                 {t('purchasesDashboard.months', { count: period })}
               </button>
             ))}
-            <button type="button" className={custom ? 'Active' : ''} onClick={openCustom}>
+            <button type="button" className={custom ? 'Active' : ''} aria-pressed={custom} onClick={openCustom}>
               {t('purchasesDashboard.customDates')}
             </button>
           </div>
         </div>
         {custom && (
           <div className="Earnings_Filter Inline">
-            <span className="Eyebrow">{t('purchasesDashboard.filterRange')}</span>
+            <label className="Eyebrow" htmlFor="expenses-chart-from">{t('purchasesDashboard.filterRange')}</label>
             <div className="Earnings_Range">
               <Global_Input
                 id="expenses-chart-from"
@@ -199,7 +201,7 @@ const Expenses_Dashboard = () => {
           <div className="Earnings_Controls">
             <div className="Tabs">
               {(['bars', 'lines'] as Chart_Kind[]).map((option) => (
-                <button key={option} type="button" className={kind === option ? 'Active' : ''} onClick={() => chooseKind(option)}>
+                <button key={option} type="button" className={kind === option ? 'Active' : ''} aria-pressed={kind === option} onClick={() => chooseKind(option)}>
                   {t(`purchasesDashboard.${option}`)}
                 </button>
               ))}

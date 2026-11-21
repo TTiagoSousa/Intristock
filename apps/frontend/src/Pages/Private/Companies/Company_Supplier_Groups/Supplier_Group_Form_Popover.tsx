@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../../../../Contexts/Alert_Context';
 import type { CompanySupplierGroup } from '../../../../Hooks/Companies/useCompanySupplierGroups';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Supplier_Group_Form_Popover_Props {
   companyName: string;
@@ -29,15 +30,6 @@ const Supplier_Group_Form_Popover = ({
   const [description, setDescription] = useState(group?.description ?? '');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -52,63 +44,63 @@ const Supplier_Group_Form_Popover = ({
   };
 
   return (
-    <div className={`Popover_Backdrop${stacked ? ' Stacked' : ''}`} onClick={onClose}>
-      <form
-        className="Popover_Card Narrow"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
-      >
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">
-              {t(group ? 'supplierGroups.editTitle' : 'supplierGroups.createTitle')}
-            </span>
-            <span className="Popover_Subtitle">{companyName}</span>
-          </div>
-
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
+    <Popover_Shell
+      onClose={onClose}
+      backdropClassName={stacked ? 'Stacked' : undefined}
+      as="form"
+      className="Narrow"
+      onSubmit={handleSubmit}
+    >
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">
+            {t(group ? 'supplierGroups.editTitle' : 'supplierGroups.createTitle')}
+          </span>
+          <span className="Popover_Subtitle">{companyName}</span>
         </div>
 
-        <div className="Popover_Body Single_Column">
-          <div className="Form_Field">
-            <label htmlFor="group-name">{t('supplierGroups.columnName')} *</label>
-            <Global_Input
-              id="group-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('supplierGroups.namePlaceholder')}
-            />
-          </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
 
-          <div className="Form_Field">
-            <label htmlFor="group-description">{t('supplierGroups.columnDescription')}</label>
-            <textarea
-              id="group-description"
-              className="Form_Textarea"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('supplierGroups.descriptionPlaceholder')}
-              rows={3}
-            />
-          </div>
+      <div className="Popover_Body Single_Column">
+        <div className="Form_Field">
+          <label htmlFor="group-name">{t('supplierGroups.columnName')} *</label>
+          <Global_Input
+            id="group-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('supplierGroups.namePlaceholder')}
+          />
         </div>
 
-        <div className="Popover_Footer">
-          <div className="Form_Action">
-            <Simple_Button text={t('common.cancel')} onClick={onClose} />
-          </div>
-          <div className="Form_Action">
-            <Simple_Button
-              type="submit"
-              text={saving ? t('common.saving') : t('common.save')}
-              disabled={saving}
-            />
-          </div>
+        <div className="Form_Field">
+          <label htmlFor="group-description">{t('supplierGroups.columnDescription')}</label>
+          <textarea
+            id="group-description"
+            className="Form_Textarea"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t('supplierGroups.descriptionPlaceholder')}
+            rows={3}
+          />
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={t('common.cancel')} onClick={onClose} />
+        </div>
+        <div className="Form_Action">
+          <Simple_Button
+            type="submit"
+            text={t('common.save')}
+            disabled={saving}
+          />
+        </div>
+      </div>
+    </Popover_Shell>
   );
 };
 

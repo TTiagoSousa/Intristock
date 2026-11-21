@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMarketRuns } from '../../../../Hooks/Trading/useMarketRuns';
 import type { Market_Instrument } from '../../../../Hooks/Trading/useMarketInstruments';
@@ -10,6 +10,7 @@ import * as Icon from '../../../../Imports/icons';
 import Instrument_Picker from '../Trading_Simulator/Instrument_Picker';
 import Factsheet_Panel from './Factsheet_Panel';
 import { useFactsheetFormat } from './factsheetFormat';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 interface Factsheet_Markets_Props {
   run: Simulation_Run;
@@ -98,7 +99,7 @@ const Factsheet_Markets = ({ run }: Factsheet_Markets_Props) => {
                 <tr
                   key={item.id}
                   className={`Factsheet_Markets_Row${item.id === run.id ? ' Total' : ''}`}
-                  onClick={() => item.id !== run.id && navigate(`/Trading/simulacoes/${item.id}?view=proofs`)}
+                  onClick={() => item.id !== run.id && navigate(`/Trading/simulacoes/${item.id}?view=proofs`)} tabIndex={item.id !== run.id ? 0 : undefined} onKeyDown={activateOnKey}
                 >
                   <td className="Strong">
                     {item.instrument.asset.ticker ?? item.instrument.symbol}/{item.instrument.quote}

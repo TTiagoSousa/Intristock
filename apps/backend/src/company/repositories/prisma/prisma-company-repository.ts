@@ -109,7 +109,8 @@ export class PrismaCompanyRepository implements CompanyRepository {
         include: companyInclude,
       }),
       this.prisma.companyMember.findMany({
-        where: { userId, company: { status: { not: 'deleted' } } },
+        // Só onde já aceitou o convite
+        where: { userId, status: 'active', company: { status: { not: 'deleted' } } },
         include: { company: { include: companyInclude } },
       }),
     ]);
@@ -128,13 +129,12 @@ export class PrismaCompanyRepository implements CompanyRepository {
     return [...ownedWithRole, ...memberWithRole];
   }
 
-  async findBankAccountByIban(iban: string): Promise<BankAccount | null> {
-    return this.prisma.bankAccount.findUnique({ where: { iban } });
-  }
-
   async addMember(data: {
     companyId: string;
     userId: string;
+    status?: string;
+    invitedById?: string;
+    invitedAt?: Date;
   }): Promise<CompanyMember> {
     return this.prisma.companyMember.create({ data });
   }

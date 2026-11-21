@@ -605,8 +605,21 @@ export const useBrokerConnections = () => {
   const connect = (body: Broker_Connection_Body) =>
     run('connect', async () => (await http.post<Broker_Connection>(End_Points.Broker_Connections_Endpoint(), body)).data);
 
-  const update = (id: string, body: Broker_Connection_Body) =>
-    run(id, async () => (await http.patch<Broker_Connection>(End_Points.Broker_Connection_Endpoint(id), body)).data);
+  // O intervalo muda logo no ecrã (otimista) e volta ao que era se o pedido falhar
+  const update = async (id: string, body: Broker_Connection_Body) => {
+    const previous = connections?.find((item) => item.id === id);
+    const optimistic = body.syncEveryHours !== undefined && previous;
+    if (optimistic)
+      setConnections((current) =>
+        (current ?? []).map((item) => (item.id === id ? { ...item, syncEveryHours: body.syncEveryHours! } : item)),
+      );
+    const done = await run(id, async () => (await http.patch<Broker_Connection>(End_Points.Broker_Connection_Endpoint(id), body)).data);
+    if (!done && optimistic)
+      setConnections((current) =>
+        (current ?? []).map((item) => (item.id === id ? { ...item, syncEveryHours: previous.syncEveryHours } : item)),
+      );
+    return done;
+  };
 
   const sync = (id: string) =>
     run(id, async () => (await http.post<Broker_Connection>(End_Points.Broker_Connection_Sync_Endpoint(id))).data);

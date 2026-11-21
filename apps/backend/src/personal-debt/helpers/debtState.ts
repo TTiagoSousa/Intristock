@@ -1,6 +1,7 @@
 import { DebtWithRefs } from '../repositories/personal-debt-repository';
 
 const iso = (date: Date) => date.toISOString().slice(0, 10);
+const round = (value: number) => Math.round(value * 100) / 100;
 
 /**
  * Onde está uma dívida num dia (por omissão, hoje e tudo o que está gravado):
@@ -37,13 +38,15 @@ export function debtState(debt: DebtWithRefs, until?: string) {
     if (!lastPayment || date > lastPayment) lastPayment = date;
   }
 
+  // Aos cêntimos: somar e subtrair decimais deixa restos (1e-13) e uma dívida já paga
+  // nunca chegava a 0
   return {
-    balance: Math.max(balance, 0),
-    paid,
-    paidPrincipal,
-    interestPaid,
-    feesPaid,
-    charged,
+    balance: Math.max(round(balance), 0),
+    paid: round(paid),
+    paidPrincipal: round(paidPrincipal),
+    interestPaid: round(interestPaid),
+    feesPaid: round(feesPaid),
+    charged: round(charged),
     lastPayment,
   };
 }

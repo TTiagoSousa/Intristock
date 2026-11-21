@@ -25,35 +25,43 @@ import { findCandles } from './helpers/findCandles';
 import { FindCandlesDto } from './dto/find-candles.dto';
 import { BinanceCandleRepository } from './repositories/binance/binance-candle-repository';
 import { CoinbaseCandleRepository } from './repositories/coinbase/coinbase-candle-repository';
+import { AppSettingService } from 'src/app-setting/app-setting.service';
+import { startScheduledJob } from 'src/common/scheduledJob';
 
 const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// A primeira volta depois do arranque (as outras tarefas têm outros tempos)
+const SYNC_STAGGER_MS = 15_000;
 
 @Injectable()
 export class MarketDataService
   implements OnApplicationBootstrap, OnModuleDestroy
 {
   private readonly logger = new Logger(MarketDataService.name);
-  private syncTimer?: NodeJS.Timeout;
+  private stopSync?: () => void;
 
   constructor(
     private readonly repository: PrismaMarketDataRepository,
     private readonly binance: BinanceCandleRepository,
     private readonly coinbase: CoinbaseCandleRepository,
+    private readonly settings: AppSettingService,
   ) {}
 
-  // A lista de mercados entra no arranque (cada deploy reinicia o backend) e
-  // atualiza-se uma vez por dia. Sem await: as corretoras demoram alguns
-  // segundos e a app não fica à espera delas para arrancar
+  // A lista de mercados atualiza-se uma vez por dia. No arranque só se já passou o
+  // dia desde a última vez (cada deploy reinicia o backend; numa instalação nova,
+  // logo): a hora fica no AppSetting. Sem await: a app não fica à espera
   onApplicationBootstrap() {
-    void this.syncInstruments();
-    this.syncTimer = setInterval(
-      () => void this.syncInstruments(),
-      SYNC_INTERVAL_MS,
-    );
+    this.stopSync = startScheduledJob({
+      name: 'market-data.instruments',
+      everyMs: SYNC_INTERVAL_MS,
+      staggerMs: SYNC_STAGGER_MS,
+      store: this.settings,
+      run: () => this.syncInstruments(),
+      logger: this.logger,
+    });
   }
 
   onModuleDestroy() {
-    clearInterval(this.syncTimer);
+    this.stopSync?.();
   }
 
   // Cada corretora à parte: uma em baixo não impede a outra

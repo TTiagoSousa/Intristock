@@ -15,6 +15,7 @@ import type {
 } from '../../../../Hooks/Trading/useMarketInstruments';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import { Chevron_Down, Search } from '../../../../Imports/icons';
+import { localeOf } from '../../../../utils/locale';
 
 interface Instrument_Picker_Props {
   value: Market_Instrument | null;
@@ -95,7 +96,7 @@ const Instrument_Picker = ({ value, onChange }: Instrument_Picker_Props) => {
   };
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', year: 'numeric' });
+    new Date(date).toLocaleDateString(localeOf(i18n.language), { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <div className={`Instrument_Picker${open ? ' Open' : ''}${value ? '' : ' Empty'}`} ref={fieldRef}>

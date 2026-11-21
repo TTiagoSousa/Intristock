@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { PrismaCalculatorRepository } from 'src/calculator/repositories/prisma/prisma-calculator-repository';
+import { PrismaCalculatorRepository } from 'src/calculator-catalog/repositories/prisma/prisma-calculator-repository';
 
 const COMPOUND_INTEREST_ABBREVIATION = 'compound-interest';
 

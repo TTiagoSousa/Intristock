@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import http from '../../../../../../Service/httpService';
 import { End_Points } from '../../../../../../Service/endPoints';
 import Global_Input from '../../../../../../Components/Inputs/Global_Input/Global_Input';
 import { getErrorMessage } from '../../../../../../Hooks/useAsyncRequest';
+import { activateOnKey } from '../../../../../../utils/rowKeyboard';
 
 interface Stored_Prop_Firm {
   id: string;
@@ -70,7 +71,7 @@ const Prop_Firms_Stored = ({ formatDate }: { formatDate: (iso: string) => string
     <>
       <div className="Prop_Firms_Filters">
         <div className="Tabs">
-          <button type="button" className={assetType === 'all' ? 'Active' : ''} onClick={() => setAssetType('all')}>
+          <button type="button" className={assetType === 'all' ? 'Active' : ''} aria-pressed={assetType === 'all'} onClick={() => setAssetType('all')}>
             {t('adminApis.propFirms.filter_all', { count: firms.length })}
           </button>
           {assetTypes.map((type) => (
@@ -81,7 +82,7 @@ const Prop_Firms_Stored = ({ formatDate }: { formatDate: (iso: string) => string
         </div>
         <div className="Tabs">
           {(['all', 'active', 'inactive'] as State_Filter[]).map((key) => (
-            <button key={key} type="button" className={state === key ? 'Active' : ''} onClick={() => setState(key)}>
+            <button key={key} type="button" className={state === key ? 'Active' : ''} aria-pressed={state === key} onClick={() => setState(key)}>
               {t(`adminApis.propFirms.state_${key}`)}
             </button>
           ))}
@@ -112,7 +113,7 @@ const Prop_Firms_Stored = ({ formatDate }: { formatDate: (iso: string) => string
           </thead>
           <tbody>
             {visible.map((firm) => (
-              <tr key={firm.id} className="Clickable" onClick={() => navigate(firm.id)}>
+              <tr key={firm.id} className="Clickable" onClick={() => navigate(firm.id)} tabIndex={0} onKeyDown={activateOnKey}>
                 <td>
                   <span className="Prop_Firm_Name">{firm.name}</span>
                   <div className="Admin_Muted_Cell">

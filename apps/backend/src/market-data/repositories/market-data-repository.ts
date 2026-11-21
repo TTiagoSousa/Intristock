@@ -129,4 +129,5 @@ export interface MarketDataRepository {
     userId: string,
   ): Promise<MarketDataDownloadView | null>;
   notifyDownload(id: string): Promise<void>;
+  countActiveDownloads(userId: string): Promise<number>;
 }

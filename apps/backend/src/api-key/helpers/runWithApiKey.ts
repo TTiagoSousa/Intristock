@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { decryptSecret } from 'src/utils/crypto/secret-box';
+import { decryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { PrismaApiKeyRepository } from '../repositories/prisma/prisma-api-key-repository';
 import { ApiKeyKind, ApiKeyUnusableError, nextMonth } from './apiKeyProviders';
 import { refreshApiKey } from './refreshApiKey';
@@ -24,7 +24,7 @@ export async function runWithApiKey<T>(
   const failures: string[] = [];
   for (const apiKey of keys) {
     try {
-      const result = await run(decryptSecret(apiKey.key));
+      const result = await run(decryptSecret(apiKey.key, secretContext('api_key', apiKey.kind, 'key')));
       const used = await repository.update(apiKey.id, { lastUsedAt: new Date(), lastError: null });
       void refreshApiKey(used, repository).catch(() => undefined);
       return result;

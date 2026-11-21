@@ -27,6 +27,9 @@ jobs:
       DATABASE_URL: postgresql://intristock:intristock@localhost:5432/intristock
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The ESLint step compares against the PR base
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -37,6 +40,16 @@ jobs:
         run: npx prisma generate
       - name: Type check
         run: npx tsc --noEmit -p tsconfig.json
+      - name: Unit tests
+        run: npm test -- --ci
+      - name: Report blocks match (simulator, backend, schema)
+        run: node ../../scripts/check-report-blocks.mjs
+      - name: Routes match docs/api.md
+        run: node ../../scripts/check-api-docs.mjs --strict
+      - name: ESLint errors on changed lines (report only)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: node ../../scripts/eslint-changed.mjs backend ${{ github.event.pull_request.base.sha }}
       - name: Build
         run: npx nest build
 
@@ -48,12 +61,20 @@ jobs:
         working-directory: apps/frontend
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: apps/frontend/package-lock.json
       - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: ESLint errors on changed lines (report only)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: node ../../scripts/eslint-changed.mjs frontend ${{ github.event.pull_request.base.sha }}
       - name: Type check and build
         run: npm run build
         env:
@@ -110,7 +131,20 @@ jobs:
       - name: Install
         run: pip install -r apps/${{ matrix.app }}/requirements.txt
       - name: Compile
-        run: python -m compileall -q apps/${{ matrix.app }}/intristock_${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
+        run: python -m compileall -q intristock_${{ matrix.app }} scripts
+      - name: Smoke check (imports and a short run, no network or databases)
+        working-directory: apps/${{ matrix.app }}
+        run: python scripts/smoke_check.py
+      - name: Engine golden values
+        if: matrix.app == 'simulator'
+        working-directory: apps/simulator
+        run: python scripts/golden_check.py
+      - name: Ruff (pyflakes and syntax errors)
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          pip install ruff==0.17.3
+          ruff check --select F,E9 --output-format github intristock_${{ matrix.app }} scripts
 
   shell:
     name: Shell scripts

@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { Request, Response } from 'express';
 import { PrismaUserRepository } from 'src/user/repositories/prisma/prisma-user-repository';
 import { validateUser } from './helpers/validateUser';
-import { loginUser } from './helpers/loginUser';
+import { issueUserSession } from './helpers/issueUserSession';
 
 @Injectable()
 export class AuthUserService {
@@ -15,7 +16,12 @@ export class AuthUserService {
     return validateUser(email, password, this.userRepository);
   }
 
-  async login(user: { id: string; email: string; fullName: string }) {
-    return loginUser(user, this.jwt);
+  login(
+    req: Request,
+    res: Response,
+    user: { id: string; email: string; fullName: string },
+    remember: boolean,
+  ) {
+    issueUserSession(req, res, user, remember, this.jwt);
   }
 }

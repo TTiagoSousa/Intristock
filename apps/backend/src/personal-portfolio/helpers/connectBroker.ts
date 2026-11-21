@@ -3,7 +3,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { encryptSecret } from 'src/utils/crypto/secret-box';
+import { encryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { ConnectBrokerDto } from '../dto/personal-portfolio.dto';
 import { fetchTrading212Account, Trading212Error } from './trading212Client';
@@ -47,8 +47,8 @@ export async function connectBroker(
     platformId: platform.id,
     externalAccountId: account.id,
     currencyCode: account.currency ?? null,
-    apiKey: encryptSecret(apiKey),
-    apiSecret: encryptSecret(apiSecret),
+    apiKey: encryptSecret(apiKey, secretContext('broker_connection', `${userId}:${account.id}`, 'apiKey')),
+    apiSecret: encryptSecret(apiSecret, secretContext('broker_connection', `${userId}:${account.id}`, 'apiSecret')),
     fromDate: dto.fromDate ? new Date(dto.fromDate) : null,
   });
   // Sem o portefólio a ligação não fica (senão a conta ficava "já ligada" e sem nada)

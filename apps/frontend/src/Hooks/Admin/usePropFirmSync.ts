@@ -75,12 +75,15 @@ export const usePropFirmSync = () => {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
+  // Depois de sair da página, uma resposta que chegue já não volta a agendar
+  const alive = useRef(true);
 
   // O estado só muda nos callbacks, quando a resposta chega
   const load = () =>
     http
       .get<Prop_Firm_Sync_Status>(End_Points.Prop_Firms_Status_Endpoint())
       .then((response) => {
+        if (!alive.current) return;
         setStatus(response.data);
         if (timer.current) window.clearTimeout(timer.current);
         timer.current = response.data.running ? window.setTimeout(load, POLL_MS) : null;
@@ -88,9 +91,12 @@ export const usePropFirmSync = () => {
       .catch(() => undefined);
 
   useEffect(() => {
+    alive.current = true;
     load();
     return () => {
+      alive.current = false;
       if (timer.current) window.clearTimeout(timer.current);
+      timer.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -101,7 +107,7 @@ export const usePropFirmSync = () => {
     try {
       const response = await http.post<Prop_Firm_Sync_Status>(End_Points.Prop_Firms_Sync_Endpoint());
       setStatus(response.data);
-      timer.current = window.setTimeout(load, POLL_MS);
+      if (alive.current) timer.current = window.setTimeout(load, POLL_MS);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

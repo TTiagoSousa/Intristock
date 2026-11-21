@@ -1,10 +1,10 @@
+import { isoDay } from 'src/utils/dates';
 import { BadRequestException, HttpException } from '@nestjs/common';
 import { PrismaCurrencyRepository } from '../repositories/prisma/prisma-currency-repository';
 import { PrismaCurrencyRateRepository } from '../repositories/prisma/prisma-currency-rate-repository';
 import { CurrencyApiConfig, fetchHistoricalRate } from './currencyBeaconClient';
 
 // 'YYYY-MM-DD' em UTC: é assim que as datas dos pagamentos (`@db.Date`) chegam
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 // '03/03/2026', para as mensagens
 const shownDay = (date: Date) => isoDay(date).split('-').reverse().join('/');

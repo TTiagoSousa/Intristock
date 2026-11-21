@@ -33,16 +33,7 @@ export async function createBankAccount(
     throw new BadRequestException('Plataforma inválida');
   }
 
-  // 3. O IBAN, se vier, tem de ser único
-  if (dto.iban) {
-    const existing = await bankAccountRepository.findByIban(dto.iban);
-
-    if (existing) {
-      throw new ConflictException('Já existe uma conta com este IBAN');
-    }
-  }
-
-  // 4. userId OU companyId — nunca os dois, nunca nenhum.
+  // 3. userId OU companyId — nunca os dois, nunca nenhum.
   // Se vier companyId, a conta pertence à empresa (e não diretamente ao user).
   // Se não vier, a conta pertence ao user autenticado.
   let ownerCompanyId: string | undefined;
@@ -57,6 +48,19 @@ export async function createBankAccount(
     ownerCompanyId = dto.companyId;
   } else {
     ownerUserId = userId;
+  }
+
+  // 4. O IBAN, se vier, é único entre as contas do mesmo dono (depois do acesso: quem
+  // não é da empresa não fica a saber que IBAN ela tem)
+  if (dto.iban) {
+    const existing = await bankAccountRepository.findByOwnerIban(
+      { userId: ownerUserId, companyId: ownerCompanyId },
+      dto.iban,
+    );
+
+    if (existing) {
+      throw new ConflictException(ownerCompanyId ? 'A empresa já tem uma conta com este IBAN' : 'Já tens uma conta com este IBAN');
+    }
   }
 
   // 5. Criar

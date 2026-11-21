@@ -1,3 +1,4 @@
+import { pipeline } from 'stream/promises';
 import {
   BadRequestException,
   Controller,
@@ -81,7 +82,9 @@ export class CompanyPaymentDocumentController {
     // O browser não deve guardar em cache um ficheiro que exige autenticação
     res.setHeader('Cache-Control', 'private, no-store');
 
-    stream.pipe(res);
+    // O pipeline fecha os dois lados num erro (o S3 cai a meio, o browser desliga) em
+    // vez de deixar um erro sem dono deitar o processo abaixo
+    await pipeline(stream, res).catch(() => undefined);
   }
 
   @Delete(':documentId')

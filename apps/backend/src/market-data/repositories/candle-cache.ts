@@ -3,9 +3,10 @@ import { CandleInterval } from 'src/market-data/dto/find-candles.dto';
 // Uma vela: início em segundos UTC, abertura, máxima, mínima, fecho e volume
 export type CandleRow = [number, number, number, number, number, number];
 
-// Blocos guardados em memória (cada um até 1000 velas, ~50 KB): os mais
-// antigos saem primeiro
-const CACHE_LIMIT = 2000;
+// Velas guardadas em memória, somadas em todos os blocos (cada vela, um array de 6
+// números, ocupa ~100 bytes: 300 mil são ~30 MB). Os blocos usados há mais tempo
+// saem primeiro. Contar blocos não chegava: um bloco vai de 0 a 1000 velas
+const CACHE_MAX_ROWS = 300_000;
 // Um bloco só com velas fechadas nunca muda; o que tem a vela em curso, pouco
 const CLOSED_TTL_MS = 6 * 60 * 60 * 1000;
 const OPEN_TTL_MS = 5_000;
@@ -35,6 +36,8 @@ interface CacheEntry {
  */
 export class CandleCache {
   private readonly cache = new Map<string, CacheEntry>();
+  // Quantas velas há no total na cache
+  private rows = 0;
   private readonly inFlight = new Map<string, Promise<CandleRow[]>>();
 
   get(
@@ -71,10 +74,25 @@ export class CandleCache {
     // Um bloco vazio (antes do início do mercado) também não muda
     const ttl = closed || rows.length === 0 ? CLOSED_TTL_MS : OPEN_TTL_MS;
 
-    this.cache.set(key, { rows, expiresAt: Date.now() + ttl });
-    for (const oldest of this.cache.keys()) {
-      if (this.cache.size <= CACHE_LIMIT) break;
-      this.cache.delete(oldest);
+    const now = Date.now();
+    this.drop(key);
+    this.cache.set(key, { rows, expiresAt: now + ttl });
+    this.rows += rows.length;
+    if (this.rows <= CACHE_MAX_ROWS) return;
+    // Primeiro os que já expiraram, depois os usados há mais tempo
+    for (const [oldKey, entry] of this.cache) {
+      if (oldKey !== key && entry.expiresAt <= now) this.drop(oldKey);
     }
+    for (const oldest of this.cache.keys()) {
+      if (this.rows <= CACHE_MAX_ROWS || oldest === key) break;
+      this.drop(oldest);
+    }
+  }
+
+  private drop(key: string) {
+    const entry = this.cache.get(key);
+    if (!entry) return;
+    this.rows -= entry.rows.length;
+    this.cache.delete(key);
   }
 }

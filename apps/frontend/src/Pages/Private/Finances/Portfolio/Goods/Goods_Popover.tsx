@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useCurrencyFormat } from '../../../../../Hooks/useCurrencyFormat';
@@ -20,6 +20,8 @@ import {
 import { formatDateOnly, localToday, parseAmount } from '../../../../../Hooks/Finances/portfolioInput';
 import Goods_Price_Search, { type Goods_Search_Params } from './Goods_Price_Search';
 import './Goods.scss';
+import { localeOf } from '../../../../../utils/locale';
+import Popover_Shell from '../../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Goods_Popover_Props {
   assetId: string;
@@ -39,8 +41,9 @@ const NONE = 'none';
  */
 const Goods_Popover = ({ assetId, onClose }: Goods_Popover_Props) => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const { formatIn } = useCurrencyFormat();
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const { goods, error, setError, saving, update, addValuation, sell } = useGoods(assetId);
   const pricesAvailable = usePricesAvailable();
   const { portfolios: allPortfolios } = usePortfolioTransaction();
@@ -55,14 +58,6 @@ const Goods_Popover = ({ assetId, onClose }: Goods_Popover_Props) => {
   const [salePrice, setSalePrice] = useState('');
   const [saleDate, setSaleDate] = useState(localToday);
   const [cashTo, setCashTo] = useState(NEW);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   const code = goods?.currency?.shortCode ?? 'EUR';
   const money = (value: number | null) => (value === null ? '—' : formatIn(value, code));
@@ -137,7 +132,7 @@ const Goods_Popover = ({ assetId, onClose }: Goods_Popover_Props) => {
           </div>
           <div className="Form_Action">
             <Simple_Button
-              text={saving ? t('common.saving') : t('goods.saveValuation', { value: searchedMoney })}
+              text={t('goods.saveValuation', { value: searchedMoney })}
               onClick={() => void saveSearch()}
               disabled={saving || searched === null}
             />
@@ -152,7 +147,7 @@ const Goods_Popover = ({ assetId, onClose }: Goods_Popover_Props) => {
           </div>
           <div className="Form_Action">
             <Simple_Button
-              text={saving ? t('common.saving') : t('common.save')}
+              text={t('common.save')}
               onClick={async () => changed(await addValuation({ manualValue: manual, date: valueDate }))}
               disabled={saving || manual === null || manual < 0 || !valueDate}
             />
@@ -167,7 +162,7 @@ const Goods_Popover = ({ assetId, onClose }: Goods_Popover_Props) => {
           </div>
           <div className="Form_Action">
             <Simple_Button
-              text={saving ? t('common.saving') : t('goods.sell')}
+              text={t('goods.sell')}
               onClick={async () =>
                 changed(
                   await sell({
@@ -191,181 +186,179 @@ const Goods_Popover = ({ assetId, onClose }: Goods_Popover_Props) => {
   })();
 
   return createPortal(
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <div className="Popover_Card Goods_Card" onClick={(e) => e.stopPropagation()}>
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{goods?.asset.name ?? t('common.loading')}</span>
-            <span className="Popover_Subtitle">
-              {goods
-                ? [goods.portfolio?.name, goods.acquisition ? t(`goods.acquisition_${goods.acquisition}`) : null, date(goods.acquiredAt)]
-                    .filter(Boolean)
-                    .join(' · ')
-                : ''}
-            </span>
-          </div>
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
+    <Popover_Shell onClose={onClose} className="Goods_Card">
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{goods?.asset.name ?? t('common.loading')}</span>
+          <span className="Popover_Subtitle">
+            {goods
+              ? [goods.portfolio?.name, goods.acquisition ? t(`goods.acquisition_${goods.acquisition}`) : null, date(goods.acquiredAt)]
+                  .filter(Boolean)
+                  .join(' · ')
+              : ''}
+          </span>
         </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
 
-        <div className="Popover_Body Single_Column">
-          {!goods && !error && <span className="Field_Hint">{t('common.loading')}</span>}
-          {goods && (
-            <>
-              <div className="Goods_Stats">
-                <div className="Goods_Stat">
-                  <span className="Goods_Stat_Label">{t(goods.held ? 'goods.valueToday' : 'goods.soldFor')}</span>
-                  <span className="Goods_Stat_Value Num">{money(goods.held ? goods.value : (goods.sale?.price ?? null))}</span>
+      <div className="Popover_Body Single_Column">
+        {!goods && !error && <span className="Field_Hint">{t('common.loading')}</span>}
+        {goods && (
+          <>
+            <div className="Goods_Stats">
+              <div className="Goods_Stat">
+                <span className="Goods_Stat_Label">{t(goods.held ? 'goods.valueToday' : 'goods.soldFor')}</span>
+                <span className="Goods_Stat_Value Num">{money(goods.held ? goods.value : (goods.sale?.price ?? null))}</span>
+              </div>
+              <div className="Goods_Stat">
+                <span className="Goods_Stat_Label">{t(goods.purchasePrice !== null ? 'goods.paid' : 'goods.enteredAt')}</span>
+                <span className="Goods_Stat_Value Num">{money(goods.purchasePrice ?? goods.entryValue)}</span>
+              </div>
+              <div className="Goods_Stat">
+                <span className="Goods_Stat_Label">{t('goods.difference')}</span>
+                <span
+                  className={`Goods_Stat_Value Num ${
+                    (goods.held ? gain : (goods.sale?.realized ?? null)) === null
+                      ? ''
+                      : (goods.held ? gain! : goods.sale!.realized) >= 0
+                        ? 'Gain'
+                        : 'Loss'
+                  }`}
+                >
+                  {money(goods.held ? gain : (goods.sale?.realized ?? null))}
+                </span>
+              </div>
+              <div className="Goods_Stat">
+                <span className="Goods_Stat_Label">{t('goods.year')}</span>
+                <span className="Goods_Stat_Value Num">{details?.year ?? '—'}</span>
+              </div>
+            </div>
+            <span className="Field_Hint">
+              {[details?.brand, details?.model, details?.version, details?.plate].filter(Boolean).join(' · ')}
+            </span>
+
+            {mode === 'view' && (
+              <>
+                {goods.held && (
+                  <div className="Goods_Actions">
+                    {pricesAvailable && (
+                      <Simple_Button text={t('goods.updatePrice')} onClick={startSearch} auto />
+                    )}
+                    <Simple_Button text={t('goods.manualValue')} onClick={() => setMode('manual')} variant="Ghost" auto />
+                    <Simple_Button text={t('goods.sell')} onClick={() => setMode('sell')} variant="Ghost" auto />
+                  </div>
+                )}
+
+                {goods.held && pricesAvailable && (
+                  <div className="Form_Field">
+                    <label id={`${groupId}-autoUpdate`}>{t('goods.autoUpdate')}</label>
+                    <div className="Tabs" role="group" aria-labelledby={`${groupId}-autoUpdate`}>
+                      {VALUATION_INTERVALS.map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          disabled={saving}
+                          className={(goods.asset.valuationEveryDays ?? 0) === days ? 'Active' : ''} aria-pressed={(goods.asset.valuationEveryDays ?? 0) === days}
+                          onClick={() => void update({ valuationEveryDays: days || null })}
+                        >
+                          {t(`goods.every_${days}`)}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="Field_Hint">
+                      {goods.asset.valuationNextAt
+                        ? t('goods.nextUpdate', { when: instant(goods.asset.valuationNextAt) })
+                        : t('goods.autoUpdateOff')}
+                    </span>
+                  </div>
+                )}
+
+                <span className="Goods_Section_Title">{t('goods.history')}</span>
+                <div className="Goods_History">
+                  {[...goods.history].reverse().map((row) => (
+                    <div key={row.id} className="Goods_History_Row">
+                      <span className="Num">{date(row.date)}</span>
+                      <span className="Goods_History_Source">
+                        {t(`goods.source_${row.source}`)}
+                        {row.condition && row.source === 'search' ? ` · ${t(`goods.condition_${row.condition}`)}` : ''}
+                      </span>
+                      <span className="Goods_History_Value Num">{money(row.value)}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="Goods_Stat">
-                  <span className="Goods_Stat_Label">{t(goods.purchasePrice !== null ? 'goods.paid' : 'goods.enteredAt')}</span>
-                  <span className="Goods_Stat_Value Num">{money(goods.purchasePrice ?? goods.entryValue)}</span>
+
+                {goods.report && (
+                  <>
+                    <span className="Goods_Section_Title">{t('goods.lastReport')}</span>
+                    <Goods_Price_Search
+                      params={searchParams}
+                      onParams={() => undefined}
+                      report={goods.report}
+                      onReport={() => undefined}
+                      condition={goods.report.condition ?? 'average'}
+                      onCondition={() => undefined}
+                      canSearch={false}
+                      readOnly
+                    />
+                  </>
+                )}
+              </>
+            )}
+
+            {mode === 'search' && (
+              <Goods_Price_Search
+                params={searchParams}
+                onParams={setParams}
+                report={report}
+                onReport={setReport}
+                condition={condition}
+                onCondition={setCondition}
+                canSearch
+              />
+            )}
+            {mode === 'search' && report && report.currency !== code && (
+              <span className="Field_Hint">{t('goods.convertedAtSave', { from: report.currency, to: code })}</span>
+            )}
+
+            {mode === 'manual' && (
+              <div className="Portfolio_Pair">
+                <div className="Form_Field">
+                  <label htmlFor="goods-value">{t('goods.currentValue')} *</label>
+                  <Global_Input id="goods-value" value={manualValue} onChange={(e) => setManualValue(e.target.value)} />
                 </div>
-                <div className="Goods_Stat">
-                  <span className="Goods_Stat_Label">{t('goods.difference')}</span>
-                  <span
-                    className={`Goods_Stat_Value Num ${
-                      (goods.held ? gain : (goods.sale?.realized ?? null)) === null
-                        ? ''
-                        : (goods.held ? gain! : goods.sale!.realized) >= 0
-                          ? 'Gain'
-                          : 'Loss'
-                    }`}
-                  >
-                    {money(goods.held ? gain : (goods.sale?.realized ?? null))}
-                  </span>
-                </div>
-                <div className="Goods_Stat">
-                  <span className="Goods_Stat_Label">{t('goods.year')}</span>
-                  <span className="Goods_Stat_Value Num">{details?.year ?? '—'}</span>
+                <div className="Form_Field">
+                  <label htmlFor="goods-value-date">{t('portfolio.date')} *</label>
+                  <Global_Input id="goods-value-date" type="date" value={valueDate} onChange={(e) => setValueDate(e.target.value)} />
                 </div>
               </div>
-              <span className="Field_Hint">
-                {[details?.brand, details?.model, details?.version, details?.plate].filter(Boolean).join(' · ')}
-              </span>
+            )}
 
-              {mode === 'view' && (
-                <>
-                  {goods.held && (
-                    <div className="Goods_Actions">
-                      {pricesAvailable && (
-                        <Simple_Button text={t('goods.updatePrice')} onClick={startSearch} auto />
-                      )}
-                      <Simple_Button text={t('goods.manualValue')} onClick={() => setMode('manual')} variant="Ghost" auto />
-                      <Simple_Button text={t('goods.sell')} onClick={() => setMode('sell')} variant="Ghost" auto />
-                    </div>
-                  )}
-
-                  {goods.held && pricesAvailable && (
-                    <div className="Form_Field">
-                      <label>{t('goods.autoUpdate')}</label>
-                      <div className="Tabs">
-                        {VALUATION_INTERVALS.map((days) => (
-                          <button
-                            key={days}
-                            type="button"
-                            disabled={saving}
-                            className={(goods.asset.valuationEveryDays ?? 0) === days ? 'Active' : ''}
-                            onClick={() => void update({ valuationEveryDays: days || null })}
-                          >
-                            {t(`goods.every_${days}`)}
-                          </button>
-                        ))}
-                      </div>
-                      <span className="Field_Hint">
-                        {goods.asset.valuationNextAt
-                          ? t('goods.nextUpdate', { when: instant(goods.asset.valuationNextAt) })
-                          : t('goods.autoUpdateOff')}
-                      </span>
-                    </div>
-                  )}
-
-                  <span className="Goods_Section_Title">{t('goods.history')}</span>
-                  <div className="Goods_History">
-                    {[...goods.history].reverse().map((row) => (
-                      <div key={row.id} className="Goods_History_Row">
-                        <span className="Num">{date(row.date)}</span>
-                        <span className="Goods_History_Source">
-                          {t(`goods.source_${row.source}`)}
-                          {row.condition && row.source === 'search' ? ` · ${t(`goods.condition_${row.condition}`)}` : ''}
-                        </span>
-                        <span className="Goods_History_Value Num">{money(row.value)}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {goods.report && (
-                    <>
-                      <span className="Goods_Section_Title">{t('goods.lastReport')}</span>
-                      <Goods_Price_Search
-                        params={searchParams}
-                        onParams={() => undefined}
-                        report={goods.report}
-                        onReport={() => undefined}
-                        condition={goods.report.condition ?? 'average'}
-                        onCondition={() => undefined}
-                        canSearch={false}
-                        readOnly
-                      />
-                    </>
-                  )}
-                </>
-              )}
-
-              {mode === 'search' && (
-                <Goods_Price_Search
-                  params={searchParams}
-                  onParams={setParams}
-                  report={report}
-                  onReport={setReport}
-                  condition={condition}
-                  onCondition={setCondition}
-                  canSearch
-                />
-              )}
-              {mode === 'search' && report && report.currency !== code && (
-                <span className="Field_Hint">{t('goods.convertedAtSave', { from: report.currency, to: code })}</span>
-              )}
-
-              {mode === 'manual' && (
+            {mode === 'sell' && (
+              <>
                 <div className="Portfolio_Pair">
                   <div className="Form_Field">
-                    <label htmlFor="goods-value">{t('goods.currentValue')} *</label>
-                    <Global_Input id="goods-value" value={manualValue} onChange={(e) => setManualValue(e.target.value)} />
+                    <label htmlFor="goods-sale-price">{t('goods.salePrice')} *</label>
+                    <Global_Input id="goods-sale-price" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} />
                   </div>
                   <div className="Form_Field">
-                    <label htmlFor="goods-value-date">{t('portfolio.date')} *</label>
-                    <Global_Input id="goods-value-date" type="date" value={valueDate} onChange={(e) => setValueDate(e.target.value)} />
+                    <label htmlFor="goods-sale-date">{t('portfolio.date')} *</label>
+                    <Global_Input id="goods-sale-date" type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} />
                   </div>
                 </div>
-              )}
-
-              {mode === 'sell' && (
-                <>
-                  <div className="Portfolio_Pair">
-                    <div className="Form_Field">
-                      <label htmlFor="goods-sale-price">{t('goods.salePrice')} *</label>
-                      <Global_Input id="goods-sale-price" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} />
-                    </div>
-                    <div className="Form_Field">
-                      <label htmlFor="goods-sale-date">{t('portfolio.date')} *</label>
-                      <Global_Input id="goods-sale-date" type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="Form_Field">
-                    <label htmlFor="goods-cash-to">{t('portfolio.cashFromSell')}</label>
-                    <Global_Dropdown id="goods-cash-to" value={cashTo} onChange={(next) => setCashTo(String(next))} options={cashOptions} />
-                  </div>
-                </>
-              )}
-            </>
-          )}
-          {error && <span className="Field_Hint Portfolio_Error">{error}</span>}
-        </div>
-        <div className="Popover_Footer">{footer}</div>
+                <div className="Form_Field">
+                  <label htmlFor="goods-cash-to">{t('portfolio.cashFromSell')}</label>
+                  <Global_Dropdown id="goods-cash-to" value={cashTo} onChange={(next) => setCashTo(String(next))} options={cashOptions} />
+                </div>
+              </>
+            )}
+          </>
+        )}
+        {error && <span className="Field_Hint Portfolio_Error">{error}</span>}
       </div>
-    </div>,
+      <div className="Popover_Footer">{footer}</div>
+    </Popover_Shell>,
     document.body,
   );
 };

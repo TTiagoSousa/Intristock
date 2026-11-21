@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { useAuth } from '../Contexts/Auth_Context';
 
 // As páginas de administração. Quem não for admin volta às definições — o

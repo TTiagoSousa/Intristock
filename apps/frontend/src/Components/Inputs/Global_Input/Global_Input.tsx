@@ -18,6 +18,10 @@ interface Global_Input_Props {
   autoComplete?: string;
   // O id de uma <datalist> com sugestões (ex. os produtos já comprados)
   list?: string;
+  // Limites de um campo numérico (o browser não deixa passar com as setas e marca-o inválido)
+  min?: number;
+  max?: number;
+  step?: number | 'any';
 }
 
 const Global_Input = ({
@@ -32,6 +36,9 @@ const Global_Input = ({
   maxLength,
   autoComplete,
   list,
+  min,
+  max,
+  step,
 }: Global_Input_Props) => {
   return (
     <div className={`Global_Input${Field_Icon ? ' With_Icon' : ''}`}>
@@ -46,6 +53,9 @@ const Global_Input = ({
         maxLength={maxLength}
         autoComplete={autoComplete}
         list={list}
+        min={min}
+        max={max}
+        step={step}
       />
 
       {/* Vem depois do campo no HTML de propósito: é assim que o CSS lhe chega

@@ -8,6 +8,7 @@ import Update_Popover from '../../../../../Components/Update_Popover/Update_Popo
 import * as Icon from '../../../../../Imports/icons';
 import '../Admin.scss';
 import './Versions.scss';
+import { localeOf } from '../../../../../utils/locale';
 
 const Versions = () => {
   const { t, i18n } = useTranslation();
@@ -18,7 +19,7 @@ const Versions = () => {
 
   const formatDate = (iso: string | null | undefined) =>
     iso
-      ? new Date(iso).toLocaleDateString(i18n.language === 'pt' ? 'pt-PT' : 'en-GB', {
+      ? new Date(iso).toLocaleDateString(localeOf(i18n.language), {
           day: '2-digit',
           month: 'long',
           year: 'numeric',
@@ -57,7 +58,7 @@ const Versions = () => {
         </div>
         <div className="Page_Head_Actions">
           <Simple_Button
-            text={loading ? t('versions.searching') : t('versions.refresh')}
+            text={t('versions.refresh')}
             onClick={() => fetchReleases(true)}
             disabled={loading}
             variant="Ghost"

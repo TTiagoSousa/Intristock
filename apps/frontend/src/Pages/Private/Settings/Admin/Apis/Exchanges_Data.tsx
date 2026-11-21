@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import Simple_Button from '../../../../../Components/Buttons/Simple_Button/Simple_Button';
 

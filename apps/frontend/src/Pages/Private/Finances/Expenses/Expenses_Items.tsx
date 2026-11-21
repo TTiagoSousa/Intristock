@@ -118,7 +118,7 @@ const Expenses_Items = () => {
     <div className="Earnings">
       <div className="Tabs Items_Tabs">
         {TABS.map((option) => (
-          <button key={option} type="button" className={tab === option ? 'Active' : ''} onClick={() => setTab(option)}>
+          <button key={option} type="button" className={tab === option ? 'Active' : ''} aria-pressed={tab === option} onClick={() => setTab(option)}>
             {t(`expenses.itemsTab_${option}`)}
           </button>
         ))}
@@ -131,11 +131,11 @@ const Expenses_Items = () => {
           <div className="Card Earnings_Filter_Card">
             <div className="Earnings_Filters">
               <div className="Earnings_Filter Wide">
-                <span className="Eyebrow">{t('expenses.search')}</span>
+                <label className="Eyebrow" htmlFor="items-q">{t('expenses.search')}</label>
                 <Global_Input id="items-q" value={q} onChange={(e) => setQ(e.target.value)} icon={Icon.Search} />
               </div>
               <div className="Earnings_Filter Wide">
-                <span className="Eyebrow">{t('expenses.itemCategory')}</span>
+                <label className="Eyebrow" htmlFor="items-category">{t('expenses.itemCategory')}</label>
                 <Global_Dropdown
                   id="items-category"
                   value={categoryFilter}

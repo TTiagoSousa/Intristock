@@ -48,14 +48,14 @@ export class PrismaUserRepository implements UserRepository {
     return this.prisma.user.create({ data });
   }
 
-  async findById(id: string): Promise<Omit<User, 'hashedPassword'> | null> {
+  async findById(id: string): Promise<Omit<User, 'hashedPassword' | 'passwordChangedAt'> | null> {
     return this.prisma.user.findUnique({
       where: { id },
       select: PUBLIC_FIELDS,
     });
   }
 
-  async findAll(): Promise<Omit<User, 'hashedPassword'>[]> {
+  async findAll(): Promise<Omit<User, 'hashedPassword' | 'passwordChangedAt'>[]> {
     return this.prisma.user.findMany({
       select: PUBLIC_FIELDS,
       orderBy: { createdAt: 'asc' },
@@ -65,11 +65,12 @@ export class PrismaUserRepository implements UserRepository {
   async updatePassword(id: string, hashedPassword: string): Promise<User> {
     return this.prisma.user.update({
       where: { id },
-      data: { hashedPassword },
+      // As sessões abertas antes disto deixam de valer (a estratégia JWT compara o iat)
+      data: { hashedPassword, passwordChangedAt: new Date() },
     });
   }
 
-  async update(id: string, data: UserUpdate): Promise<Omit<User, 'hashedPassword'>> {
+  async update(id: string, data: UserUpdate): Promise<Omit<User, 'hashedPassword' | 'passwordChangedAt'>> {
     return this.prisma.user.update({ where: { id }, data, select: PUBLIC_FIELDS });
   }
 

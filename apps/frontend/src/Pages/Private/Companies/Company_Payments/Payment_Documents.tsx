@@ -7,6 +7,7 @@ import {
 import { useCompany } from '../../../../Contexts/Company_Context';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import * as Icon from '../../../../Imports/icons';
+import { localeOf } from '../../../../utils/locale';
 
 interface Payment_Documents_Props {
   companyId: string;
@@ -57,7 +58,7 @@ const Payment_Documents = ({ companyId, paymentId }: Payment_Documents_Props) =>
         <div className="Documents_Action">
           {can('payments.edit') && (
             <Simple_Button
-              text={uploading ? t('documents.uploading') : t('documents.add')}
+              text={t('documents.add')}
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
               variant="Ghost"
@@ -92,7 +93,7 @@ const Payment_Documents = ({ companyId, paymentId }: Payment_Documents_Props) =>
                 <span className="Document_Name">{document.fileName}</span>
                 <span className="Document_Meta">
                   {formatSize(document.size)} ·{' '}
-                  {new Date(document.createdAt).toLocaleDateString(i18n.language)}
+                  {new Date(document.createdAt).toLocaleDateString(localeOf(i18n.language))}
                 </span>
               </div>
 

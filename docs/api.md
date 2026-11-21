@@ -8,24 +8,36 @@ There is no public sign-up: the admin creates the accounts (Settings → Users, 
 
 - `POST /auth-user/login` with `{ email, password, rememberMe }` sets an HTTP-only session cookie (a JWT). Every other request sends it back.
 - `POST /auth-user/logout` clears it; `GET /auth-user/me` returns the current user.
-- The JWT strategy reads the user on every request, so a deactivated or blocked user loses the session at once.
+- The JWT strategy reads the user on every request, so a deactivated or blocked user loses the session at once. Changing or resetting a password sets `passwordChangedAt`, and tokens issued before it are refused (the user who changed it gets a new cookie).
+- Login is limited to 5 attempts a minute per IP and login, and 20 per IP; an unknown login still runs a bcrypt compare, so the timing does not reveal which accounts exist.
+- **Writes** (`POST`, `PATCH`, `PUT`, `DELETE`) must send a JSON or `multipart/form-data` body; multipart and body-less writes also need the `X-Requested-With` header the frontend adds to every request. Anything else gets `415`/`403` (`csrfGuardMiddleware`).
+- Some routes that call paid or shared APIs have a per-user limit (`429`): goods price searches, `POST /currency/day-rates`, `GET /market/candles` and `POST /market/downloads` (also at most 5 downloads queued or running per user).
 
 **Access** in the tables below:
 
 | Access | Meaning |
 |---|---|
-| public | No session needed (reference lists). |
+| public | No session needed (`/`, `/health` and `GET /currency`, which the login page uses). |
 | login | Username and password (the login route). |
 | user | Any signed-in user. Personal routes only see the user's own data. |
 | admin | A user with the `ADMIN` role (`UserAdminGuard`, read from the database on each request). |
 
 Company routes (`/company/:companyId/...`) are `user` routes that also check, with `assertCompanyAccess`, that the user is the owner or a member whose role grants the permission the route needs (for example `payments.create`). The list of permissions is served by `GET /company-permissions`.
 
-Validation errors return `400` with the field messages; a missing permission returns `403`; a record that does not exist or that the user cannot see returns `404`.
+Validation errors return `400` with the field messages; a missing permission returns `403`; a record that does not exist or that the user cannot see returns `404`. Known Prisma errors are mapped by a global filter (`PrismaExceptionFilter`): a unique or foreign-key conflict is `409`, a missing record `404`.
 
 ## Routes
 
-Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employee`, `employee` and `job-type` modules are still in the code but the app does not use them, so they are left out.
+Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employee`, `employee` and `job-type` modules are still in the code but are not mounted in `AppModule`, so they have no routes. `scripts/check-api-docs.mjs` (`npm run check`, and a blocking CI step) compares these tables with the mounted controllers.
+
+### app
+
+| Method | Path | Handler | Access |
+|---|---|---|---|
+| GET | `/` | getHello | public |
+| GET | `/health` | getHealth (`SELECT 1`; `503` without the database) | public |
+
+`update.sh` calls `/health` on 127.0.0.1 after restarting the backend.
 
 ### app-setting
 
@@ -63,6 +75,8 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 
 ### calculator
 
+The module folder is `src/calculator-catalog` (the catalogue of calculators); the route stays `/calculator`.
+
 | Method | Path | Handler | Access |
 |---|---|---|---|
 | POST | `/calculator` | create | admin |
@@ -85,16 +99,18 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | Method | Path | Handler | Access |
 |---|---|---|---|
 | GET | `/company-permissions` | catalog | user |
-| GET | `/company-permissions/access` | myAccess | user |
-| GET | `/company-permissions/roles` | findRoles | user |
-| POST | `/company-permissions/roles` | createRole | user |
-| PATCH | `/company-permissions/roles/:roleId` | updateRole | user |
-| DELETE | `/company-permissions/roles/:roleId` | deleteRole | user |
-| GET | `/company-permissions/members` | findMembers | user |
-| GET | `/company-permissions/members/:memberId` | findMember | user |
-| POST | `/company-permissions/members` | addMember | user |
-| PATCH | `/company-permissions/members/:memberId` | updateMember | user |
-| DELETE | `/company-permissions/members/:memberId` | removeMember | user |
+| GET | `/company/:companyId/access` | myAccess | user |
+| GET | `/company/:companyId/roles` | findRoles | user |
+| POST | `/company/:companyId/roles` | createRole | user |
+| PATCH | `/company/:companyId/roles/:roleId` | updateRole | user |
+| DELETE | `/company/:companyId/roles/:roleId` | deleteRole | user |
+| GET | `/company/:companyId/members` | findMembers | user |
+| GET | `/company/:companyId/members/:memberId` | findMember | user |
+| POST | `/company/:companyId/members` | addMember (an invitation when the person has an account) | user |
+| PATCH | `/company/:companyId/members/:memberId` | updateMember | user |
+| DELETE | `/company/:companyId/members/:memberId` | removeMember | user |
+
+`GET /company-permissions` is the fixed list of permissions a role can grant; the rest are per company. A member's personal data (tax number, social security, ID card, IBAN, address) only comes back to whoever has `salaries.view` or `members.manage`.
 
 ### company-asset
 
@@ -131,6 +147,7 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | PATCH | `/company/:companyId/members/:memberId/contracts/:contractId` | updateContract | user |
 | DELETE | `/company/:companyId/members/:memberId/contracts/:contractId` | deleteContract | user |
 | GET | `/company/:companyId/members/:memberId/documents` | findDocuments | user |
+| POST | `/company/:companyId/members/:memberId/documents` | uploadDocument (multipart: `file`, optional `contractId`) | user |
 | GET | `/company/:companyId/members/:memberId/documents/:documentId/download` | downloadDocument | user |
 | DELETE | `/company/:companyId/members/:memberId/documents/:documentId` | deleteDocument | user |
 
@@ -146,6 +163,7 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 
 | Method | Path | Handler | Access |
 |---|---|---|---|
+| POST | `/company/:companyId/payments/:paymentId/documents` | upload (multipart: `file`) | user |
 | GET | `/company/:companyId/payments/:paymentId/documents` | findAll | user |
 | GET | `/company/:companyId/payments/:paymentId/documents/:documentId/download` | download | user |
 | DELETE | `/company/:companyId/payments/:paymentId/documents/:documentId` | remove | user |
@@ -206,7 +224,7 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | Method | Path | Handler | Access |
 |---|---|---|---|
 | POST | `/country/sync` | sync | admin |
-| GET | `/country` | findAll | public |
+| GET | `/country` | findAll | user |
 
 ### currency
 
@@ -227,8 +245,11 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/live-tests` | findAll | user |
 | GET | `/live-tests/:id` | findOne | user |
 | GET | `/live-tests/:id/events` | findEvents | user |
+| SSE | `/live-tests/:id/stream` | stream (server-sent events: price, new events, state) | user |
 | POST | `/live-tests/:id/stop` | stop | user |
 | DELETE | `/live-tests/:id` | delete | user |
+
+The stream checks access when it opens and closes after 5 minutes; the browser's `EventSource` reconnects (through the guard again) and the first message asks it to refetch the events.
 
 ### market-data
 
@@ -256,6 +277,17 @@ Grouped by backend module (`apps/backend/src/<module>`). The legacy `auth-employ
 | GET | `/notifications` | findAll | user |
 | POST | `/notifications/read-all` | markAllRead | user |
 | POST | `/notifications/:id/read` | markRead | user |
+
+### company-invitation
+
+What companies ask of the current user: invitations to join, pay offers and payments to confirm. The bell's action buttons call the same routes. Notifications that need an answer carry `actionStatus` (`pending` → `accepted`/`declined`/`cancelled`/`done`).
+
+| Method | Path | Handler | Access |
+|---|---|---|---|
+| GET | `/invitations` | mine | user |
+| POST | `/invitations/members/:id` | respondInvite (`{ accept }`) | the invited user |
+| POST | `/invitations/pays/:id` | respondProposal (`{ accept, note? }`) | the member's user |
+| POST | `/invitations/payments/:id` | confirmPayment (`{ source: company_payment | time_tracking, received }`) | the paid user |
 
 ### personal-debt
 
@@ -387,7 +419,7 @@ also returns `total` and `net`: cash in minus cash out of every matching transac
 | Method | Path | Handler | Access |
 |---|---|---|---|
 | POST | `/platform` | create | admin |
-| GET | `/platform` | findAll | public |
+| GET | `/platform` | findAll | user |
 | GET | `/platform/prop-firms/status` | propFirmStatus | admin |
 | POST | `/platform/prop-firms/sync` | syncPropFirms | admin |
 | GET | `/platform/connections` | connections | admin |
@@ -417,16 +449,44 @@ also returns `total` and `net`: cash in minus cash out of every matching transac
 
 | Method | Path | Handler | Access |
 |---|---|---|---|
+| GET | `/system/version?lang` | version (the installed version and its notes) | admin |
 | GET | `/system/releases` | releases | admin |
 | POST | `/system/update` | update | admin |
 | GET | `/system/update/status` | updateStatus | admin |
+| GET | `/versions?lang` | findAll (every release with its notes and `current`, the version in use) | user |
 
 ### tax
 
 | Method | Path | Handler | Access |
 |---|---|---|---|
 | POST | `/tax` | create | admin |
-| GET | `/tax` | findAll | public |
+| GET | `/tax` | findAll | user |
+
+### time-tracking
+
+The company time bank (part of every company, permissions `timesheet.view` / `timesheet.manage`). The solidtime key is stored encrypted and never returned.
+
+| Method | Path | Handler | Access |
+|---|---|---|---|
+| GET | `/company/:companyId/time-tracking/connections` | connections | timesheet.view |
+| POST | `/company/:companyId/time-tracking/connections/check` | check | timesheet.manage |
+| POST | `/company/:companyId/time-tracking/connections` | connect | timesheet.manage |
+| PATCH | `/company/:companyId/time-tracking/connections/:id` | updateConnection | timesheet.manage |
+| DELETE | `/company/:companyId/time-tracking/connections/:id` | deleteConnection | timesheet.manage |
+| POST | `/company/:companyId/time-tracking/connections/:id/sync` | syncNow | timesheet.manage |
+| GET | `/company/:companyId/time-tracking/clients` | clients | timesheet.view |
+| PATCH | `/company/:companyId/time-tracking/clients/:id` | updateClient | timesheet.manage |
+| GET | `/company/:companyId/time-tracking/people` | people | timesheet.view |
+| PATCH | `/company/:companyId/time-tracking/people/:id` | updatePerson | timesheet.manage |
+| GET | `/company/:companyId/time-tracking/hours` | hours | timesheet.view |
+| GET | `/company/:companyId/time-tracking/entries` | entries | timesheet.view |
+| GET | `/company/:companyId/time-tracking/summary` | summary | timesheet.view |
+| GET | `/company/:companyId/time-tracking/settlements?clientId&personId` | settlements | timesheet.view |
+| POST | `/company/:companyId/time-tracking/settlements` | createSettlement — the client paid the company (`mode` range | hours | entries; with `toBankAccountId` also `payments.create`) | timesheet.manage |
+| DELETE | `/company/:companyId/time-tracking/settlements/:id` | deleteSettlement (with a receipt also `payments.delete`) | timesheet.manage |
+| GET | `/company/:companyId/time-tracking/payouts?personId` | payouts | timesheet.view |
+| POST | `/company/:companyId/time-tracking/payouts` | createPayout — the company paid the worker (`entryIds` or `personId` + `fromDate`/`toDate`; with `fromBankAccountId` also `payments.create`) | timesheet.manage |
+| DELETE | `/company/:companyId/time-tracking/payouts/:id` | deletePayout (with a payment also `payments.delete`) | timesheet.manage |
 
 ### user
 

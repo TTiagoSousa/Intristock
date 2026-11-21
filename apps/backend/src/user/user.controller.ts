@@ -1,5 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
+import { JwtService } from '@nestjs/jwt';
+import { issueUserSession } from 'src/auth-user/helpers/issueUserSession';
 import { UserService } from './user.service';
 import { JwtUserAuthGuard } from 'src/auth-user/guards/jwt-user-auth.guard';
 import { UserAdminGuard } from 'src/auth-user/guards/user-admin.guard';
@@ -12,7 +14,10 @@ import { BlockUserDto } from './dto/block-user.dto';
 @Controller('user')
 @UseGuards(JwtUserAuthGuard)
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwt: JwtService,
+  ) {}
 
   @Get('me')
   findCurrent(@Req() req: Request & { user: JwtUserPayload }) {
@@ -21,8 +26,15 @@ export class UserController {
 
   @Patch('me/password')
   @HttpCode(200)
-  changePassword(@Req() req: Request & { user: JwtUserPayload }, @Body() dto: ChangePasswordDto) {
-    return this.userService.changePassword(req.user.id, dto);
+  async changePassword(
+    @Req() req: Request & { user: JwtUserPayload },
+    @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.userService.changePassword(req.user.id, dto);
+    // As outras sessões caem; esta continua com um token novo
+    issueUserSession(req, res, req.user, req.user.remember === true, this.jwt);
+    return result;
   }
 
   // Não há registo público: as contas novas são criadas pelo admin

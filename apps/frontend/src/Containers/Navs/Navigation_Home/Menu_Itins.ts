@@ -53,6 +53,8 @@ export const modules: Menu_Module[] = [
     path: '/Dashboard',
     sections: [
       { id: 'overview', labelKey: 'menu.overview', path: '/Dashboard' },
+      // Os convites para empresas e as propostas de salário (também no sino)
+      { id: 'invitations', labelKey: 'menu.invitations', path: '/Convites' },
     ],
   },
   {
@@ -236,6 +238,18 @@ export const companyAreas: Company_Area[] = [
     permissions: ['trading.view'],
   },
   {
+    id: 'time_tracking',
+    labelKey: 'timeTracking.title',
+    icon: Icon.Clock,
+    path: (slug) => `/Companies/${slug}/horas`,
+    permissions: ['timesheet.view'],
+    sections: (slug) => [
+      { id: 'summary', labelKey: 'timeTracking.menuOverview', path: `/Companies/${slug}/horas` },
+      { id: 'hours', labelKey: 'timeTracking.menuHours', path: `/Companies/${slug}/horas/registo` },
+      { id: 'clients', labelKey: 'timeTracking.menuClients', path: `/Companies/${slug}/horas/clientes` },
+    ],
+  },
+  {
     id: 'members',
     labelKey: 'menu.companyMembers',
     icon: Icon.Users,
@@ -258,9 +272,49 @@ export const companyAreas: Company_Area[] = [
     labelKey: 'menu.companySettings',
     icon: Icon.Settings,
     path: (slug) => `/Companies/${slug}/definicoes`,
-    permissions: ['settings.view'],
+    permissions: ['settings.view', 'timesheet.manage'],
+    sections: (slug) => [
+      { id: 'general', labelKey: 'menu.companySettingsGeneral', path: `/Companies/${slug}/definicoes`, permissions: ['settings.view'] },
+      { id: 'apps', labelKey: 'menu.connectedApps', path: `/Companies/${slug}/definicoes/apps`, permissions: ['timesheet.manage'] },
+    ],
   },
 ];
+
+/**
+ * Para onde vai o botão de uma área: a primeira secção que a pessoa pode ver
+ * (quem só gere o banco de horas não cai nas Definições gerais, que não vê).
+ */
+export const companyAreaEntry = (
+  area: Company_Area,
+  slug: string,
+  can: (...permissions: CompanyPermission[]) => boolean,
+): string => {
+  const first = (area.sections?.(slug) ?? []).find(
+    (section) => !section.action && (!section.permissions || can(...section.permissions)),
+  );
+  return first?.path ?? area.path(slug);
+};
+
+/**
+ * O que uma página da empresa pede: a área (permissões e módulo) e a secção
+ * mais funda cujo caminho a contém (a página de um registo conta com a lista).
+ */
+export const companyRouteRequirement = (
+  pathname: string,
+  slug: string,
+): { area: Company_Area; permissions?: CompanyPermission[] } => {
+  const area = activeCompanyArea(pathname, slug);
+  const section = (area.sections?.(slug) ?? [])
+    .filter(
+      (item) =>
+        pathname === item.path ||
+        pathname.startsWith(item.path + '/') ||
+        item.matchPaths?.some((path) => (path.endsWith('/') ? pathname.startsWith(path) : path === pathname)),
+    )
+    .sort((a, b) => b.path.length - a.path.length)[0];
+
+  return { area, permissions: section?.permissions ?? area.permissions };
+};
 
 /** O slug da empresa aberta, ou undefined se estivermos na área pessoal. */
 export const companySlugFromPath = (pathname: string): string | undefined =>

@@ -20,7 +20,9 @@ export class PlatformController {
     return this.platformService.create(dto);
   }
 
+  // Com sessão: o ecrã de login não precisa do catálogo
   @Get()
+  @UseGuards(JwtUserAuthGuard)
   findAll() {
     return this.platformService.findAll();
   }

@@ -162,6 +162,16 @@ export async function createCompanyPayment(
         throw new NotFoundException('Salário ou recibo verde não encontrado');
       }
 
+      // Só um salário aceite se paga: uma proposta por aceitar, recusada ou cancelada ainda
+      // não é nada que a empresa deva
+      if (pay.status !== 'accepted') {
+        throw new BadRequestException(
+          pay.status === 'proposed'
+            ? 'Este salário ainda não foi aceite pelo membro'
+            : 'Este salário não está em vigor (foi recusado ou cancelado)',
+        );
+      }
+
       const validPeriod =
         pay.kind === 'freelance'
           ? dto.memberPayPeriod === 'once'
@@ -315,8 +325,10 @@ export async function createCompanyPayment(
       )
     : { stockMovements: [], assets: [] };
 
-  // 13. Criar pagamento + linhas de imposto + linhas de item
-  return companyPaymentRepository.createWithLines({
+  // 13. Criar pagamento + linhas de imposto + linhas de item. Num período de salário o
+  // repositório volta a ver, com um trinco, se outro pedido o pagou entretanto (o passo 5b
+  // só dá a mensagem cedo; dois cliques ao mesmo tempo passavam os dois)
+  const created = await companyPaymentRepository.createWithLines({
     companyId,
     paymentType: dto.paymentType,
     partyType: dto.partyType,
@@ -342,4 +354,10 @@ export async function createCompanyPayment(
     assets: isSettled ? assets : [],
     companyCurrencyId: company.currencyId,
   });
+
+  if (!created) {
+    throw new ConflictException('Esse pagamento já está registado');
+  }
+
+  return created;
 }

@@ -64,14 +64,14 @@ const Platforms = () => {
           <div className="Admin_Block_Body">
             <div className="Platforms_Filters">
               <div className="Tabs">
-                <button type="button" className={typeFilter === 'all' ? 'Active' : ''} onClick={() => setTypeFilter('all')}>
+                <button type="button" className={typeFilter === 'all' ? 'Active' : ''} aria-pressed={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>
                   {t('adminPlatforms.all', { count: platforms.length })}
                 </button>
                 {types.map((type) => (
                   <button
                     key={type}
                     type="button"
-                    className={typeFilter === type ? 'Active' : ''}
+                    className={typeFilter === type ? 'Active' : ''} aria-pressed={typeFilter === type}
                     onClick={() => setTypeFilter(type)}
                   >
                     {t(`adminPlatforms.types.${type}`)} ({sorted.filter((platform) => platform.type === type).length})

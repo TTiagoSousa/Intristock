@@ -16,7 +16,7 @@ import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_B
 import Global_Pagination from '../../../../Components/Pagination/Global_Pagination/Global_Pagination';
 import { usePagedList } from '../../../../Hooks/usePagedList';
 import * as Icon from '../../../../Imports/icons';
-import Confirm_Popover from '../../Companies/Company_Members/Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import { formatDay, localeOf } from '../Earnings/earningsLabels';
 import Subscription_Popover from './Subscription_Popover';
 
@@ -125,11 +125,11 @@ const Subscriptions_Tab = () => {
       <div className="Card Earnings_Filter_Card">
         <div className="Earnings_Filters">
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('expenses.search')}</span>
+            <label className="Eyebrow" htmlFor="subscriptions-q">{t('expenses.search')}</label>
             <Global_Input id="subscriptions-q" value={q} onChange={(e) => setQ(e.target.value)} icon={Icon.Search} />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('subscriptions.kind')}</span>
+            <label className="Eyebrow" htmlFor="subscriptions-kind">{t('subscriptions.kind')}</label>
             <Global_Dropdown
               id="subscriptions-kind"
               value={kind}
@@ -141,7 +141,7 @@ const Subscriptions_Tab = () => {
             />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('subscriptions.status')}</span>
+            <label className="Eyebrow" htmlFor="subscriptions-status">{t('subscriptions.status')}</label>
             <Global_Dropdown
               id="subscriptions-status"
               value={status}
@@ -153,7 +153,7 @@ const Subscriptions_Tab = () => {
             />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('subscriptions.ahead')}</span>
+            <label className="Eyebrow" htmlFor="subscriptions-ahead">{t('subscriptions.ahead')}</label>
             <Global_Dropdown
               id="subscriptions-ahead"
               value={ahead}
@@ -273,7 +273,7 @@ const Subscriptions_Tab = () => {
           <div className="Earnings_Controls">
             <div className="Tabs">
               {PERIOD_VIEWS.map((option) => (
-                <button key={option} type="button" className={view === option ? 'Active' : ''} onClick={() => setView(option)}>
+                <button key={option} type="button" className={view === option ? 'Active' : ''} aria-pressed={view === option} onClick={() => setView(option)}>
                   {t(`subscriptions.view_${option}`)}
                 </button>
               ))}
@@ -367,7 +367,7 @@ const Subscriptions_Tab = () => {
           subtitle={deleting.name}
           message={t('subscriptions.deleteConfirm')}
           confirmText={t('common.delete')}
-          saving={state.saving}
+          busy={state.saving}
           onClose={close}
           onConfirm={async () => {
             if (await state.deleteSubscription(deleting.id)) close();

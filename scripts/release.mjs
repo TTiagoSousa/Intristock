@@ -2,7 +2,7 @@
 // Release helper. See CONTRIBUTING.md ("Versions and releases").
 //
 //   npm run release -- --prepare   on develop: compute the version, update the files, write releases/vX.Y.Z/en.md
-//   npm run release -- --push      on main: create the annotated tag vX.Y.Z and push it
+//   npm run release -- --push      on main: create the tag vX.Y.Z (signed when git has user.signingkey) and push it
 //
 // Options: --dry-run (change nothing), --version X.Y.Z (force a version), --title "…" (release title),
 // --notes file.md (hand-written English notes instead of the generated ones),
@@ -39,6 +39,17 @@ const allowBranch = option('--allow-branch');
 
 function git(...a) {
   return execFileSync('git', a, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+/**
+ * Whether git has a key to sign the tag with (user.signingkey, GPG or SSH per gpg.format).
+ * The installs that hold the release key (deploy/proxmox/README.md) only accept signed tags.
+ */
+function canSign() {
+  try {
+    return Boolean(git('config', '--get', 'user.signingkey'));
+  } catch {
+    return false;
+  }
 }
 function fail(message) {
   console.error(`release: ${message}`);
@@ -198,11 +209,17 @@ function push() {
   const file = join(root, `releases/${tagName}/en.md`);
   if (!existsSync(file)) fail(`releases/${tagName}/en.md is missing`);
   if (!existsSync(join(root, `releases/${tagName}/pt-PT.md`))) fail(`releases/${tagName}/pt-PT.md is missing`);
+  const sign = canSign();
+  const kind = sign ? 'signed' : 'annotated';
   if (dryRun) {
-    console.log(`would create the annotated tag ${tagName} on ${head.slice(0, 7)} and push it`);
+    console.log(`would create the ${kind} tag ${tagName} on ${head.slice(0, 7)} and push it`);
     return;
   }
-  git('tag', '-a', tagName, '-F', file, '--cleanup=verbatim');
+  if (!sign) {
+    console.warn('release: no signing key (git config user.signingkey): the tag goes unsigned, and installs with a release key refuse it');
+  }
+  // stdio inherit: GPG or the SSH agent may need to ask for the passphrase
+  execFileSync('git', ['tag', sign ? '-s' : '-a', tagName, '-F', file, '--cleanup=verbatim'], { cwd: root, stdio: 'inherit' });
   execFileSync('git', ['push', 'origin', tagName], { cwd: root, stdio: 'inherit' });
   console.log(`release: pushed ${tagName}; the release workflow publishes the GitHub Release and the installs offer it under Versions → Update`);
 }

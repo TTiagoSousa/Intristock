@@ -26,7 +26,10 @@ export interface BankAccountRepository {
   // O movimento de cada conta da empresa, somado na base de dados em vez de
   // trazer os pagamentos todos para memória
   sumMovementsByCompany(companyId: string): Promise<AccountMovementTotals[]>;
-  findByIban(iban: string): Promise<BankAccount | null>;
+  findByOwnerIban(
+    owner: { userId?: string; companyId?: string },
+    iban: string,
+  ): Promise<BankAccount | null>;
   update(id: string, data: BankAccountUpdateData): Promise<BankAccount>;
   delete(id: string): Promise<void>;
   // Guardas de quem depende desta conta antes de a apagar ou lhe trocar a moeda

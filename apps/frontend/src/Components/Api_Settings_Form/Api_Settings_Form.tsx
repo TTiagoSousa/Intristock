@@ -154,7 +154,7 @@ const Api_Settings_Form = ({ settings, saving, submitText, onSubmit }: Api_Setti
           {missingKey && <span className="Setting_Hint">{t('adminApis.bothKeysNeeded')}</span>}
         </div>
         <div className="Setting_Control">
-          <Simple_Button type="submit" text={saving ? t('common.saving') : submitText} disabled={saving || missingKey} />
+          <Simple_Button type="submit" text={submitText} disabled={saving || missingKey} />
         </div>
       </div>
     </form>

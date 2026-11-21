@@ -11,6 +11,10 @@ export class PrismaAppSettingRepository implements AppSettingRepository {
     return this.prisma.appSetting.findMany({ where: { key: { in: keys } } });
   }
 
+  async deleteMany(keys: string[]): Promise<void> {
+    await this.prisma.appSetting.deleteMany({ where: { key: { in: keys } } });
+  }
+
   async upsertMany(entries: { key: string; value: string; encrypted: boolean }[]): Promise<void> {
     await this.prisma.$transaction(
       entries.map((entry) =>

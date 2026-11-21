@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
@@ -11,6 +11,7 @@ import type {
 } from '../../../../Hooks/Companies/useCompanyAccessAdmin';
 import type { CompanyPermission, CompanyPermissionArea } from '../../../../Hooks/Companies/companyPermissions';
 import Permission_Grid from './Permission_Grid';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 const NO_ROLE = '';
 
@@ -45,14 +46,6 @@ const Member_Popover = ({ catalog, roles, member, saving, readOnly, onClose, onA
   const [roleId, setRoleId] = useState(member?.role?.id ?? NO_ROLE);
   const [extra, setExtra] = useState<CompanyPermission[]>(member?.extraPermissions ?? []);
   const [denied, setDenied] = useState<CompanyPermission[]>(member?.deniedPermissions ?? []);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   const base = roles.find((role) => role.id === roleId)?.permissions ?? [];
   const effective = [...base.filter((p) => !denied.includes(p)), ...extra.filter((p) => !base.includes(p))];
@@ -94,116 +87,114 @@ const Member_Popover = ({ catalog, roles, member, saving, readOnly, onClose, onA
   ];
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <form className={`Popover_Card ${member ? 'Wide' : 'Narrow'}`} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{member ? member.name : t('companyMembers.addTitle')}</span>
-            <span className="Popover_Subtitle">
-              {member
-                ? member.user?.email
-                : t(mode === 'record' ? 'companyMembers.addRecordSubtitle' : 'companyMembers.addSubtitle')}
-            </span>
+    <Popover_Shell onClose={onClose} as="form" className={`${member ? 'Wide' : 'Narrow'}`} onSubmit={submit}>
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{member ? member.name : t('companyMembers.addTitle')}</span>
+          <span className="Popover_Subtitle">
+            {member
+              ? member.user?.email
+              : t(mode === 'record' ? 'companyMembers.addRecordSubtitle' : 'companyMembers.addSubtitle')}
+          </span>
+        </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
+
+      <div className="Popover_Body Single_Column">
+        {!member && (
+          <div className="Form_Field">
+            <div className="Tabs">
+              {(['account', 'record'] as Add_Mode[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={mode === option ? 'Active' : ''} aria-pressed={mode === option}
+                  onClick={() => setMode(option)}
+                >
+                  {t(`companyMembers.mode_${option}`)}
+                </button>
+              ))}
+            </div>
+            <span className="Field_Hint">{t(`companyMembers.mode_${mode}Hint`)}</span>
           </div>
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
-        </div>
+        )}
 
-        <div className="Popover_Body Single_Column">
-          {!member && (
+        {!member && mode === 'record' && (
+          <>
             <div className="Form_Field">
-              <div className="Tabs">
-                {(['account', 'record'] as Add_Mode[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={mode === option ? 'Active' : ''}
-                    onClick={() => setMode(option)}
-                  >
-                    {t(`companyMembers.mode_${option}`)}
-                  </button>
-                ))}
-              </div>
-              <span className="Field_Hint">{t(`companyMembers.mode_${mode}Hint`)}</span>
+              <label htmlFor="member-name">{t('companyMembers.name')} *</label>
+              <Global_Input id="member-name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-          )}
-
-          {!member && mode === 'record' && (
-            <>
-              <div className="Form_Field">
-                <label htmlFor="member-name">{t('companyMembers.name')} *</label>
-                <Global_Input id="member-name" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="Form_Field">
-                <label htmlFor="member-job">{t('memberProfile.jobTitle')}</label>
-                <Global_Input id="member-job" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-              </div>
-              <div className="Form_Field">
-                <label htmlFor="member-contact-email">{t('memberProfile.email')}</label>
-                <Global_Input
-                  id="member-contact-email"
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-
-          {!member && mode === 'account' && (
             <div className="Form_Field">
-              <label htmlFor="member-email">{t('companyMembers.email')} *</label>
-              <Global_Input id="member-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <span className="Field_Hint">{t('companyMembers.emailHint')}</span>
+              <label htmlFor="member-job">{t('memberProfile.jobTitle')}</label>
+              <Global_Input id="member-job" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
             </div>
-          )}
-
-          {(member || mode === 'account') && (
             <div className="Form_Field">
-              <label htmlFor="member-role">{t('companyMembers.role')}</label>
-              <Global_Dropdown
-                id="member-role"
-                value={roleId}
-                onChange={(value) => setRoleId(String(value))}
-                options={roleOptions}
-                disabled={readOnly}
-              />
-              <span className="Field_Hint">{t(roleId ? 'companyMembers.roleHint' : 'companyMembers.noRoleHint')}</span>
-            </div>
-          )}
-
-          {member && (
-            <div className="Form_Field">
-              <label>{t('companyMembers.permissions')}</label>
-              <span className="Field_Hint">{t('companyMembers.gridHint')}</span>
-              <Permission_Grid
-                catalog={catalog}
-                value={effective}
-                base={base}
-                onChange={changeEffective}
-                disabled={readOnly}
+              <label htmlFor="member-contact-email">{t('memberProfile.email')}</label>
+              <Global_Input
+                id="member-contact-email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
               />
             </div>
-          )}
-        </div>
+          </>
+        )}
 
-        <div className="Popover_Footer">
+        {!member && mode === 'account' && (
+          <div className="Form_Field">
+            <label htmlFor="member-email">{t('companyMembers.email')} *</label>
+            <Global_Input id="member-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <span className="Field_Hint">{t('companyMembers.emailHint')}</span>
+          </div>
+        )}
+
+        {(member || mode === 'account') && (
+          <div className="Form_Field">
+            <label htmlFor="member-role">{t('companyMembers.role')}</label>
+            <Global_Dropdown
+              id="member-role"
+              value={roleId}
+              onChange={(value) => setRoleId(String(value))}
+              options={roleOptions}
+              disabled={readOnly}
+            />
+            <span className="Field_Hint">{t(roleId ? 'companyMembers.roleHint' : 'companyMembers.noRoleHint')}</span>
+          </div>
+        )}
+
+        {member && (
+          <div className="Form_Field">
+            <label>{t('companyMembers.permissions')}</label>
+            <span className="Field_Hint">{t('companyMembers.gridHint')}</span>
+            <Permission_Grid
+              catalog={catalog}
+              value={effective}
+              base={base}
+              onChange={changeEffective}
+              disabled={readOnly}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={readOnly ? t('common.close') : t('common.cancel')} onClick={onClose} variant="Ghost" />
+        </div>
+        {!readOnly && (
           <div className="Form_Action">
-            <Simple_Button text={readOnly ? t('common.close') : t('common.cancel')} onClick={onClose} variant="Ghost" />
+            <Simple_Button
+              type="submit"
+              text={member ? t('common.save') : t('companyMembers.add')}
+              disabled={saving || (!member && !(mode === 'record' ? name.trim() : email.trim()))}
+            />
           </div>
-          {!readOnly && (
-            <div className="Form_Action">
-              <Simple_Button
-                type="submit"
-                text={saving ? t('common.saving') : member ? t('common.save') : t('companyMembers.add')}
-                disabled={saving || (!member && !(mode === 'record' ? name.trim() : email.trim()))}
-              />
-            </div>
-          )}
-        </div>
-      </form>
-    </div>
+        )}
+      </div>
+    </Popover_Shell>
   );
 };
 

@@ -5,6 +5,7 @@ import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_B
 import { useItemCatalog } from '../../../../Hooks/Companies/useItemCatalog';
 import type { Supplier_Catalog_Entry } from '../../../../Hooks/Companies/useSupplierCatalog';
 import Supplier_Catalog from '../Company_Suppliers/Supplier_Catalog';
+import { localeOf } from '../../../../utils/locale';
 
 interface Item_Catalog_Props {
   companyId: string;
@@ -62,7 +63,7 @@ const Item_Catalog_Plans = ({
   const price = (value: number | null, currency: string | null) =>
     value == null
       ? '—'
-      : `${value.toLocaleString(i18n.language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${currency ?? ''}`.trim();
+      : `${value.toLocaleString(localeOf(i18n.language), { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${currency ?? ''}`.trim();
 
   const add = async () => {
     const created = await createFromPlans([...chosen]);
@@ -112,7 +113,7 @@ const Item_Catalog_Plans = ({
 
       <div className="Item_Catalog_Actions">
         <Simple_Button
-          text={saving ? t('common.saving') : t('items.catalogAddCount', { count: chosen.size })}
+          text={t('items.catalogAddCount', { count: chosen.size })}
           disabled={!chosen.size || saving}
           onClick={add}
         />

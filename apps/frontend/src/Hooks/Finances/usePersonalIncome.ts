@@ -62,11 +62,13 @@ export interface Personal_Income {
 
 // Um salário que se espera e ainda não está registado (calculado no backend)
 export interface Expected_Income {
-  origin: 'source' | 'company';
+  // `time_tracking`: as horas que uma empresa ainda não pagou a esta pessoa (pagam-se lá) ou,
+  // com `payoutId`, as que já pagou e falta confirmar (`part` payout)
+  origin: 'source' | 'company' | 'time_tracking';
   sourceId: string | null;
   memberPayId: string | null;
   period: string;
-  part: 'salary' | 'holiday' | 'christmas' | 'freelance';
+  part: 'salary' | 'holiday' | 'christmas' | 'freelance' | 'hours' | 'payout';
   kind: Income_Kind;
   date: string;
   overdue: boolean;
@@ -78,6 +80,8 @@ export interface Expected_Income {
   withholdingPct: number | null;
   currency: Income_Currency;
   companyPaid: boolean;
+  seconds?: number;
+  payoutId?: string;
 }
 
 export interface Income_Summary {
@@ -98,7 +102,7 @@ export interface Income_Summary {
   bySource: { key: string; name: string | null; kind: string; total: number; count: number }[];
   upcoming: {
     id: string | null;
-    origin: 'record' | 'source' | 'company';
+    origin: 'record' | 'source' | 'company' | 'time_tracking';
     name: string | null;
     kind: Income_Kind;
     part: Expected_Income['part'] | null;
@@ -181,10 +185,12 @@ export const useIncomeRegister = (filters: Income_Filters, expectedMonths: numbe
 
   const reload = useCallback(() => setVersion((current) => current + 1), []);
 
+  // Três pedidos à parte: mudar um filtro só volta a pedir os registados (os
+  // esperados dependem dos meses; as fontes só de gravar)
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      http.get<Personal_Income[]>(End_Points.Personal_Incomes_Endpoint(), {
+    http
+      .get<Personal_Income[]>(End_Points.Personal_Incomes_Endpoint(), {
         params: {
           from: from || undefined,
           to: to || undefined,
@@ -192,17 +198,10 @@ export const useIncomeRegister = (filters: Income_Filters, expectedMonths: numbe
           sourceId: sourceId || undefined,
           status: status || undefined,
         },
-      }),
-      http.get<Expected_Income[]>(End_Points.Personal_Expected_Incomes_Endpoint(), {
-        params: { months: expectedMonths },
-      }),
-      http.get<Income_Source[]>(End_Points.Personal_Income_Sources_Endpoint()),
-    ])
-      .then(([incomesResponse, expectedResponse, sourcesResponse]) => {
+      })
+      .then((response) => {
         if (cancelled) return;
-        setIncomes(incomesResponse.data);
-        setExpected(expectedResponse.data);
-        setSources(sourcesResponse.data);
+        setIncomes(response.data);
         setError(null);
       })
       .catch((reason) => {
@@ -211,7 +210,39 @@ export const useIncomeRegister = (filters: Income_Filters, expectedMonths: numbe
     return () => {
       cancelled = true;
     };
-  }, [from, to, kind, sourceId, status, expectedMonths, version]);
+  }, [from, to, kind, sourceId, status, version]);
+
+  useEffect(() => {
+    let cancelled = false;
+    http
+      .get<Expected_Income[]>(End_Points.Personal_Expected_Incomes_Endpoint(), {
+        params: { months: expectedMonths },
+      })
+      .then((response) => {
+        if (!cancelled) setExpected(response.data);
+      })
+      .catch((reason) => {
+        if (!cancelled) setError(getErrorMessage(reason));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [expectedMonths, version]);
+
+  useEffect(() => {
+    let cancelled = false;
+    http
+      .get<Income_Source[]>(End_Points.Personal_Income_Sources_Endpoint())
+      .then((response) => {
+        if (!cancelled) setSources(response.data);
+      })
+      .catch((reason) => {
+        if (!cancelled) setError(getErrorMessage(reason));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [version]);
 
   // As empresas e as contas mudam pouco: uma vez
   useEffect(() => {

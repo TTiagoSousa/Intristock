@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import type { KeyboardEvent as React_Keyboard_Event } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Chevron_Down, Search } from '../../../Imports/icons';
@@ -36,6 +37,9 @@ const OPTION_HEIGHT = 34;
 // A partir daqui a lista é grande o suficiente para valer a pena pesquisar
 const SEARCHABLE_THRESHOLD = 8;
 
+// Quanto tempo as letras escritas seguidas contam como uma só procura
+const TYPEAHEAD_MS = 500;
+
 // Ignora acentos e maiúsculas, para "acores" encontrar "Açores"
 const normalize = (value: string) =>
   value
@@ -43,6 +47,11 @@ const normalize = (value: string) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 
+/**
+ * O seletor dos formulários: um botão que abre uma lista (`listbox`). Pelo
+ * teclado: as setas, Home/End, Enter/Espaço para escolher, Esc para fechar (só
+ * o dropdown, não o popover onde está) e as letras saltam para a opção.
+ */
 const Global_Dropdown = ({
   id,
   value,
@@ -56,10 +65,16 @@ const Global_Dropdown = ({
 }: Global_Dropdown_Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [active, setActive] = useState(-1);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const fieldRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const typeahead = useRef({ text: '', at: 0 });
+  const baseId = useId();
+  const listId = `${baseId}-list`;
+  const optionId = (index: number) => `${baseId}-option-${index}`;
 
   const { t } = useTranslation();
 
@@ -94,8 +109,12 @@ const Global_Dropdown = ({
       setOpen(false);
     };
 
+    // Com o foco fora do campo (depois de usar a barra da lista), o Esc ainda fecha
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const focused = document.activeElement;
+      if (focused === triggerRef.current || focused === searchRef.current) return;
+      setOpen(false);
     };
 
     const handleReposition = () => updatePosition();
@@ -122,6 +141,108 @@ const Global_Dropdown = ({
     ? options.filter((option) => normalize(option.label).includes(normalize(search)))
     : options;
 
+  // A ativa fica sempre à vista na lista
+  useEffect(() => {
+    if (!open || active < 0) return;
+    document.getElementById(optionId(active))?.scrollIntoView({ block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, open]);
+
+  const openList = (at?: 'first' | 'last') => {
+    const selected = visibleOptions.findIndex((option) => String(option.value) === String(value));
+    setActive(at === 'last' ? options.length - 1 : at === 'first' || selected < 0 ? 0 : selected);
+    setOpen(true);
+  };
+
+  const close = (refocus: boolean) => {
+    setOpen(false);
+    setActive(-1);
+    if (refocus) triggerRef.current?.focus();
+  };
+
+  const choose = (option: Global_Dropdown_Option) => {
+    onChange?.(option.value);
+    close(true);
+  };
+
+  // As letras escritas seguidas procuram a opção que começa por elas
+  const jumpTo = (key: string) => {
+    const now = Date.now();
+    const text = now - typeahead.current.at > TYPEAHEAD_MS ? key : typeahead.current.text + key;
+    typeahead.current = { text, at: now };
+    const wanted = normalize(text);
+    const start = text.length === 1 ? active + 1 : Math.max(active, 0);
+    const ordered = [...visibleOptions.slice(start), ...visibleOptions.slice(0, start)];
+    const found = ordered.find((option) => normalize(option.label).startsWith(wanted));
+    if (!found) return;
+    const index = visibleOptions.indexOf(found);
+    if (open) setActive(index);
+    else onChange?.(found.value);
+  };
+
+  const handleKeyDown = (e: React_Keyboard_Event<HTMLElement>) => {
+    const fromSearch = e.target === searchRef.current;
+    const last = visibleOptions.length - 1;
+
+    if (!open) {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+        e.preventDefault();
+        openList(e.key === 'ArrowUp' ? 'last' : undefined);
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !isSearchable) {
+        jumpTo(e.key);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'Escape':
+        // Só fecha o dropdown: o popover à volta não deve receber o Esc
+        e.preventDefault();
+        e.stopPropagation();
+        close(true);
+        return;
+      case 'Tab':
+        if (fromSearch) {
+          e.preventDefault();
+          close(true);
+        } else {
+          close(false);
+        }
+        return;
+      case 'ArrowDown':
+        e.preventDefault();
+        setActive((current) => Math.min(current + 1, last));
+        return;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActive((current) => Math.max(current - 1, 0));
+        return;
+      case 'Home':
+        if (fromSearch) return;
+        e.preventDefault();
+        setActive(0);
+        return;
+      case 'End':
+        if (fromSearch) return;
+        e.preventDefault();
+        setActive(last);
+        return;
+      case 'Enter':
+        e.preventDefault();
+        if (visibleOptions[active]) choose(visibleOptions[active]);
+        return;
+      case ' ':
+        if (fromSearch) return;
+        e.preventDefault();
+        if (visibleOptions[active]) choose(visibleOptions[active]);
+        return;
+      default:
+        if (!fromSearch && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) jumpTo(e.key);
+    }
+  };
+
+  const activeId = open && active >= 0 && visibleOptions[active] ? optionId(active) : undefined;
+
   return (
     <div
       className={`Dropdown_Field${open ? ' Open' : ''}${disabled ? ' Disabled' : ''}${selectedOption ? '' : ' Empty'}`}
@@ -129,10 +250,18 @@ const Global_Dropdown = ({
     >
       <button
         id={id}
+        ref={triggerRef}
         type="button"
         className="Dropdown_Field_Trigger"
         disabled={disabled}
-        onClick={() => setOpen((prev) => !prev)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={isSearchable ? undefined : activeId}
+        onClick={() => (open ? close(false) : openList())}
+        onKeyDown={handleKeyDown}
+        // O Espaço já abriu ou escolheu no keydown: o clique do keyup voltava a fechar
+        onKeyUp={(e) => e.key === ' ' && e.preventDefault()}
       >
         <span>{selectedOption ? selectedOption.label : placeholder}</span>
         <Chevron_Down />
@@ -152,39 +281,61 @@ const Global_Dropdown = ({
                   ref={searchRef}
                   type="text"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    // A opção ativa acompanha a pesquisa: a primeira que ficou à vista
+                    setActive(0);
+                  }}
+                  onKeyDown={handleKeyDown}
                   placeholder={t('common.search')}
+                  aria-label={t('common.search')}
+                  aria-controls={listId}
+                  aria-activedescendant={activeId}
+                  role="combobox"
+                  aria-expanded
+                  aria-autocomplete="list"
                 />
               </div>
             )}
 
             <ul
+              id={listId}
+              role="listbox"
+              aria-labelledby={id}
               className="Dropdown_Field_Options"
               style={{ maxHeight: maxVisibleOptions * OPTION_HEIGHT }}
             >
               {visibleOptions.length === 0 ? (
-                <li className="No_Results">{t('common.noResults')}</li>
+                <li className="No_Results" role="presentation">
+                  {t('common.noResults')}
+                </li>
               ) : (
-                visibleOptions.map((option, index) => (
-                  <Fragment key={option.value}>
-                    {/* A divisória só aparece onde o grupo muda — com a pesquisa
-                        a esconder um dos lados, não fica uma linha sozinha */}
-                    {option.group && option.group !== visibleOptions[index - 1]?.group && (
-                      <li className="Group_Divider" aria-hidden="true">
-                        {option.group}
+                visibleOptions.map((option, index) => {
+                  const selected = String(option.value) === String(value);
+                  return (
+                    <Fragment key={option.value}>
+                      {/* A divisória só aparece onde o grupo muda — com a pesquisa
+                          a esconder um dos lados, não fica uma linha sozinha */}
+                      {option.group && option.group !== visibleOptions[index - 1]?.group && (
+                        <li className="Group_Divider" role="presentation" aria-hidden="true">
+                          {option.group}
+                        </li>
+                      )}
+                      <li
+                        id={optionId(index)}
+                        role="option"
+                        aria-selected={selected}
+                        className={`${selected ? 'Selected' : ''}${index === active ? ' Active' : ''}`.trim()}
+                        // O clique não tira o foco do botão (ou da pesquisa)
+                        onMouseDown={(e) => e.preventDefault()}
+                        onMouseMove={() => index !== active && setActive(index)}
+                        onClick={() => choose(option)}
+                      >
+                        {option.label}
                       </li>
-                    )}
-                    <li
-                      className={String(option.value) === String(value) ? 'Selected' : ''}
-                      onClick={() => {
-                        onChange?.(option.value);
-                        setOpen(false);
-                      }}
-                    >
-                      {option.label}
-                    </li>
-                  </Fragment>
-                ))
+                    </Fragment>
+                  );
+                })
               )}
             </ul>
 
@@ -193,7 +344,7 @@ const Global_Dropdown = ({
                 type="button"
                 className="Dropdown_Field_Action"
                 onClick={() => {
-                  setOpen(false);
+                  close(false);
                   action.onClick();
                 }}
               >

@@ -133,7 +133,8 @@ REPO_URL="${REPO_URL:-}"
 REPO_TOKEN="${REPO_TOKEN:-}"
 APP_URL="${APP_URL:-}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+ADMIN_PASSWORD_GENERATED=""
 VM_PASSWORD_GENERATED=""
 
 # --- diálogos ---------------------------------------------------------------------------
@@ -263,9 +264,9 @@ advanced_settings() {
 
   ask ADMIN_EMAIL "Login do admin" "Login da primeira conta da app (administrador). Por omissão: admin" check_login
   local pw
-  pw="$(wt --title "Password do admin" --passwordbox "Password da conta '$ADMIN_EMAIL'. Em branco fica a de omissão: admin" "$(H 9)" "$W" "")" \
+  pw="$(wt --title "Password do admin" --passwordbox "Password da conta '$ADMIN_EMAIL'. Em branco gera-se uma (mostrada no fim)." "$(H 9)" "$W" "")" \
     || abort "Password do admin" $?
-  ADMIN_PASSWORD="${pw:-admin}"
+  ADMIN_PASSWORD="$pw"
 
   ask VM_USER "Utilizador da VM" "Utilizador para entrar na consola/SSH da VM (com sudo)." valid_hostname
   pw="$(wt --title "Password da VM" --passwordbox "Password de '$VM_USER' na VM. Em branco gera-se uma (mostrada no fim)." "$(H 9)" "$W" "")" \
@@ -292,7 +293,7 @@ settings_text() {
     "DNS              ${DNS:-o mesmo do host}" \
     "Arranque         $([ "$ONBOOT" = 1 ] && echo sim || echo não)" \
     "Endereço da app  ${APP_URL:-http://<IP da VM>}" \
-    "Admin da app     $ADMIN_EMAIL / $([ "$ADMIN_PASSWORD" = admin ] && echo 'admin (omissão)' || echo '(escolhida)')" \
+    "Admin da app     $ADMIN_EMAIL / $([ -z "$ADMIN_PASSWORD" ] && echo '(gerada no fim)' || echo '(escolhida)')" \
     "Utilizador VM    $VM_USER$([ -n "$SSH_KEY_FILE" ] && echo " + chave SSH")" \
     "Versão           $([ "$INSTALL_REF" = latest ] && echo 'a última' || echo "branch $INSTALL_REF")"
 }
@@ -341,6 +342,7 @@ check_ssh_file "$SSH_KEY_FILE" || die "Não consigo ler a chave SSH: $SSH_KEY_FI
 check_login "$ADMIN_EMAIL" || die "Login do admin inválido: $ADMIN_EMAIL"
 if [ -n "$APP_URL" ]; then APP_URL="${APP_URL%/}"; check_url "$APP_URL" || die "APP_URL inválido: $APP_URL"; fi
 if [ -z "$VM_PASSWORD" ]; then VM_PASSWORD="$(random_password)"; VM_PASSWORD_GENERATED=1; fi
+if [ -z "$ADMIN_PASSWORD" ]; then ADMIN_PASSWORD="$(random_password)"; ADMIN_PASSWORD_GENERATED=1; fi
 
 # Sem nenhum storage de snippets, ativa-os no "local" (é só mais um tipo de conteúdo
 # permitido na pasta /var/lib/vz, nada é movido)
@@ -522,8 +524,10 @@ ok "Cloud-init terminado"
 
 # --- instalação -------------------------------------------------------------------------
 
-# Com token, vai no URL do clone para o intristock-update conseguir ir buscar
-# versões. Fica dentro da VM (.git/config do repo), nunca no host.
+# Com token, vai no URL do clone (só para o clone). O install.sh tira-o de lá: passa
+# para /etc/intristock/git-credentials (só root), por onde o intristock-update o usa,
+# e o .git/config fica com o URL limpo. Nunca fica no host. O repositório oficial é
+# público: o token só faz falta num espelho privado.
 CLONE_URL="$REPO_URL"
 if [ -n "$REPO_TOKEN" ]; then
   CLONE_URL="$(printf '%s' "$REPO_URL" | sed -E "s#^https://#https://oauth2:${REPO_TOKEN}@#")"
@@ -576,10 +580,17 @@ if [ "$REF" = latest ]; then
   REF="${REF:-main}"
 fi
 git checkout --quiet "$REF" >> "$LOG" 2>&1 || { echo "fail:checkout $REF" > "$RESULT"; exit 1; }
+# Depois da instalação a pasta é do utilizador da app (e a app já corre): o resultado
+# escreve-se num ficheiro novo e troca-se de nome, sem seguir um link que lá esteja
+result() {
+  local tmp
+  tmp="$(mktemp /var/lib/intristock/.install-result.XXXXXX)" || return 1
+  printf '%s\n' "$1" > "$tmp" && chmod 644 "$tmp" && mv -f "$tmp" "$RESULT"
+}
 if bash deploy/proxmox/install.sh >> "$LOG" 2>&1; then
-  echo ok > "$RESULT"
+  result ok
 else
-  echo "fail:install" > "$RESULT"
+  result "fail:install"
 fi
 BOOT
 
@@ -621,7 +632,7 @@ cat <<EOF
 ${GREEN}${APP} está pronto.${RESET}
 
   Abrir:          ${BOLD}${APP_URL}${RESET}
-  Login da app:   ${ADMIN_EMAIL} / $([ "$ADMIN_PASSWORD" = admin ] && echo admin || echo '(a que escolheste)')
+  Login da app:   ${ADMIN_EMAIL} / $([ -n "$ADMIN_PASSWORD_GENERATED" ] && echo "${BOLD}${ADMIN_PASSWORD}${RESET} (gerada — guarda-a, não fica escrita)" || { [ "$ADMIN_PASSWORD" = admin ] && echo admin || echo '(a que escolheste)'; })
                   ao entrar pela primeira vez, mete as chaves das APIs de moedas e de países
   VM:             $VMID ($VM_IP)
   Entrar na VM:   consola do Proxmox$([ -n "$SSH_KEY_FILE" ] && echo " ou ssh ${VM_USER}@${VM_IP} (com a chave)")

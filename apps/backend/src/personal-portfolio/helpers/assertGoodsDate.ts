@@ -1,6 +1,6 @@
+import { isoDay } from 'src/utils/dates';
 import { BadRequestException } from '@nestjs/common';
 
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 const MESSAGES = {
   valuation: {

@@ -1,4 +1,6 @@
-import { git } from './git';
+import { stat } from 'fs/promises';
+import { resolve } from 'path';
+import { git, repoDir } from './git';
 import { compareVersions, isVersion } from './semver';
 
 export interface ReleaseNotes {
@@ -15,9 +17,11 @@ export interface Release {
   notes: ReleaseNotes;
 }
 
-const FETCH_EVERY_MS = 5 * 60 * 1000;
-let lastFetch = 0;
-let lastFetchFailed = false;
+// O backend não vai buscar as tags: na VM o repositório é do root e quem as traz é o
+// intristock-fetch.timer (de hora a hora, como root). Aqui só se leem as tags locais.
+// Sem ligação ao repositório conta-se pela idade do FETCH_HEAD (o fetch só o reescreve
+// quando corre bem): mais de 3 h (três voltas do timer) = sem ligação.
+const FETCH_STALE_MS = 3 * 60 * 60 * 1000;
 
 // As notas vivem na mensagem da tag anotada (escrita pelo scripts/release.mjs):
 //   ### Features / ### Fixes / ### Improvements, cada linha começada por "- ".
@@ -75,7 +79,7 @@ export function noteLanguage(value: string | undefined): NoteLanguage {
 }
 
 // Notas já lidas, por commit de origem: uma tag não muda, e o main só muda quando
-// o fetch traz commits novos (e então o sha é outro).
+// o fetch do timer traz commits novos (e então o sha é outro).
 const notesCache = new Map<string, string | null>();
 
 async function readFile(ref: string, path: string): Promise<string | null> {
@@ -110,23 +114,33 @@ async function notesFor(
 }
 
 /**
+ * Na VM (com APP_DIR): o último `git fetch` do timer foi há mais de 3 h. Em
+ * desenvolvimento nunca (o fetch é da pessoa).
+ */
+async function fetchIsStale(): Promise<boolean> {
+  if (!process.env.APP_DIR) return false;
+  const path = await git(['rev-parse', '--git-path', 'FETCH_HEAD']).catch(
+    () => null,
+  );
+  if (!path) return false;
+  try {
+    const { mtimeMs } = await stat(resolve(repoDir(), path));
+    return Date.now() - mtimeMs > FETCH_STALE_MS;
+  } catch {
+    // Ainda sem nenhum fetch (instalação acabada de fazer)
+    return false;
+  }
+}
+
+/**
  * Todas as releases (tags vX.Y.Z), da mais recente para a mais antiga, com as notas
- * na língua pedida. Vai buscar as tags novas ao remoto no máximo de 5 em 5 minutos;
- * sem rede, usa as que já tem.
+ * na língua pedida. Só as tags locais (ver `FETCH_STALE_MS`); o `force` ficou por
+ * compatibilidade com quem o chama e já não faz nada.
  */
 export async function getReleases(
-  force = false,
+  _force = false,
   language: NoteLanguage = 'en',
 ): Promise<{ releases: Release[]; offline: boolean }> {
-  if (force || Date.now() - lastFetch > FETCH_EVERY_MS) {
-    try {
-      await git(['fetch', '--tags', '--force', '--quiet', 'origin'], 30_000);
-      lastFetchFailed = false;
-    } catch {
-      lastFetchFailed = true;
-    }
-    lastFetch = Date.now();
-  }
 
   const SEP = '\u001e';
   const raw = await git([
@@ -159,5 +173,5 @@ export async function getReleases(
     releases.push({ version: tag.version, date: tag.date, title, notes });
   }
 
-  return { releases, offline: lastFetchFailed };
+  return { releases, offline: await fetchIsStale() };
 }

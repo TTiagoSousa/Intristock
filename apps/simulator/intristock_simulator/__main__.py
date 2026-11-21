@@ -7,6 +7,10 @@ correm ao mesmo tempo, uma por processo; as que sobram esperam na fila.
 
 Ao lado corre o processo dos testes ao vivo (`live`), que o principal volta a
 arrancar se morrer.
+
+Ao parar (SIGTERM do systemd, Ctrl+C) não se espera pelas simulações em curso
+(o systemd só dá 30 s): os processos delas param logo e elas voltam à fila,
+para correrem do princípio quando o simulador voltar.
 """
 
 import logging
@@ -24,7 +28,8 @@ from .infra.config import load_config
 from .infra.db import open_connection
 from .live import main as live_main
 from .worker.runs import (
-    child_init, claim_next, execute, fail, fail_without_candles, requeue, reset_interrupted, setup_logging,
+    INTERNAL_ERROR, child_init, claim_next, execute, fail, fail_without_candles, requeue, reset_interrupted,
+    setup_logging,
 )
 
 # Sem NOTIFY (ligação caída, pedido criado à mão), a fila é vista na mesma
@@ -36,6 +41,8 @@ RECONNECT_SECONDS = 5
 MAX_CRASHES = 2
 CRASH_MESSAGE = ("O simulador ficou sem memória (ou o processo morreu) a correr esta simulação. "
                  "Experimenta um período mais curto ou um tempo gráfico maior.")
+# Quanto se espera pelo processo dos testes ao vivo ao parar (o systemd mata aos 30 s)
+LIVE_STOP_SECONDS = 5
 
 log = logging.getLogger("intristock_simulator")
 
@@ -49,9 +56,40 @@ def _processes() -> int:
 
 
 def _start_live() -> multiprocessing.Process:
-    process = multiprocessing.get_context("spawn").Process(target=live_main, name="intristock-live", daemon=True)
+    # Não é daemon: tem os seus processos (o motor dos testes ao vivo), e um daemon
+    # não pode ter filhos. Por isso o principal para-o sempre ao sair (`finally`)
+    process = multiprocessing.get_context("spawn").Process(target=live_main, name="intristock-live", daemon=False)
     process.start()
     return process
+
+
+def _kill_workers(pool: ProcessPoolExecutor) -> None:
+    """Para já os processos do conjunto (as simulações a meio não acabam).
+    O Python 3.14 tem `terminate_workers`; no 3.13 vão-se buscar à mão."""
+    terminate = getattr(pool, "terminate_workers", None)
+    if terminate is not None:
+        terminate()
+        return
+    for process in list((getattr(pool, "_processes", None) or {}).values()):
+        if process.is_alive():
+            process.terminate()
+    for process in list((getattr(pool, "_processes", None) or {}).values()):
+        process.join(5)
+
+
+def _stop_running(conn, pool: ProcessPoolExecutor, running: dict) -> None:
+    """Ao parar: os processos param logo (antes de as simulações deles verem o
+    estado e se darem por canceladas), as simulações deles voltam à fila e as
+    que estavam à espera de um processo saem do conjunto."""
+    _kill_workers(pool)
+    pool.shutdown(wait=False, cancel_futures=True)
+    for run_id in running.values():
+        try:
+            requeue(conn, run_id)
+            log.info("A simulação %s voltou à fila", run_id)
+        except Exception:  # noqa: BLE001 — sem Postgres, o reset_interrupted do arranque trata dela
+            log.warning("Não foi possível devolver a simulação %s à fila; volta no arranque", run_id)
+    running.clear()
 
 
 def _new_pool(processes: int) -> ProcessPoolExecutor:
@@ -90,8 +128,9 @@ def main() -> None:
 
     def stop(*_):
         nonlocal stopping
+        if not stopping:
+            log.info("A parar: as simulações em curso voltam à fila")
         stopping = True
-        log.info("A parar depois das simulações em curso")
 
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
@@ -99,71 +138,86 @@ def main() -> None:
     live = _start_live()
 
     log.info("Simulador pronto (até %s em paralelo), à espera de simulações", processes)
-    while not stopping:
-        try:
-            if not live.is_alive():
-                log.error("O processo dos testes ao vivo terminou (%s); a arrancar outro", live.exitcode)
-                live = _start_live()
-            broken = False
-            for future in [future for future in running if future.done()]:
-                run_id = running[future]
-                error = future.exception()
-                if isinstance(error, BrokenProcessPool):
-                    # Um processo morreu (memória, por exemplo) e levou o conjunto: trata-se em baixo
-                    broken = True
-                    continue
-                if error:
-                    # O execute já trata os erros da simulação; isto é uma falha fora dele
-                    log.error("A simulação %s falhou fora do execute: %s", run_id, error)
-                    fail(conn, run_id, CRASH_MESSAGE)
-                crashes.pop(run_id, None)
-                running.pop(future)
-
-            # Um processo que morre estraga o conjunto todo e não se sabe qual foi:
-            # as que lá estavam voltam à fila e correm sozinhas; à segunda, falham
-            if broken:
-                for future, run_id in list(running.items()):
-                    crashes[run_id] = crashes.get(run_id, 0) + 1
-                    if crashes[run_id] >= MAX_CRASHES:
-                        log.error("A simulação %s matou o processo outra vez; fica falhada", run_id)
-                        fail(conn, run_id, CRASH_MESSAGE)
-                        crashes.pop(run_id)
-                    else:
-                        log.warning("O processo da simulação %s morreu; volta à fila para correr sozinha", run_id)
-                        requeue(conn, run_id)
+    try:
+        while not stopping:
+            try:
+                if not live.is_alive():
+                    log.error("O processo dos testes ao vivo terminou (%s); a arrancar outro", live.exitcode)
+                    live = _start_live()
+                broken = False
+                # A parar, os processos podem já ter morrido com o mesmo SIGTERM: não é culpa das simulações
+                for future in [future for future in running if future.done() and not stopping]:
+                    run_id = running[future]
+                    error = future.exception()
+                    if isinstance(error, BrokenProcessPool):
+                        # Um processo morreu (memória, por exemplo) e levou o conjunto: trata-se em baixo
+                        broken = True
+                        continue
+                    if error:
+                        # O execute já trata os erros da simulação; isto é uma falha fora dele
+                        # (não é falta de memória: essa parte o conjunto, em cima)
+                        log.error("A simulação %s falhou fora do execute", run_id, exc_info=error)
+                        fail(conn, run_id, INTERNAL_ERROR)
+                    crashes.pop(run_id, None)
                     running.pop(future)
-                pool.shutdown(wait=False, cancel_futures=True)
-                pool = _new_pool(processes)
 
-            fail_without_candles(conn)
-            # Uma suspeita corre sozinha: enquanto corre, não se apanha mais nenhuma
-            while len(running) < processes and not any(run_id in crashes for run_id in running.values()):
-                run_id = claim_next(conn)
-                if not run_id:
-                    break
-                if run_id in crashes and running:
-                    # Espera que as outras acabem (é a mais antiga da fila, apanha-se outra vez)
-                    requeue(conn, run_id)
-                    break
-                running[pool.submit(execute, run_id)] = run_id
+                # Um processo que morre estraga o conjunto todo e não se sabe qual foi:
+                # as que lá estavam voltam à fila e correm sozinhas; à segunda, falham
+                if broken and not stopping:
+                    for future, run_id in list(running.items()):
+                        crashes[run_id] = crashes.get(run_id, 0) + 1
+                        if crashes[run_id] >= MAX_CRASHES:
+                            log.error("A simulação %s matou o processo outra vez; fica falhada", run_id)
+                            fail(conn, run_id, CRASH_MESSAGE)
+                            crashes.pop(run_id)
+                        else:
+                            log.warning("O processo da simulação %s morreu; volta à fila para correr sozinha", run_id)
+                            requeue(conn, run_id)
+                        running.pop(future)
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    pool = _new_pool(processes)
 
-            # Com simulações a correr, acorda mais vezes para ver se acabaram
-            timeout = 1 if running else POLL_SECONDS
-            for _ in listener.notifies(timeout=timeout, stop_after=1):
-                pass
-        except psycopg.OperationalError as error:
-            # O Postgres fechou a ligação (reinício, rede): volta a ligar. As
-            # simulações em curso têm as suas ligações e continuam
-            log.warning("Ligação ao Postgres perdida (%s); a voltar a ligar", str(error).splitlines()[0])
-            listener.close()
+                fail_without_candles(conn)
+                # Uma suspeita corre sozinha: enquanto corre, não se apanha mais nenhuma
+                suspect = any(run_id in crashes for run_id in running.values())
+                while not stopping and not suspect and len(running) < processes:
+                    run_id = claim_next(conn)
+                    if not run_id:
+                        break
+                    if run_id in crashes and running:
+                        # Espera que as outras acabem (é a mais antiga da fila, apanha-se outra vez)
+                        requeue(conn, run_id)
+                        break
+                    running[pool.submit(execute, run_id)] = run_id
+                    if run_id in crashes:
+                        break  # a suspeita corre sozinha
+
+                # Com simulações a correr, acorda mais vezes para ver se acabaram
+                timeout = 1 if running else POLL_SECONDS
+                for _ in listener.notifies(timeout=timeout, stop_after=1):
+                    pass
+            except psycopg.OperationalError as error:
+                # O Postgres fechou a ligação (reinício, rede): volta a ligar. As
+                # simulações em curso têm as suas ligações e continuam
+                log.warning("Ligação ao Postgres perdida (%s); a voltar a ligar", str(error).splitlines()[0])
+                listener.close()
+                conn.close()
+                listener, conn = _reconnect(connect, lambda: stopping)
+    finally:
+        # Também num erro inesperado: sem isto o processo dos testes ao vivo (que não
+        # é daemon, porque tem filhos) prendia a saída
+        if conn:
+            _stop_running(conn, pool, running)
+        else:
+            _kill_workers(pool)
+            pool.shutdown(wait=False, cancel_futures=True)
+        live.terminate()
+        live.join(LIVE_STOP_SECONDS)
+        if live.is_alive():
+            live.kill()
+        if conn:
             conn.close()
-            listener, conn = _reconnect(connect, lambda: stopping)
-
-    live.terminate()
-    pool.shutdown(wait=True)
-    if conn:
-        conn.close()
-        listener.close()
+            listener.close()
 
 
 def _reconnect(connect, is_stopping):

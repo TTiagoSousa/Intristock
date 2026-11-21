@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { encryptSecret } from 'src/utils/crypto/secret-box';
+import { encryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { UpdateBrokerConnectionDto } from '../dto/personal-portfolio.dto';
 import { checkTrading212Key } from './connectBroker';
@@ -24,8 +24,8 @@ export async function updateBrokerConnection(
     const account = await checkTrading212Key(dto.apiKey.trim(), dto.apiSecret.trim());
     if (account.id !== current.externalAccountId)
       throw new BadRequestException('Essa chave é de outra conta da Trading 212');
-    data.apiKey = encryptSecret(dto.apiKey.trim());
-    data.apiSecret = encryptSecret(dto.apiSecret.trim());
+    data.apiKey = encryptSecret(dto.apiKey.trim(), secretContext('broker_connection', `${userId}:${current.externalAccountId}`, 'apiKey'));
+    data.apiSecret = encryptSecret(dto.apiSecret.trim(), secretContext('broker_connection', `${userId}:${current.externalAccountId}`, 'apiSecret'));
     if (current.status === 'error') {
       data.status = 'active';
       data.lastError = null;

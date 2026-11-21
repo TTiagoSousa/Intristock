@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsBoolean,
@@ -89,6 +90,7 @@ export class CreateCompanyItemDto {
   // Os fornecedores que vendem o item — a lista inteira, substitui a que estava
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(200)
   @ArrayUnique()
   @IsUUID(undefined, { each: true })
   supplierIds?: string[];

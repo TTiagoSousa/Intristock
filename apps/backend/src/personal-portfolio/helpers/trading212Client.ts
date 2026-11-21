@@ -39,12 +39,13 @@ export type Trading212Order = {
     price: number;
     quantity: number;
     type: string;
-    walletImpact: {
+    // Pode faltar (um acerto sem dinheiro): sem ela, a ordem entra como acerto de quantidade
+    walletImpact?: {
       currency: string;
       netValue: number;
       fxRate: number | null;
       realisedProfitLoss: number | null;
-    };
+    } | null;
   } | null;
 };
 

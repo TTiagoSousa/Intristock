@@ -34,5 +34,12 @@ export async function deleteMemberPay(
     );
   }
 
+  // Um ganho pessoal que aponta para ele também é histórico (e a ligação não o deixava apagar)
+  if ((await memberRepository.countPayIncomes(payId)) > 0) {
+    throw new ConflictException(
+      'O membro já registou ganhos deste salário: põe-lhe uma data de fim em vez de o apagar',
+    );
+  }
+
   await memberRepository.deletePay(payId);
 }

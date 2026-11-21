@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString, IsUUID, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsOptional, IsString, IsUUID, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateCompanyBankAccountDto } from './create-company-bank-account.dto';
 
@@ -23,6 +23,7 @@ export class CreateCompanyDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(50)
   @ValidateNested({ each: true })
   @Type(() => CreateCompanyBankAccountDto)
   bankAccounts?: CreateCompanyBankAccountDto[];

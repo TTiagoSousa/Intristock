@@ -1,3 +1,4 @@
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { BadRequestException } from '@nestjs/common';
 import { PrismaPersonalDebtRepository } from '../repositories/prisma/prisma-personal-debt-repository';
@@ -15,8 +16,6 @@ import { listDebtsDue } from './listDebtsDue';
 import { presentDebt } from './presentDebt';
 import { projectDebt } from './projectDebt';
 
-// Sem moeda escolhida nem dívidas, conta-se nesta
-const FALLBACK_CURRENCY = 'EUR';
 // Quantas prestações vão na lista do dashboard
 const UPCOMING_LIMIT = 8;
 
@@ -71,19 +70,11 @@ export async function summarizeDebts(
   );
 
   // A moeda: a pedida, senão a das dívidas mais usada, senão o euro
-  let currency: DebtCurrency | null = query.currencyId
-    ? await repository.findCurrency(query.currencyId)
-    : null;
-  if (!currency) {
-    const uses = new Map<string, number>();
-    for (const debt of debts)
-      uses.set(debt.currencyId, (uses.get(debt.currencyId) ?? 0) + 1);
-    const top = [...uses.entries()].sort((a, b) => b[1] - a[1])[0];
-    currency = top
-      ? await repository.findCurrency(top[0])
-      : await repository.findCurrencyByCode(FALLBACK_CURRENCY);
-  }
-  const target = currency;
+  const target: DebtCurrency | null = await pickDisplayCurrency(
+    query.currencyId,
+    debts.map((debt) => debt.currencyId),
+    repository,
+  );
   // O último dia de cada mês já passado (o atual, hoje): o dia do saldo desse mês
   const monthEnds: string[] = [];
   for (let index = 0; index < slots; index += 1) {

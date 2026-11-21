@@ -1,4 +1,4 @@
-import { latestRateHour } from 'src/currency/helpers/latestRateHour';
+import { rateHourForDate } from 'src/currency/helpers/rateHourForDate';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -24,7 +24,7 @@ const COMPANY = { select: { id: true, name: true, slug: true } };
 // As empresas que a pessoa vê: as que criou e aquelas em que é membro (não apagadas)
 const accessibleBy = (userId: string) => ({
   status: { not: 'deleted' },
-  OR: [{ createdById: userId }, { members: { some: { userId } } }],
+  OR: [{ createdById: userId }, { members: { some: { userId, status: 'active' } } }],
 });
 
 @Injectable()
@@ -136,8 +136,8 @@ export class PrismaPersonalIncomeRepository implements PersonalIncomeRepository 
         currencyId: data.currencyId ?? '',
         date: data.date ?? new Date(),
         ...data,
-        // A hora das cotações com que se converte (a mais recente guardada)
-        rateHour: await latestRateHour(this.prisma),
+        // A hora das cotações com que se converte: a mais recente, só num ganho de hoje
+        rateHour: await rateHourForDate(this.prisma, data.date ?? new Date()),
       },
     });
   }
@@ -148,7 +148,11 @@ export class PrismaPersonalIncomeRepository implements PersonalIncomeRepository 
   ): Promise<PersonalIncome> {
     return this.prisma.personalIncome.update({
       where: { id: incomeId },
-      data,
+      // Com outra data, a hora das cotações volta a decidir-se por ela
+      data:
+        data.date !== undefined
+          ? { ...data, rateHour: await rateHourForDate(this.prisma, data.date) }
+          : data,
     });
   }
 
@@ -190,7 +194,9 @@ export class PrismaPersonalIncomeRepository implements PersonalIncomeRepository 
   async findUserMemberPays(userId: string): Promise<UserMemberPay[]> {
     return this.prisma.companyMemberPay.findMany({
       where: {
-        member: { userId, company: { status: { not: 'deleted' } } },
+        // Só os aceites, de empresas onde a pessoa já entrou
+        status: 'accepted',
+        member: { userId, status: 'active', company: { status: { not: 'deleted' } } },
       },
       include: this.memberPayInclude(),
     });
@@ -201,22 +207,44 @@ export class PrismaPersonalIncomeRepository implements PersonalIncomeRepository 
     payId: string,
   ): Promise<UserMemberPay | null> {
     return this.prisma.companyMemberPay.findFirst({
-      where: { id: payId, member: { userId } },
+      where: { id: payId, status: 'accepted', member: { userId, status: 'active' } },
       include: this.memberPayInclude(),
     });
   }
 
-  async findCompanyPaidPeriods(payIds: string[]): Promise<Set<string>> {
-    if (payIds.length === 0) return new Set();
+  async findCompanyPaidPeriods(
+    payIds: string[],
+  ): Promise<Map<string, { amount: number; currencyId: string }>> {
+    if (payIds.length === 0) return new Map();
     const payments = await this.prisma.companyPayment.findMany({
-      where: { memberPayId: { in: payIds }, status: { not: 'cancelled' } },
-      select: { memberPayId: true, memberPayPeriod: true },
+      // Só os concluídos: um rascunho ainda não é um pagamento feito
+      where: { memberPayId: { in: payIds }, status: 'completed' },
+      select: { memberPayId: true, memberPayPeriod: true, amount: true, currencyId: true },
     });
-    return new Set(
-      payments.map(
-        (payment) => `${payment.memberPayId}|${payment.memberPayPeriod}`,
-      ),
+    return new Map(
+      payments.map((payment) => [
+        `${payment.memberPayId}|${payment.memberPayPeriod}`,
+        { amount: Number(payment.amount), currencyId: payment.currencyId },
+      ]),
     );
+  }
+
+  async findLastMemberPayIncomes(
+    userId: string,
+    payIds: string[],
+  ): Promise<Map<string, { amount: number; currencyId: string }>> {
+    if (payIds.length === 0) return new Map();
+    const incomes = await this.prisma.personalIncome.findMany({
+      where: { userId, memberPayId: { in: payIds } },
+      orderBy: { date: 'desc' },
+      select: { memberPayId: true, amount: true, currencyId: true },
+    });
+    const last = new Map<string, { amount: number; currencyId: string }>();
+    for (const income of incomes) {
+      if (income.memberPayId && !last.has(income.memberPayId))
+        last.set(income.memberPayId, { amount: Number(income.amount), currencyId: income.currencyId });
+    }
+    return last;
   }
 
   async findCurrency(currencyId: string): Promise<IncomeCurrency | null> {

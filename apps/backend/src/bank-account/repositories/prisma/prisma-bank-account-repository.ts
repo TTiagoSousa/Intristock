@@ -82,8 +82,19 @@ export class PrismaBankAccountRepository implements BankAccountRepository {
     }));
   }
 
-  async findByIban(iban: string): Promise<BankAccount | null> {
-    return this.prisma.bankAccount.findUnique({ where: { iban } });
+  // O IBAN é único por dono (a pessoa ou a empresa), não na instalação toda: assim
+  // não se descobre o IBAN de outra pessoa
+  async findByOwnerIban(
+    owner: { userId?: string; companyId?: string },
+    iban: string,
+  ): Promise<BankAccount | null> {
+    if (owner.companyId) {
+      return this.prisma.bankAccount.findFirst({ where: { companyId: owner.companyId, iban } });
+    }
+    if (owner.userId) {
+      return this.prisma.bankAccount.findFirst({ where: { userId: owner.userId, companyId: null, iban } });
+    }
+    return null;
   }
   async update(id: string, data: BankAccountUpdateData): Promise<BankAccount> {
     return this.prisma.bankAccount.update({ where: { id }, data });

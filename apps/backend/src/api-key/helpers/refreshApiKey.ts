@@ -1,5 +1,5 @@
 import { ApiKey } from 'src/generated/prisma/client/client';
-import { decryptSecret } from 'src/utils/crypto/secret-box';
+import { decryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { PrismaApiKeyRepository } from '../repositories/prisma/prisma-api-key-repository';
 import { API_KEY_PROVIDERS, ApiKeyKind, ApiKeyUnusableError } from './apiKeyProviders';
 
@@ -11,7 +11,7 @@ export async function refreshApiKey(apiKey: ApiKey, repository: PrismaApiKeyRepo
   const provider = API_KEY_PROVIDERS[apiKey.kind as ApiKeyKind];
   if (!provider) return apiKey;
   try {
-    const { plan: _plan, ...usage } = await provider.account(decryptSecret(apiKey.key));
+    const { plan: _plan, ...usage } = await provider.account(decryptSecret(apiKey.key, secretContext('api_key', apiKey.kind, 'key')));
     return await repository.update(apiKey.id, { ...usage, checkedAt: new Date(), lastError: null });
   } catch (error) {
     const message = (error as Error).message;

@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
@@ -23,8 +23,11 @@ import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_B
 import * as Icon from '../../../../Imports/icons';
 import Member_Pay_Popover from './Member_Pay_Popover';
 import Member_Contract_Popover from './Member_Contract_Popover';
-import Confirm_Popover from './Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import './Company_Members.scss';
+import { localToday } from '../../../../utils/dates';
+import { localeOf } from '../../../../utils/locale';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 type Member_Tab = 'details' | 'salaries' | 'contracts' | 'documents';
 type Profile_Values = Record<keyof Member_Profile, string>;
@@ -46,6 +49,18 @@ const PROFILE_KEYS: (keyof Member_Profile)[] = [
   'currencyId',
   'bankAccountId',
   'notes',
+];
+
+// Os que o backend esconde a quem não trata dos salários nem gere os membros
+const PERSONAL_KEYS: (keyof Member_Profile)[] = [
+  'taxNumber',
+  'socialSecurityNumber',
+  'idDocumentNumber',
+  'birthDate',
+  'addressLine',
+  'postalCode',
+  'city',
+  'iban',
 ];
 
 const toValues = (member: Member_Detail): Profile_Values =>
@@ -119,16 +134,22 @@ const Member_Page = ({
   const manageSalaries = can('salaries.manage');
   const currencyCode = member.currency?.shortCode ?? company?.currency.shortCode ?? 'EUR';
   const formatDate = (value: string | null) =>
-    value ? new Date(`${value.slice(0, 10)}T00:00:00Z`).toLocaleDateString(i18n.language, { timeZone: 'UTC' }) : '—';
+    value ? new Date(`${value.slice(0, 10)}T00:00:00Z`).toLocaleDateString(localeOf(i18n.language), { timeZone: 'UTC' }) : '—';
   const money = (value: string | number) => formatIn(Number(value), currencyCode);
+
+  const personalHidden = Boolean(member.personalDataHidden);
+  const hiddenNotice = <span className="Field_Hint Full_Width">{t('memberProfile.personalHidden')}</span>;
 
   const set = (key: keyof Member_Profile) => (value: string) => setValues((current) => ({ ...current, [key]: value }));
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     // Só o que mudou; vazio apaga
+    // Os dados pessoais escondidos (vieram a nulo) nunca vão no pedido: apagavam os gravados
     const changes = Object.fromEntries(
-      PROFILE_KEYS.filter((key) => values[key] !== toValues(member)[key]).map((key) => [key, values[key] || null]),
+      PROFILE_KEYS.filter((key) => !(personalHidden && PERSONAL_KEYS.includes(key)))
+        .filter((key) => values[key] !== toValues(member)[key])
+        .map((key) => [key, values[key] || null]),
     ) as Partial<Member_Profile>;
     if (Object.keys(changes).length > 0) await state.updateProfile(changes);
   };
@@ -232,9 +253,9 @@ const Member_Page = ({
             </thead>
             <tbody>
               {state.pays.map((pay) => {
-                const ended = pay.kind === 'salary' && pay.endDate && pay.endDate.slice(0, 10) < new Date().toISOString().slice(0, 10);
+                const ended = pay.kind === 'salary' && pay.endDate && pay.endDate.slice(0, 10) < localToday();
                 return (
-                  <tr key={pay.id} className={manageSalaries ? 'Clickable' : ''} onClick={() => manageSalaries && setEditingPay(pay)}>
+                  <tr key={pay.id} className={manageSalaries ? 'Clickable' : ''} onClick={() => manageSalaries && setEditingPay(pay)} tabIndex={manageSalaries ? 0 : undefined} onKeyDown={activateOnKey}>
                     <td>
                       <span className="Member_Name">{t(`memberPays.kind_${pay.kind}`)}</span>
                       {pay.description && <div className="Member_Sub">{pay.description}</div>}
@@ -247,6 +268,12 @@ const Member_Page = ({
                           })
                         : formatDate(pay.dueDate)}
                       {ended && <span className="Pill Member_Pill">{t('memberPays.ended')}</span>}
+                      {pay.status !== 'accepted' && (
+                        <span className={`Pill Member_Pill ${pay.status === 'proposed' ? 'Warn' : 'Bad'}`}>
+                          {t(`memberPays.status_${pay.status}`)}
+                        </span>
+                      )}
+                      {pay.responseNote && <div className="Member_Sub">{pay.responseNote}</div>}
                     </td>
                     <td className="Right Num">{money(pay.grossAmount)}</td>
                     <td className="Member_Sub">
@@ -379,7 +406,7 @@ const Member_Page = ({
             {text('jobTitle', 'memberProfile.jobTitle')}
             {text('email', 'memberProfile.email', { type: 'email' })}
             {text('phone', 'memberProfile.phone')}
-            {text('birthDate', 'memberProfile.birthDate', { type: 'date' })}
+            {!personalHidden && text('birthDate', 'memberProfile.birthDate', { type: 'date' })}
           </>
         ),
       },
@@ -387,9 +414,15 @@ const Member_Page = ({
         title: 'memberProfile.section_ids',
         content: (
           <>
-            {text('taxNumber', 'memberProfile.taxNumber')}
-            {text('socialSecurityNumber', 'memberProfile.socialSecurityNumber')}
-            {text('idDocumentNumber', 'memberProfile.idDocumentNumber')}
+            {personalHidden ? (
+              hiddenNotice
+            ) : (
+              <>
+                {text('taxNumber', 'memberProfile.taxNumber')}
+                {text('socialSecurityNumber', 'memberProfile.socialSecurityNumber')}
+                {text('idDocumentNumber', 'memberProfile.idDocumentNumber')}
+              </>
+            )}
           </>
         ),
       },
@@ -397,9 +430,15 @@ const Member_Page = ({
         title: 'memberProfile.section_address',
         content: (
           <>
-            {text('addressLine', 'memberProfile.addressLine', { full: true })}
-            {text('postalCode', 'memberProfile.postalCode')}
-            {text('city', 'memberProfile.city')}
+            {personalHidden ? (
+              hiddenNotice
+            ) : (
+              <>
+                {text('addressLine', 'memberProfile.addressLine', { full: true })}
+                {text('postalCode', 'memberProfile.postalCode')}
+                {text('city', 'memberProfile.city')}
+              </>
+            )}
             {dropdown(
               'countryId',
               'memberProfile.country',
@@ -412,7 +451,7 @@ const Member_Page = ({
         title: 'memberProfile.section_payment',
         content: (
           <>
-            {text('iban', 'memberProfile.iban')}
+            {personalHidden ? hiddenNotice : text('iban', 'memberProfile.iban')}
             {dropdown(
               'currencyId',
               'memberProfile.currency',
@@ -511,7 +550,7 @@ const Member_Page = ({
           }
           message={t(`memberProfile.delete_${toDelete.kind}Confirm`)}
           confirmText={t('common.delete')}
-          saving={state.saving}
+          busy={state.saving}
           onClose={() => setToDelete(null)}
           onConfirm={async () => {
             const done =

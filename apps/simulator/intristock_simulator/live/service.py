@@ -5,9 +5,14 @@ asyncio onde vivem todos os testes.
   aviso, vê a tabela de tempos a tempos.
 - Cada mercado tem uma ligação WebSocket à corretora, partilhada pelos testes
   dele (`Feed`); cada teste recebe a vela do minuto a decorrer a cada negócio.
-- A cada minuto novo o motor corre outra vez (numa thread, para o WebSocket não
-  parar) e os registos novos gravam-se em `LiveTestEvent`; o estado (capital,
-  posições, trades, condições) fica em `LiveTest.state`.
+  Enquanto o teste está ocupado (o motor a correr), as atualizações do mesmo
+  minuto juntam-se numa só, a última (`Mailbox`): nada se perde e a fila não
+  enche.
+- A cada minuto novo o motor corre outra vez, num processo do conjunto do motor
+  (`ENGINE_PROCESSES`; um processo não fica preso ao GIL dos outros testes nem
+  do WebSocket), e os registos novos gravam-se em `LiveTestEvent`; o estado
+  (capital, posições, trades, condições) fica em `LiveTest.state`. As velas e o
+  funding (rede, ClickHouse) vão buscar-se em threads.
 - O backend é avisado pelo canal `live_test_event` (os registos, o estado e o
   preço, este no máximo de `TICK_SECONDS` em `TICK_SECONDS`) e passa ao browser.
 - Uma ligação que cai volta a ligar sozinha, e os minutos que faltaram vêm por
@@ -20,12 +25,16 @@ asyncio onde vivem todos os testes.
 from __future__ import annotations
 
 import asyncio
+import collections
 import json
 import logging
+import multiprocessing
+import os
 import signal
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime, timezone
 
 import numpy as np
@@ -35,9 +44,9 @@ from psycopg.types.json import Jsonb
 
 from ..infra import clickhouse
 from ..infra.config import load_config
-from ..market.candles import load_funding, load_minutes
-from ..worker.runs import setup_logging
-from .bot import LiveBot
+from ..market.candles import Candles, load_funding, load_minutes
+from ..worker.runs import child_init, setup_logging
+from .bot import LiveBot, rerun_in_process
 from .exchanges import MINUTE_MS, Instrument, Minute, fetch_funding, fetch_minutes, stream_minutes
 
 log = logging.getLogger("intristock_simulator.live")
@@ -65,6 +74,15 @@ DB_RETRY_SECONDS = 2
 DB_RETRY_MAX_SECONDS = 30
 
 
+def _engine_processes() -> int:
+    """Os processos do motor dos testes ao vivo (`LIVE_ENGINE_PROCESSES`; por
+    omissão metade dos núcleos, entre 1 e 4)."""
+    configured = os.environ.get("LIVE_ENGINE_PROCESSES")
+    if configured:
+        return max(1, int(configured))
+    return max(1, min(4, (os.cpu_count() or 2) // 2))
+
+
 def _ms(value: datetime | None) -> int | None:
     if value is None:
         return None
@@ -81,17 +99,47 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+class Mailbox:
+    """O que chega da ligação para um teste, por ordem. Uma vela do mesmo minuto
+    que a última por ler substitui-a (só conta o estado mais recente de cada
+    minuto), por isso, com o teste ocupado, fica no máximo uma por minuto e
+    nenhuma se perde (o `asyncio.Queue` com limite deitava fora as novas)."""
+
+    def __init__(self):
+        self._items: collections.deque = collections.deque()
+        self._ready = asyncio.Event()
+
+    def put_nowait(self, item) -> None:
+        kind, value = item
+        if kind == "minute" and self._items:
+            last_kind, last_value = self._items[-1]
+            if last_kind == "minute" and last_value.time == value.time:
+                self._items[-1] = item
+                return
+        self._items.append(item)
+        self._ready.set()
+
+    async def get(self):
+        while not self._items:
+            self._ready.clear()
+            await self._ready.wait()
+        return self._items.popleft()
+
+    def qsize(self) -> int:
+        return len(self._items)
+
+
 class Feed:
     """A ligação WebSocket de um mercado, partilhada pelos testes dele."""
 
     def __init__(self, instrument: Instrument):
         self.instrument = instrument
-        self.queues: set[asyncio.Queue] = set()
+        self.queues: set[Mailbox] = set()
         self.task: asyncio.Task | None = None
         self.connected = False
 
-    def subscribe(self) -> asyncio.Queue:
-        queue: asyncio.Queue = asyncio.Queue(maxsize=10_000)
+    def subscribe(self) -> Mailbox:
+        queue = Mailbox()
         self.queues.add(queue)
         if self.task is None:
             self.task = asyncio.create_task(self._run())
@@ -100,7 +148,7 @@ class Feed:
             queue.put_nowait(("connected", None))
         return queue
 
-    def unsubscribe(self, queue: asyncio.Queue) -> None:
+    def unsubscribe(self, queue: Mailbox) -> None:
         self.queues.discard(queue)
         if not self.queues and self.task:
             self.task.cancel()
@@ -108,10 +156,7 @@ class Feed:
 
     def _send(self, item) -> None:
         for queue in list(self.queues):
-            try:
-                queue.put_nowait(item)
-            except asyncio.QueueFull:
-                pass
+            queue.put_nowait(item)
 
     async def _run(self) -> None:
         delay = RECONNECT_SECONDS
@@ -143,12 +188,41 @@ class Service:
         self.conn: psycopg.AsyncConnection | None = None
         self.feeds: dict[str, Feed] = {}
         self.tasks: dict[str, asyncio.Task] = {}
-        # O motor corre em threads (uma por teste a correr de cada vez)
-        self.pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="live-engine")
+        # As velas e o funding (rede, ClickHouse) em threads; o motor num conjunto de processos
+        self.pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="live-io")
+        self.engine_processes = _engine_processes()
+        self.engine_pool = self._new_engine_pool()
         self.wake = asyncio.Event()
         self.stopping = False
         # Só um volta a ligar de cada vez (os testes partilham a ligação)
         self.reconnecting = asyncio.Lock()
+
+    def _new_engine_pool(self) -> ProcessPoolExecutor:
+        return ProcessPoolExecutor(
+            max_workers=self.engine_processes,
+            mp_context=multiprocessing.get_context("spawn"),
+            initializer=child_init,
+        )
+
+    async def _run_engine(self, bot: LiveBot, now_ms: int, final: bool) -> list[dict]:
+        """O `rerun` do bot num processo do motor. Se o conjunto partir (um processo
+        morreu), faz-se outro e tenta-se uma vez mais; à segunda, o erro sobe."""
+        loop = asyncio.get_running_loop()
+        for attempt in range(2):
+            pool = self.engine_pool
+            try:
+                events, result = await loop.run_in_executor(pool, rerun_in_process, bot, now_ms, final)
+            except BrokenProcessPool:
+                if attempt:
+                    raise
+                log.warning("O conjunto do motor dos testes ao vivo partiu; a fazer outro")
+                if self.engine_pool is pool:
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    self.engine_pool = self._new_engine_pool()
+                continue
+            bot.apply_engine_result(result)
+            return events
+        return []
 
     # --- base de dados -------------------------------------------------------
     async def connect(self) -> None:
@@ -306,7 +380,7 @@ class Service:
         data_from = _ms(test["dataFromDate"])
         now_minute = _now_ms() // MINUTE_MS * MINUTE_MS
         history = await loop.run_in_executor(self.pool, self._history, instrument, data_from, now_minute)
-        bot.add_closed(history)
+        bot.add_closed_arrays(history.time, history.open, history.high, history.low, history.close, history.volume)
         await self._system(bot.id, "history", minutes=len(history))
         if self._wants_funding(bot, instrument):
             bot.funding = await loop.run_in_executor(self.pool, self._funding, instrument, data_from, _now_ms())
@@ -321,7 +395,7 @@ class Service:
         finally:
             feed.unsubscribe(queue)
 
-    async def _follow(self, bot: LiveBot, instrument: Instrument, queue: asyncio.Queue) -> None:
+    async def _follow(self, bot: LiveBot, instrument: Instrument, queue: Mailbox) -> None:
         loop = asyncio.get_running_loop()
         last_tick = 0.0
         last_status_check = time.monotonic()
@@ -373,9 +447,8 @@ class Service:
                 )
 
     async def _rerun(self, bot: LiveBot, final: bool = False) -> None:
-        loop = asyncio.get_running_loop()
         started = time.monotonic()
-        events = await loop.run_in_executor(self.pool, bot.rerun, _now_ms(), final)
+        events = await self._run_engine(bot, _now_ms(), final)
         await self._log(bot.id, events)
         await self._save_state(bot)
         took = time.monotonic() - started
@@ -391,26 +464,26 @@ class Service:
         await self._set_status(bot.id, status)
 
     # --- velas e funding (nas threads) -------------------------------------------
-    def _history(self, instrument: Instrument, start_ms: int, end_ms: int) -> list[Minute]:
+    def _history(self, instrument: Instrument, start_ms: int, end_ms: int) -> Candles:
         """Os minutos do aquecimento até agora: os que o ClickHouse já tem (das
-        simulações) e o resto da corretora."""
-        minutes: list[Minute] = []
+        simulações) e o resto da corretora, em arrays."""
+        stored = None
         try:
             client = clickhouse.connect(self.config)
             stored = load_minutes(client, instrument.id, _aware(start_ms), _aware(end_ms))
-            minutes = [
-                Minute(int(t), float(o), float(h), float(l), float(c), float(v))
-                for t, o, h, l, c, v in zip(stored.time, stored.open, stored.high, stored.low, stored.close, stored.volume)
-            ]
         except Exception as error:  # noqa: BLE001 — sem ClickHouse vai tudo à corretora
             log.warning("Sem as velas do ClickHouse (%s); vão todas da corretora", error)
         # Do ClickHouse só se aproveita o que está seguido desde o início
-        if minutes and minutes[0].time > start_ms + MINUTE_MS * 60:
-            minutes = []
-        since = minutes[-1].time + MINUTE_MS if minutes else start_ms
-        if since < end_ms:
-            minutes += fetch_minutes(instrument, since, end_ms)
-        return minutes
+        if stored is not None and (not len(stored) or int(stored.time[0]) > start_ms + MINUTE_MS * 60):
+            stored = None
+        since = int(stored.time[-1]) + MINUTE_MS if stored is not None else start_ms
+        fetched: list[Minute] = fetch_minutes(instrument, since, end_ms) if since < end_ms else []
+        columns = []
+        for name, dtype in (("time", np.int64), ("open", np.float64), ("high", np.float64), ("low", np.float64),
+                            ("close", np.float64), ("volume", np.float64)):
+            more = np.asarray([getattr(minute, name) for minute in fetched], dtype)
+            columns.append(np.concatenate([getattr(stored, name), more]) if stored is not None else more)
+        return Candles(*columns)
 
     def _wants_funding(self, bot: LiveBot, instrument: Instrument) -> bool:
         funding = bot.strategy.get("funding") or {}
@@ -476,12 +549,31 @@ async def _main() -> None:
         for task in service.tasks.values():
             task.cancel()
         service.pool.shutdown(wait=False, cancel_futures=True)
+        _stop_engine_pool(service.engine_pool)
+
+
+def _stop_engine_pool(pool: ProcessPoolExecutor) -> None:
+    """Para já os processos do motor (ao sair, sem esperar pela corrida em curso)."""
+    terminate = getattr(pool, "terminate_workers", None)  # Python 3.14
+    if terminate is not None:
+        terminate()
+    else:
+        for process in list((getattr(pool, "_processes", None) or {}).values()):
+            if process.is_alive():
+                process.terminate()
+    pool.shutdown(wait=False, cancel_futures=True)
+
+
+def _terminate(*_):
+    # O SIGTERM (o principal a parar) sai pelo `finally` do `_main`, que para os processos do motor
+    raise KeyboardInterrupt
 
 
 def main() -> None:
     """O processo dos testes ao vivo (o simulador arranca-o ao lado da fila)."""
     setup_logging()
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, _terminate)
     try:
         # O psycopg assíncrono não funciona com o ciclo por omissão do Windows (Proactor)
         factory = asyncio.SelectorEventLoop if sys.platform == "win32" else None

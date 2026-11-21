@@ -1,3 +1,4 @@
+import { isoDay } from 'src/utils/dates';
 import { PrismaMarketDataRepository } from '../repositories/prisma/prisma-market-data-repository';
 import { InstrumentToPrice } from '../repositories/market-data-repository';
 import { fetchYahooChart } from './yahooClient';
@@ -12,7 +13,6 @@ const REFETCH_DAYS = 3;
 const GAP_MS = 400;
 const DAY_MS = 86_400_000;
 
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**

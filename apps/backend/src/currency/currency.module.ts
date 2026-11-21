@@ -5,6 +5,7 @@ import { PrismaCurrencyRepository } from './repositories/prisma/prisma-currency-
 import { PrismaCurrencyRateRepository } from './repositories/prisma/prisma-currency-rate-repository';
 import { PrismaCurrencyHourRateRepository } from './repositories/prisma/prisma-currency-hour-rate-repository';
 import { CurrencyHourRateService } from './currency-hour-rate.service';
+import { CurrencyRateFillService } from './currency-rate-fill.service';
 import { AppSettingModule } from 'src/app-setting/app-setting.module';
 
 @Module({
@@ -15,6 +16,8 @@ import { AppSettingModule } from 'src/app-setting/app-setting.module';
     CurrencyService,
     // As cotações de hora a hora das moedas do site
     CurrencyHourRateService,
+    // A fila das cotações do dia que faltam (pedidas à API fora dos pedidos)
+    CurrencyRateFillService,
     PrismaCurrencyHourRateRepository,
     {
       provide: PrismaCurrencyRepository,

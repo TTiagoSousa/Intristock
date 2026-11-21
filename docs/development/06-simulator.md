@@ -3,7 +3,7 @@
 ## Pieces
 
 - **Markets**: an `Asset` is the thing (Bitcoin), an `Instrument` is a market where it has a price (Binance spot BTCUSDT, Coinbase BTC-USD). The backend syncs the markets of each exchange on start and every 24 h. Each market points to the exchange's `Platform` (`Instrument.platformId`, matched by name or by its CoinGecko id), so the picker shows its name and logo; `source` still decides which API the candles come from.
-- **Downloader** (`apps/downloader`): takes `MarketDataDownload` rows (`FOR UPDATE SKIP LOCKED`), downloads one-minute candles month by month into ClickHouse and records the months it has in `MarketDataMonth`.
+- **Downloader** (`apps/downloader`): takes `MarketDataDownload` rows (`FOR UPDATE SKIP LOCKED`), downloads one-minute candles month by month into ClickHouse and records the months it has in `MarketDataMonth`. It runs `DOWNLOADER_WORKERS` requests at once (3) with a shared rate limiter per exchange, and retries network errors and 5xx. Each user can have at most 5 downloads queued or running.
 - **Simulator** (`apps/simulator/intristock_simulator`): waits for a `SimulationRun` whose download is done, runs it in a process pool and writes the result, the trades (`SimulationTrade`) and the report.
 
 ## The engine
@@ -12,13 +12,15 @@
 
 Strategies (`strategy.version` 3) have entries, each with its direction, conditions, entry price, size and exits, plus general rules (trading guards, schedules, sizing, fees, slippage, deposits and, on futures, leverage, margin and funding).
 
+The engine is split by phase: `engine/prepare.py` (options, schedules, orders and the initial account), `planning.py` (how each position exits), `positions.py` (opening, adding and closing) and `liquidation.py` (futures liquidation), with `simulate.py` as the loop. `scripts/golden_check.py` guards its results (see [Getting started](01-getting-started.md#tests-and-checks)).
+
 ## The report
 
 When a run finishes the simulator computes the whole report (`factsheet/`, `robustness/`, `engine/report/`) and stores **one JSONB column per chart or table** in `SimulationRun` (`REPORT_COLUMNS`). The frontend only draws: `GET /simulations/:id/report?blocks=…` returns the blocks a screen needs. The report reruns the strategy as lighter variants (`lite`) for the robustness proofs, the sensitivity grid, walk-forward, costs and schedule filters.
 
 ## Live tests
 
-A live test runs a simulation's strategy on real-time candles with paper orders. The simulator runs them in a separate process (`intristock_simulator/live/`): one WebSocket per market shared by its tests, missing minutes filled by REST, and the engine rerun on every new minute. Because the engine does not look ahead, the past never changes and the live test decides exactly as the simulation would. Events go to the browser by SSE (`GET /live-tests/:id/stream`).
+A live test runs a simulation's strategy on real-time candles with paper orders. The simulator runs them in a separate process (`intristock_simulator/live/`): one WebSocket per market shared by its tests, missing minutes filled by REST, and the engine rerun on every new minute in a process pool (`LIVE_ENGINE_PROCESSES`). The engine reads the whole past, so the cost still grows with the test's age. Because the engine does not look ahead, the past never changes and the live test decides exactly as the simulation would. Events go to the browser by SSE (`GET /live-tests/:id/stream`).
 
 ## Limits
 

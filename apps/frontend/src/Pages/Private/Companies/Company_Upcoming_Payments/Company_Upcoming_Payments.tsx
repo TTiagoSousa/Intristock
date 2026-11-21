@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import http from '../../../../Service/httpService';
 import { End_Points } from '../../../../Service/endPoints';
@@ -12,6 +12,7 @@ import { useCompanyBankAccounts } from '../../../../Hooks/Companies/useCompanyBa
 import { useUpcomingPayments, type Upcoming_Payment } from '../../../../Hooks/Companies/useUpcomingPayments';
 import Record_Member_Payment_Popover, { type Member_Payment_Input } from './Record_Member_Payment_Popover';
 import './Company_Upcoming_Payments.scss';
+import { localeOf } from '../../../../utils/locale';
 
 // Os períodos que se escolhem, em meses para a frente
 const PERIODS = [1, 3, 6, 12];
@@ -45,7 +46,7 @@ const Company_Upcoming_Payments = () => {
     );
   }
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const date = (value: string) =>
     new Date(`${value}T00:00:00Z`).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
   const monthName = (period: string) =>
@@ -112,7 +113,7 @@ const Company_Upcoming_Payments = () => {
                 <button
                   key={period}
                   type="button"
-                  className={months === period ? 'Active' : ''}
+                  className={months === period ? 'Active' : ''} aria-pressed={months === period}
                   onClick={() => setMonths(period)}
                 >
                   {t('purchasesDashboard.months', { count: period })}

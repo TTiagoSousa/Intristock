@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyStock, type StockMovement } from '../../../../Hooks/Companies/useCompanyStock';
@@ -12,12 +12,13 @@ import Stock_Movement_Popover from './Stock_Movement_Popover';
 import * as Icon from '../../../../Imports/icons';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import './Company_Stock_Movements.scss';
+import { localeOf } from '../../../../utils/locale';
 
 const Company_Stock_Movements = () => {
   const { slug } = useParams();
   const { companies } = useCompanies();
   const { can } = useCompany();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { formatIn } = useCurrencyFormat();
 
   // O filtro vive no URL: vindo das existências, a linha já traz o item,
@@ -115,7 +116,7 @@ const Company_Stock_Movements = () => {
                 {movements.map((movement) => (
                   <tr key={movement.id}>
                     <td className="Numeric Left">
-                      {new Date(movement.occurredAt).toLocaleDateString()}
+                      {new Date(movement.occurredAt).toLocaleDateString(localeOf(i18n.language))}
                     </td>
                     <td className="Movement_Item_Name">{movement.item.name}</td>
                     <td>

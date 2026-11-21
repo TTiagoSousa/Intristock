@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaCalculatorRepository } from 'src/calculator/repositories/prisma/prisma-calculator-repository';
+import { PrismaCalculatorRepository } from 'src/calculator-catalog/repositories/prisma/prisma-calculator-repository';
 import { PrismaCalculatorSimulationRepository } from './repositories/prisma/prisma-calculator-simulation-repository';
 import { simulateCompoundInterest } from './helpers/simulateCompoundInterest';
 import { saveCompoundInterestSimulation } from './helpers/saveCompoundInterestSimulation';

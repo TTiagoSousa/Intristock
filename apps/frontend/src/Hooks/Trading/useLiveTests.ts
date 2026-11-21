@@ -144,10 +144,28 @@ export const useActiveLiveTests = () => {
           if (!cancelled) setTests((previous) => previous ?? []);
         });
     load();
-    const timer = setInterval(load, ACTIVE_REFRESH_MS);
+    // Só com o separador à vista; ao voltar, pede logo
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (timer === null) timer = setInterval(load, ACTIVE_REFRESH_MS);
+    };
+    const stop = () => {
+      if (timer !== null) clearInterval(timer);
+      timer = null;
+    };
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else {
+        load();
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);
 
@@ -258,14 +276,24 @@ export const useLiveTest = (id: string | null, onStatus?: () => void) => {
     const source = new EventSource(`${BASE_URL}${End_Points.Live_Test_Stream_Endpoint(id)}`, { withCredentials: true });
     source.onopen = () => setConnected(id);
     source.onerror = () => setConnected(null);
+    // Uma mensagem que não se lê (cortada, um proxy pelo meio) ignora-se: a seguinte corrige
+    const parse = <T,>(message: Event): T | null => {
+      try {
+        return JSON.parse((message as MessageEvent<string>).data) as T;
+      } catch {
+        return null;
+      }
+    };
     source.addEventListener('tick', (message) => {
-      const data = JSON.parse((message as MessageEvent<string>).data) as Live_Tick;
+      const data = parse<Live_Tick>(message);
+      if (!data) return;
       setTick({ id, tick: data });
       if (data.bar) minuteListeners.current.forEach((listener) => listener(data.bar!));
     });
     source.addEventListener('events', (message) => {
-      const data = JSON.parse((message as MessageEvent<string>).data) as { events?: Live_Event[]; refetch?: boolean };
-      if (data.refetch || !data.events) {
+      const data = parse<{ events?: Live_Event[]; refetch?: boolean }>(message);
+      // Sem a mensagem, pede os registos outra vez
+      if (!data || data.refetch || !data.events) {
         void loadEvents();
         return;
       }

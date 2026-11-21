@@ -25,6 +25,9 @@ const CURRENCY = {
 // As listas e as contas não levam o relatório dos preços (pode ter dezenas de anúncios)
 const NO_REPORT = { valuationReport: true } as const;
 
+// A chave do AppSetting com o cursor das ordens e dos dividendos saltados de uma ligação
+const skippedSinceKey = (connectionId: string) => `broker.${connectionId}.skippedSince`;
+
 const TRANSACTION_INCLUDE = {
   asset: {
     select: { id: true, name: true, assetClass: true, subClass: true },
@@ -87,28 +90,39 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
    * O que muda quando o resumo da pessoa pode mudar: as transações (quantas e a última
    * mexida), os portefólios e as ligações (nomes, `fromDate`) e a hora de cotações mais
    * recente. Os fechos das ações têm a versão deles, no `StockPriceService`.
+   *
+   * Dos portefólios e das ligações só conta o que o resumo lê (o nome, a origem, a
+   * plataforma e o `fromDate`): o `updatedAt` deles sobe a cada sincronização (`syncedAt`),
+   * mesmo sem nada novo, e fazia cair a cache de hora a hora.
    */
   async findSummaryVersion(userId: string): Promise<string> {
-    const [transactions, portfolios, connections, hour] = await Promise.all([
+    const [transactions, portfolios, hour] = await Promise.all([
       this.prisma.personalPortfolioTransaction.aggregate({
         where: { portfolio: { userId } },
         _count: { _all: true },
         _max: { updatedAt: true },
       }),
-      this.prisma.personalPortfolio.aggregate({
+      this.prisma.personalPortfolio.findMany({
         where: { userId },
-        _count: { _all: true },
-        _max: { updatedAt: true },
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          source: true,
+          platformId: true,
+          connection: { select: { fromDate: true } },
+        },
       }),
-      this.prisma.brokerConnection.aggregate({ where: { userId }, _max: { updatedAt: true } }),
       latestRateHour(this.prisma),
     ]);
     return [
       transactions._count._all,
       transactions._max.updatedAt?.getTime() ?? 0,
-      portfolios._count._all,
-      portfolios._max.updatedAt?.getTime() ?? 0,
-      connections._max.updatedAt?.getTime() ?? 0,
+      portfolios
+        .map((p) =>
+          [p.id, p.name, p.source, p.platformId ?? '', p.connection?.fromDate?.getTime() ?? ''].join(','),
+        )
+        .join(';'),
       hour?.getTime() ?? 0,
     ].join(':');
   }
@@ -432,7 +446,29 @@ export class PrismaPersonalPortfolioRepository implements PersonalPortfolioRepos
     await this.prisma.$transaction([
       this.prisma.personalPortfolio.updateMany({ where: { connectionId }, data: { connectionId: null } }),
       this.prisma.brokerConnection.delete({ where: { id: connectionId } }),
+      this.prisma.appSetting.deleteMany({ where: { key: skippedSinceKey(connectionId) } }),
     ]);
+  }
+
+  // O cursor das ordens e dos dividendos que ficaram de fora (moeda fora do catálogo).
+  // Não há coluna para ele na ligação: fica no AppSetting, uma chave por ligação
+  async findSkippedSince(connectionId: string): Promise<Date | null> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: skippedSinceKey(connectionId) } });
+    const at = row ? new Date(row.value) : null;
+    return at && !Number.isNaN(at.getTime()) ? at : null;
+  }
+
+  async saveSkippedSince(connectionId: string, at: Date | null): Promise<void> {
+    const key = skippedSinceKey(connectionId);
+    if (!at) {
+      await this.prisma.appSetting.deleteMany({ where: { key } });
+      return;
+    }
+    await this.prisma.appSetting.upsert({
+      where: { key },
+      update: { value: at.toISOString(), encrypted: false },
+      create: { key, value: at.toISOString(), encrypted: false },
+    });
   }
 
   async findConnectionPortfolio(connectionId: string, externalId: string) {

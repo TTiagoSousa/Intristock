@@ -7,11 +7,17 @@ import { ensureYahooListing } from './helpers/ensureYahooListing';
 import { syncStockPrices } from './helpers/syncStockPrices';
 import { ExchangeMarket, fetchExchangeDays, fetchExchangeHours } from './helpers/exchangeCloses';
 import { fetchYahooChart, fetchYahooHourly, searchYahoo, YahooHourClose } from './helpers/yahooClient';
+import { AppSettingService } from 'src/app-setting/app-setting.service';
+import { startScheduledJob } from 'src/common/scheduledJob';
 
-// Os fechos põem-se em dia no arranque e de 6 em 6 horas (o do dia acaba quando a bolsa fecha)
+// Os fechos põem-se em dia de 6 em 6 horas (o do dia acaba quando a bolsa fecha)
 const SYNC_EVERY_MS = 6 * 60 * 60 * 1000;
+// A primeira volta depois do arranque (as outras tarefas têm outros tempos)
+const SYNC_STAGGER_MS = 45_000;
 // Os preços de hora a hora (só para os gráficos de 7 dias e 24 horas) ficam em memória uns minutos
 const HOURLY_TTL_MS = 10 * 60 * 1000;
+// Quantos mercados no máximo na cache de hora a hora (os mais antigos saem primeiro)
+const HOURLY_MAX_MARKETS = 500;
 // Quantos dias para trás se pedem de uma vez (cobre os 7 dias e o fecho antes deles)
 const HOURLY_DAYS = 9;
 // O fecho de um dia: até uns dias antes (fins de semana, feriados)
@@ -33,7 +39,7 @@ export type PricedMarket = ExchangeMarket & { id: string };
 @Injectable()
 export class StockPriceService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(StockPriceService.name);
-  private timer: NodeJS.Timeout | null = null;
+  private stopSync?: () => void;
   private running: Promise<unknown> = Promise.resolve();
   private readonly hourly = new Map<string, { at: number; closes: Promise<YahooHourClose[]> }>();
   // Sobe a cada volta que mexeu nos fechos (o resumo dos portefólios usa-o na cache dele)
@@ -43,15 +49,23 @@ export class StockPriceService implements OnModuleInit, OnModuleDestroy {
     private readonly repository: PrismaMarketDataRepository,
     private readonly binance: BinanceCandleRepository,
     private readonly coinbase: CoinbaseCandleRepository,
+    private readonly settings: AppSettingService,
   ) {}
 
+  // No arranque só se já passaram as 6 horas desde a última volta (no AppSetting)
   onModuleInit() {
-    void this.syncPrices();
-    this.timer = setInterval(() => void this.syncPrices(), SYNC_EVERY_MS);
+    this.stopSync = startScheduledJob({
+      name: 'market-data.stock-prices',
+      everyMs: SYNC_EVERY_MS,
+      staggerMs: SYNC_STAGGER_MS,
+      store: this.settings,
+      run: () => this.syncPrices(),
+      logger: this.logger,
+    });
   }
 
   onModuleDestroy() {
-    if (this.timer) clearInterval(this.timer);
+    this.stopSync?.();
   }
 
   /** Muda sempre que os fechos guardados mudam. */
@@ -145,6 +159,12 @@ export class StockPriceService implements OnModuleInit, OnModuleDestroy {
   async hourlyCloses(markets: PricedMarket[]) {
     const now = Date.now();
     const result = new Map<string, YahooHourClose[]>();
+    // Os que já expiraram saem (senão a cache só crescia) e, acima do limite, os mais antigos
+    for (const [key, entry] of this.hourly) if (now - entry.at > HOURLY_TTL_MS) this.hourly.delete(key);
+    for (const key of this.hourly.keys()) {
+      if (this.hourly.size <= HOURLY_MAX_MARKETS) break;
+      this.hourly.delete(key);
+    }
     await Promise.all(
       markets.map(async (market) => {
         const key = `${market.source}:${market.type}:${market.symbol}`;

@@ -75,6 +75,11 @@ export class CreateMemberPayDto {
   @Min(0)
   @Max(100)
   withholdingPct?: number | null;
+
+  // Mudar o salário: o que este substitui (fecha na véspera do início deste quando contar)
+  @IsOptional()
+  @IsUUID()
+  replacesId?: string;
 }
 
 // O tipo não muda: um salário não passa a recibo verde

@@ -104,8 +104,15 @@ export interface PersonalIncomeRepository {
     userId: string,
     payId: string,
   ): Promise<UserMemberPay | null>;
-  // `payId|período` dos que a empresa já registou como pagos
-  findCompanyPaidPeriods(payIds: string[]): Promise<Set<string>>;
+  // `payId|período` → o valor, dos que a empresa já registou como pagos (concluídos)
+  findCompanyPaidPeriods(
+    payIds: string[],
+  ): Promise<Map<string, { amount: number; currencyId: string }>>;
+  // O último ganho registado de cada salário (o líquido que a pessoa recebeu da última vez)
+  findLastMemberPayIncomes(
+    userId: string,
+    payIds: string[],
+  ): Promise<Map<string, { amount: number; currencyId: string }>>;
 
   findCurrency(currencyId: string): Promise<IncomeCurrency | null>;
   findCurrencyByCode(shortCode: string): Promise<IncomeCurrency | null>;

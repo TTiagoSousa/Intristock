@@ -1,16 +1,32 @@
 import { useCallback, useEffect, useState } from 'react';
 import http from '../../Service/httpService';
 import { End_Points } from '../../Service/endPoints';
+import { useVisibleInterval } from '../useVisibleInterval';
+import { INVITATIONS_CHANGED_EVENT } from './useInvitations';
 
-// version_installed (entrou uma versão nova) | version_available (há uma para instalar, só admins)
-export type Notification_Kind = 'version_installed' | 'version_available';
+// version_installed (entrou uma versão nova) | version_available (há uma para instalar, só admins);
+// os convites, as propostas de salário e os pagamentos a confirmar (ver o backend)
+export type Notification_Kind =
+  | 'version_installed'
+  | 'version_available'
+  | 'backup_failed'
+  | 'company_invite'
+  | 'company_invite_answered'
+  | 'member_pay_proposed'
+  | 'member_pay_answered'
+  | 'member_paid'
+  | 'member_payment_confirmed';
+
+// Num aviso que pede resposta: pending até se responder
+export type Notification_Action_Status = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'done';
 
 // Um aviso: o texto faz-se no ecrã a partir do kind e dos números em data
 export interface App_Notification {
   id: string;
   kind: Notification_Kind;
-  data: Record<string, string | null>;
+  data: Record<string, string | number | boolean | null>;
   link: string | null;
+  actionStatus: Notification_Action_Status | null;
   readAt: string | null;
   createdAt: string;
 }
@@ -35,24 +51,19 @@ export const useNotifications = () => {
     }
   }, []);
 
+  // Ao abrir, e depois de tanto em tanto tempo só com o separador à vista
   useEffect(() => {
-    let cancelled = false;
-    const refresh = () =>
-      http
-        .get<{ items: App_Notification[]; unread: number }>(End_Points.Notifications_Endpoint())
-        .then(({ data }) => {
-          if (cancelled) return;
-          setItems(data.items);
-          setUnread(data.unread);
-        })
-        .catch(() => undefined);
-    refresh();
-    const timer = setInterval(refresh, REFRESH_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, []);
+    void load();
+  }, [load]);
+  useVisibleInterval(load, REFRESH_MS);
+
+  // Respondeu-se a um convite ou proposta noutro sítio (a página «Convites»): os
+  // botões do sino deixam de estar ativos
+  useEffect(() => {
+    const onChanged = () => void load();
+    window.addEventListener(INVITATIONS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(INVITATIONS_CHANGED_EVENT, onChanged);
+  }, [load]);
 
   // Otimista: fica lido logo no ecrã, e o número certo vem do backend
   const markRead = async (id: string) => {

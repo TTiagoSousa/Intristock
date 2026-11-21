@@ -5,16 +5,19 @@ import {
 } from '../repositories/personal-income-repository';
 import { PrismaPersonalIncomeRepository } from '../repositories/prisma/prisma-personal-income-repository';
 import { listSourceIncomesDue } from './listSourceIncomesDue';
+import { PrismaTimeTrackingRepository } from 'src/time-tracking/repositories/prisma/prisma-time-tracking-repository';
+import { listTimeTrackingIncomesDue } from 'src/time-tracking/helpers/listTimeTrackingIncomesDue';
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
 export type ExpectedIncome = {
-  // `source` (um salário de uma fonte) ou `company` (o de uma empresa da base)
-  origin: 'source' | 'company';
+  // `source` (um salário de uma fonte), `company` (o de uma empresa da base) ou
+  // `time_tracking` (as horas por pagar do banco de horas de uma empresa)
+  origin: 'source' | 'company' | 'time_tracking';
   sourceId: string | null;
   memberPayId: string | null;
   period: string;
-  // salary, holiday, christmas ou freelance
+  // salary, holiday, christmas, freelance ou hours (as horas de um mês)
   part: string;
   kind: string;
   date: string;
@@ -30,6 +33,10 @@ export type ExpectedIncome = {
   currency: IncomeCurrency;
   // A empresa já registou o pagamento deste período
   companyPaid: boolean;
+  // Nas horas: quantas (segundos)
+  seconds?: number;
+  // Horas que a empresa já pagou e a pessoa ainda não confirmou (confirma-se em /invitations)
+  payoutId?: string;
 };
 
 /**
@@ -44,6 +51,8 @@ export async function findExpectedIncomes(
   firstMonth: Date,
   until: Date,
   repository: PrismaPersonalIncomeRepository,
+  // As horas por pagar do banco de horas (sem ele, não entram)
+  timeTracking?: PrismaTimeTrackingRepository,
 ): Promise<ExpectedIncome[]> {
   const now = new Date();
   const today = new Date(
@@ -89,9 +98,23 @@ export async function findExpectedIncomes(
     list.push(pay);
     byCompany.set(pay.member.company.id, list);
   }
-  const companyPaid = await repository.findCompanyPaidPeriods(
-    memberPays.map((pay) => pay.id),
-  );
+  const payIds = memberPays.map((pay) => pay.id);
+  const [companyPaid, lastIncomes] = await Promise.all([
+    repository.findCompanyPaidPeriods(payIds),
+    repository.findLastMemberPayIncomes(userId, payIds),
+  ]);
+  // Num salário a lista dá o bruto: o que se espera receber é o líquido. O que a empresa já
+  // pagou desse período, senão o último que a pessoa recebeu desse salário (na mesma moeda),
+  // e só sem nenhum dos dois o bruto
+  const expectedNet = (entry: ReturnType<typeof listMemberPaymentsDue>[number]) => {
+    if (entry.kind === 'freelance') return entry.netAmount;
+    const currencyId = entry.currency?.id;
+    const paid = companyPaid.get(`${entry.memberPayId}|${entry.period}`);
+    if (paid && paid.currencyId === currencyId) return round(paid.amount);
+    const last = entry.part === 'salary' ? lastIncomes.get(entry.memberPayId) : undefined;
+    if (last && last.currencyId === currencyId) return round(last.amount);
+    return entry.netAmount;
+  };
   const payById = new Map(memberPays.map((pay) => [pay.id, pay]));
 
   for (const pays of byCompany.values()) {
@@ -119,10 +142,64 @@ export async function findExpectedIncomes(
         company: { id: company.id, name: company.name, slug: company.slug },
         description: entry.description,
         grossAmount: entry.grossAmount,
-        amount: entry.netAmount,
+        amount: expectedNet(entry),
         withholdingPct: entry.withholdingPct,
         currency: entry.currency as IncomeCurrency,
         companyPaid: companyPaid.has(`${entry.memberPayId}|${entry.period}`),
+      });
+    }
+  }
+
+  // As horas por pagar das empresas em que esta pessoa é a pessoa de uma app de horas: uma por
+  // empresa e mês (quem lhe paga é a empresa, não os clientes dela); marcam-se pagas no banco de
+  // horas da empresa, não aqui
+  if (timeTracking) {
+    const monthOf = (date: Date) => date.toISOString().slice(0, 7);
+    const entries = await timeTracking.findUserEntries(userId, new Date(firstMonth.getTime() - 24 * 60 * 60 * 1000));
+    for (const due of listTimeTrackingIncomesDue(entries, monthOf(firstMonth), monthOf(until))) {
+      expected.push({
+        origin: 'time_tracking',
+        sourceId: null,
+        memberPayId: null,
+        period: due.period,
+        part: 'hours',
+        kind: 'freelance',
+        date: due.date,
+        overdue: due.date < todayIso,
+        name: due.company.name,
+        company: due.company,
+        description: null,
+        grossAmount: due.grossAmount,
+        amount: due.netAmount,
+        withholdingPct: due.withholdingPct,
+        currency: due.currency as IncomeCurrency,
+        companyPaid: false,
+        seconds: due.seconds,
+      });
+    }
+
+    // Pago pela empresa, por confirmar: aparece com o pago da empresa e o confirmar
+    for (const payout of await timeTracking.findUnconfirmedPayouts(userId)) {
+      const date = payout.paidAt.toISOString().slice(0, 10);
+      expected.push({
+        origin: 'time_tracking',
+        sourceId: null,
+        memberPayId: null,
+        period: date.slice(0, 7),
+        part: 'payout',
+        kind: 'freelance',
+        date,
+        overdue: false,
+        name: payout.company.name,
+        company: payout.company,
+        description: null,
+        grossAmount: Number(payout.grossAmount),
+        amount: Number(payout.netAmount),
+        withholdingPct: payout.withholdingPct === null ? null : Number(payout.withholdingPct),
+        currency: payout.currency as IncomeCurrency,
+        companyPaid: true,
+        seconds: payout.seconds,
+        payoutId: payout.id,
       });
     }
   }

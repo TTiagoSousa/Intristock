@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCalculators } from '../../../../Hooks/Calculators/useCalculators';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';

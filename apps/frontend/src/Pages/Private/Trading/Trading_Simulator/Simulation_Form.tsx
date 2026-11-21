@@ -39,6 +39,7 @@ import {
 import type { Simulation_Form_State } from './simulationForm';
 import { TIMEZONES, brokerFees, guardOk, optionAvailable, optionErrors } from './strategyOptions';
 import type { Option_Key } from './strategyOptions';
+import { localeOf } from '../../../../utils/locale';
 
 const MAX_ENTRIES = 5;
 
@@ -382,8 +383,8 @@ const Simulation_Form = ({
                   {marketFees &&
                     ` ${t('trading.feeBrokerHint', {
                       broker: t(`trading.feeBroker_${marketFees.key.replace(':', '_')}`),
-                      maker: marketFees.maker.toLocaleString(i18n.language, { maximumFractionDigits: 3 }),
-                      taker: marketFees.taker.toLocaleString(i18n.language, { maximumFractionDigits: 3 }),
+                      maker: marketFees.maker.toLocaleString(localeOf(i18n.language), { maximumFractionDigits: 3 }),
+                      taker: marketFees.taker.toLocaleString(localeOf(i18n.language), { maximumFractionDigits: 3 }),
                     })}`}
                 </span>
               </section>
@@ -556,7 +557,7 @@ const Simulation_Form = ({
                 {error && <span className="Simulator_Error">{error}</span>}
 
                 <Simple_Button
-                  text={busy ? t('trading.simulating') : t('trading.simulate')}
+                  text={t('trading.simulate')}
                   onClick={() => onSubmit(toPayload(form))}
                   disabled={!canSubmit}
                 />

@@ -1,23 +1,30 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import Header_Index from '../../../Containers/Header/Header_Index/Header_Index';
 import Month_Chart from '../../../Components/Charts/Month_Chart/Month_Chart';
 import { useAuth } from '../../../Contexts/Auth_Context';
+import { localeOf } from '../../../utils/locale';
 import './Index.scss';
 
 // Dados de exemplo da pré-visualização (a página diz que são de exemplo): um ano
 // de ganhos e despesas de uma pessoa, com o subsídio em junho e em dezembro
-const MONTHS = ['dez', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov'];
 const RECEIVED = [3980, 2140, 2140, 2265, 2140, 2190, 4280, 2140, 2140, 2310, 2140, 2205];
 const SPENT = [2610, 1730, 1655, 1890, 1712, 1804, 2390, 2045, 1968, 1720, 1810, 1640];
 
-const euro = (value: number) =>
-  `${value.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-const compact = (value: number) => `${Math.round(value / 100) / 10}k`;
+// Os valores de exemplo estão em euros; o formato e os meses vão na língua da app
+const MONTH_INDEXES = [11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const Index = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const locale = localeOf(i18n.language);
+  const euro = (value: number) =>
+    new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value);
+  const compact = (value: number) =>
+    new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+  const months = MONTH_INDEXES.map((month) =>
+    new Date(Date.UTC(2026, month, 1)).toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' }).replace('.', ''),
+  );
   const { authenticated, isLoading } = useAuth();
 
   return (
@@ -55,17 +62,17 @@ const Index = () => {
             <div className="Index_Window_Tiles">
               <div className="Card Tile Wave_Tile Up">
                 <span className="Eyebrow">{t('landing.tileIncome')}</span>
-                <span className="Tile_Value">2 205,00 €</span>
+                <span className="Tile_Value">{euro(2205)}</span>
                 <div className="Tile_Foot">{t('landing.tileIncomeFoot')}</div>
               </div>
               <div className="Card Tile Wave_Tile Down">
                 <span className="Eyebrow">{t('landing.tileSpent')}</span>
-                <span className="Tile_Value">1 640,00 €</span>
+                <span className="Tile_Value">{euro(1640)}</span>
                 <div className="Tile_Foot">{t('landing.tileSpentFoot')}</div>
               </div>
               <div className="Card Tile Wave_Tile Accent">
                 <span className="Eyebrow">{t('landing.tileDebt')}</span>
-                <span className="Tile_Value">96 410,00 €</span>
+                <span className="Tile_Value">{euro(96410)}</span>
                 <div className="Tile_Foot">{t('landing.tileDebtFoot')}</div>
               </div>
             </div>
@@ -77,8 +84,8 @@ const Index = () => {
               <div className="Index_Window_Chart_Plot">
                 <Month_Chart
                   kind="bars"
-                  categories={MONTHS}
-                  labels={MONTHS}
+                  categories={months}
+                  labels={months}
                   series={[
                     { id: 'received', name: t('landing.chartReceived'), values: RECEIVED, colorToken: '--gain' },
                     { id: 'spent', name: t('landing.chartSpent'), values: SPENT, colorToken: '--loss' },

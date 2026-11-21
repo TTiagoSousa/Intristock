@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -61,14 +62,14 @@ export class CreateCompanyPaymentDto {
 
   // O valor que sai (ou entra) na conta bancária, já com impostos. É sempre
   // conferido contra a base + os impostos calculados.
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   amount: number;
 
   // O valor sem imposto, quando o pagamento não tem linhas de item. Com linhas,
   // a base é a soma delas e este campo é ignorado.
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   baseAmount?: number;
 
@@ -90,7 +91,7 @@ export class CreateCompanyPaymentDto {
   // extrato). A taxa passa a ser este ÷ `amount`. Sem ele, vale a cotação do
   // dia do pagamento.
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
   companyAmount?: number;
 
@@ -111,6 +112,7 @@ export class CreateCompanyPaymentDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(50)
   @ValidateNested({ each: true })
   @Type(() => CreateCompanyPaymentTaxDto)
   taxes?: CreateCompanyPaymentTaxDto[];
@@ -119,6 +121,7 @@ export class CreateCompanyPaymentDto {
   // (uma transferência, por exemplo) sem nada para discriminar.
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(500)
   @ValidateNested({ each: true })
   @Type(() => CreateCompanyPaymentItemDto)
   items?: CreateCompanyPaymentItemDto[];

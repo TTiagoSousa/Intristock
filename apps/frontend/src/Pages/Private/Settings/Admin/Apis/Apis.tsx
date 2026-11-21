@@ -12,6 +12,7 @@ import Api_Keys_Card from './Api_Keys_Card';
 import * as Icon from '../../../../../Imports/icons';
 import '../Admin.scss';
 import './Apis.scss';
+import { localeOf } from '../../../../../utils/locale';
 
 type Api_Kind = 'currency' | 'country' | 'propfirm' | 'exchange';
 type Api_Values = Record<Api_Kind, ApiSettingInput>;
@@ -42,7 +43,7 @@ const Apis = () => {
   const { refresh: refreshCurrencies } = useCurrency();
   const [savingKind, setSavingKind] = useState<Api_Kind | null>(null);
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 
@@ -162,7 +163,7 @@ const Apis = () => {
         </div>
         <div className="Page_Head_Actions">
           <Simple_Button
-            text={checking ? t('adminApis.testing') : t('adminApis.test')}
+            text={t('adminApis.test')}
             onClick={check}
             disabled={checking}
             variant="Ghost"

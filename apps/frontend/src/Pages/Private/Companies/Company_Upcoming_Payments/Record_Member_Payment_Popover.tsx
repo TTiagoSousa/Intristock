@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import type { CompanyBankAccount } from '../../../../Hooks/Companies/useCompanyBankAccounts';
 import type { Upcoming_Payment } from '../../../../Hooks/Companies/useUpcomingPayments';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 export interface Member_Payment_Input {
   paymentDate: string;
@@ -51,83 +52,74 @@ const Record_Member_Payment_Popover = ({
   const [amount, setAmount] = useState(String(payment.kind === 'freelance' ? payment.netAmount : payment.grossAmount));
   const [description, setDescription] = useState(`${label} · ${payment.memberName}`);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
   const value = Number(amount.replace(',', '.'));
   const valid = Boolean(paymentDate) && Boolean(accountId) && value > 0;
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <form
-        className="Popover_Card Narrow"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (valid) onConfirm({ paymentDate, fromBankAccountId: accountId, amount: value, description: description.trim() });
-        }}
-      >
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{t('upcomingPayments.recordTitle')}</span>
-            <span className="Popover_Subtitle">
-              {payment.memberName} · {label}
-            </span>
-          </div>
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
+    <Popover_Shell
+      onClose={onClose}
+      as="form"
+      className="Narrow"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (valid) onConfirm({ paymentDate, fromBankAccountId: accountId, amount: value, description: description.trim() });
+      }}
+    >
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{t('upcomingPayments.recordTitle')}</span>
+          <span className="Popover_Subtitle">
+            {payment.memberName} · {label}
+          </span>
         </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
 
-        <div className="Popover_Body Single_Column">
-          <div className="Form_Field">
-            <label htmlFor="record-date">{t('upcomingPayments.paymentDate')} *</label>
-            <Global_Input id="record-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
-          </div>
-          <div className="Form_Field">
-            <label htmlFor="record-account">{t('upcomingPayments.account')} *</label>
-            <Global_Dropdown
-              id="record-account"
-              value={accountId}
-              onChange={(next) => setAccountId(String(next))}
-              placeholder={t('upcomingPayments.noAccounts')}
-              options={accounts.map((account) => ({ value: account.id, label: account.name }))}
-            />
-          </div>
-          <div className="Form_Field">
-            <label htmlFor="record-amount">
-              {t('upcomingPayments.amount', { currency: payment.currency.shortCode })} *
-            </label>
-            <Global_Input id="record-amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            <span className="Field_Hint">
-              {t(payment.kind === 'freelance' ? 'upcomingPayments.amountFreelanceHint' : 'upcomingPayments.amountSalaryHint')}
-            </span>
-          </div>
-          <div className="Form_Field">
-            <label htmlFor="record-description">{t('upcomingPayments.description')}</label>
-            <Global_Input id="record-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
+      <div className="Popover_Body Single_Column">
+        <div className="Form_Field">
+          <label htmlFor="record-date">{t('upcomingPayments.paymentDate')} *</label>
+          <Global_Input id="record-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
         </div>
+        <div className="Form_Field">
+          <label htmlFor="record-account">{t('upcomingPayments.account')} *</label>
+          <Global_Dropdown
+            id="record-account"
+            value={accountId}
+            onChange={(next) => setAccountId(String(next))}
+            placeholder={t('upcomingPayments.noAccounts')}
+            options={accounts.map((account) => ({ value: account.id, label: account.name }))}
+          />
+        </div>
+        <div className="Form_Field">
+          <label htmlFor="record-amount">
+            {t('upcomingPayments.amount', { currency: payment.currency.shortCode })} *
+          </label>
+          <Global_Input id="record-amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <span className="Field_Hint">
+            {t(payment.kind === 'freelance' ? 'upcomingPayments.amountFreelanceHint' : 'upcomingPayments.amountSalaryHint')}
+          </span>
+        </div>
+        <div className="Form_Field">
+          <label htmlFor="record-description">{t('upcomingPayments.description')}</label>
+          <Global_Input id="record-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+      </div>
 
-        <div className="Popover_Footer">
-          <div className="Form_Action">
-            <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
-          </div>
-          <div className="Form_Action">
-            <Simple_Button
-              type="submit"
-              text={saving ? t('common.saving') : t('upcomingPayments.record')}
-              disabled={saving || !valid}
-            />
-          </div>
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
         </div>
-      </form>
-    </div>
+        <div className="Form_Action">
+          <Simple_Button
+            type="submit"
+            text={t('upcomingPayments.record')}
+            disabled={saving || !valid}
+          />
+        </div>
+      </div>
+    </Popover_Shell>
   );
 };
 

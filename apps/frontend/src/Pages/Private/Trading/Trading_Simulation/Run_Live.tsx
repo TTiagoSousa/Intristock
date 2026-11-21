@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';

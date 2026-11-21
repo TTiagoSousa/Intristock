@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies, type Company } from '../../../Hooks/Companies/useCompanies';
 import { useCreateCompany, type CreateCompanyPayload } from '../../../Hooks/Companies/useCreateCompany';
 import Simple_Button from '../../../Components/Buttons/Simple_Button/Simple_Button';
 import Company_Form_Popover from './Company_Form_Popover';
 import './Companies.scss';
+import { localeOf } from '../../../utils/locale';
 
 /** Iniciais para a marca da empresa: no máximo duas letras. */
 const initials = (name: string) =>
@@ -20,7 +21,7 @@ const initials = (name: string) =>
 const Companies = () => {
   const { companies, loading, refresh } = useCompanies();
   const { createCompany } = useCreateCompany();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -68,7 +69,7 @@ const Companies = () => {
       <span className="Company_Card_Meta Num">
         <span>{company.currency.shortCode}</span>
         <span aria-hidden="true">·</span>
-        <span>{t('companies.since', { date: new Date(company.createdAt).toLocaleDateString() })}</span>
+        <span>{t('companies.since', { date: new Date(company.createdAt).toLocaleDateString(localeOf(i18n.language)) })}</span>
       </span>
     </button>
   );

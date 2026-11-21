@@ -1,4 +1,4 @@
-import { decryptSecret } from 'src/utils/crypto/secret-box';
+import { decryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { BrokerConnection, PersonalPortfolio } from 'src/generated/prisma/client/client';
 import { StockPriceService } from 'src/market-data/stock-price.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
@@ -133,8 +133,8 @@ export async function syncTrading212(
   if (!connection) return { imported: 0 };
 
   const credentials: Trading212Credentials = {
-    apiKey: decryptSecret(connection.apiKey),
-    apiSecret: decryptSecret(connection.apiSecret),
+    apiKey: decryptSecret(connection.apiKey, secretContext('broker_connection', `${connection.userId}:${connection.externalAccountId}`, 'apiKey')),
+    apiSecret: decryptSecret(connection.apiSecret, secretContext('broker_connection', `${connection.userId}:${connection.externalAccountId}`, 'apiSecret')),
   };
   const accountCurrency = connection.currencyCode ?? 'EUR';
   await splitLegacyPortfolio(connection, accountCurrency, repository);
@@ -232,25 +232,47 @@ export async function syncTrading212(
     repository,
   );
 
-  // As ordens e os dividendos param numa página em que já se conheça tudo
+  // As ordens e os dividendos param numa página em que já se conheça tudo e que já vá
+  // para lá do mais antigo que ficou de fora numa volta anterior (moeda fora do catálogo):
+  // senão, quando a moeda aparecesse, ninguém voltava a lê-lo
   const knownIn = await portfolioIds();
-  const allKnown = async (ids: string[]) =>
-    ids.length > 0 && (await repository.findKnownExternalIds(knownIn, ids)).size === ids.length;
+  const skippedSince = await repository.findSkippedSince(connection.id);
+  const allKnown = async (ids: string[], times: number[]) =>
+    ids.length > 0 &&
+    (!skippedSince || times.some((time) => time < skippedSince.getTime())) &&
+    (await repository.findKnownExternalIds(knownIn, ids)).size === ids.length;
+  // O mais antigo que fica de fora nesta volta (o cursor da seguinte)
+  let oldestSkipped: Date | null = null;
+  const skip = (currency: string, at: Date) => {
+    skippedCurrencies.add(currency);
+    if (!Number.isNaN(at.getTime()) && (!oldestSkipped || at < oldestSkipped)) oldestSkipped = at;
+  };
+  const orderTime = (item: { order: { createdAt: string }; fill?: { filledAt: string } | null }) =>
+    new Date(item.fill?.filledAt ?? item.order.createdAt);
 
-  const orders = await fetchTrading212Orders(credentials, (page) =>
-    allKnown(page.filter((item) => item.fill?.quantity).map((item) => `order:${item.order.id}`)),
-  );
+  const orders = await fetchTrading212Orders(credentials, (page) => {
+    const filled = page.filter((item) => item.fill?.quantity);
+    return allKnown(
+      filled.map((item) => `order:${item.order.id}`),
+      page.map((item) => orderTime(item).getTime()),
+    );
+  });
   for (const { order, fill } of orders) {
     if (!fill?.quantity) continue;
     const listing = await listingOf(order.instrument);
-    const signed = fill.quantity;
-    const value = round(Math.abs(fill.walletImpact.netValue ?? 0));
-    const target = await resolve(fill.walletImpact.currency);
+    // O sinal pelo lado da ordem (a quantidade pode vir sem ele); sem lado, o que vier
+    const size = Math.abs(fill.quantity);
+    const signed = order.side === 'SELL' ? -size : order.side === 'BUY' ? size : fill.quantity;
+    // Sem `walletImpact` não há dinheiro: entra como acerto de quantidade, na moeda do
+    // instrumento (ou da conta)
+    const value = round(Math.abs(fill.walletImpact?.netValue ?? 0));
+    const currencyCode = fill.walletImpact?.currency ?? order.instrument?.currency ?? accountCurrency;
+    const at = new Date(fill.filledAt);
+    const target = await resolve(currencyCode);
     if (!target) {
-      skippedCurrencies.add(fill.walletImpact.currency);
+      skip(currencyCode, at);
       continue;
     }
-    const at = new Date(fill.filledAt);
     if (!value) {
       // Sem dinheiro (um split, ações recebidas): só a quantidade, com sinal
       rows.push({
@@ -301,14 +323,17 @@ export async function syncTrading212(
   }
 
   const dividends = await fetchTrading212Dividends(credentials, (page) =>
-    allKnown(page.map((item) => `dividend:${item.reference}`)),
+    allKnown(
+      page.map((item) => `dividend:${item.reference}`),
+      page.map((item) => new Date(item.paidOn).getTime()),
+    ),
   );
   for (const dividend of dividends) {
     const value = round(dividend.amount);
     if (!value) continue;
     const target = await resolve(dividend.currency);
     if (!target) {
-      skippedCurrencies.add(dividend.currency);
+      skip(dividend.currency, new Date(dividend.paidOn));
       continue;
     }
     const listing = await listingOf(dividend.instrument);
@@ -329,6 +354,8 @@ export async function syncTrading212(
   }
 
   const imported = await repository.createImportedTransactions(rows);
+  // Só depois de gravar: uma volta que falhe antes deixa o cursor como estava
+  await repository.saveSkippedSince(connection.id, oldestSkipped);
   // Os fechos das ações desta ligação, até hoje
   if (listings.size) await stocks.syncPrices([...listings.values()].map((listing) => listing.instrumentId));
 

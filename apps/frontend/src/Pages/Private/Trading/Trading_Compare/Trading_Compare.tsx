@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { createLineChart } from 'openchartscandle/line';
 import type { LineTheme } from 'openchartscandle/line';
@@ -15,6 +15,7 @@ import { entryColor, moneyUnit, resolveToken, useFactsheetFormat } from '../Trad
 import { formatDay } from '../Trading_Simulator/format';
 import '../Trading_Simulation/Run_Summary.scss';
 import './Trading_Compare.scss';
+import { localeOf } from '../../../../utils/locale';
 
 const COMPARE_BLOCKS: Report_Block[] = [
   'summaryMetrics',
@@ -117,8 +118,8 @@ const Trading_Compare = () => {
         tooltipBorder: token('chart-tooltip-border'),
         font: getComputedStyle(document.body).fontFamily,
       };
-      const month = new Intl.DateTimeFormat(i18n.language, { month: 'short', year: '2-digit', timeZone: 'UTC' });
-      const day = new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+      const month = new Intl.DateTimeFormat(localeOf(i18n.language), { month: 'short', year: '2-digit', timeZone: 'UTC' });
+      const day = new Intl.DateTimeFormat(localeOf(i18n.language), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
       chart = createLineChart(element, {
         xType: 'time',
         series: items.map((item, index) => ({

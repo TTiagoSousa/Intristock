@@ -56,10 +56,27 @@ const Simple_Alert: React.FC = () => {
 
   useEffect(() => () => clearTimers(), []);
 
-  if (!visible || !snapshot) return null;
+  // As zonas que o leitor de ecrã ouve estão sempre na página (uma que aparece
+  // com a mensagem já dentro pode não ser lida): os erros em `alert`, o resto em `status`
+  const spoken = visible && snapshot ? `${t(LABEL_KEYS[snapshot.type])}: ${snapshot.message}` : '';
+  const urgent = snapshot?.type === 'error' || snapshot?.type === 'warning';
+  const liveRegions = (
+    <>
+      <div className="Simple_Alert__live" role="status" aria-live="polite" aria-atomic="true">
+        {urgent ? '' : spoken}
+      </div>
+      <div className="Simple_Alert__live" role="alert" aria-live="assertive" aria-atomic="true">
+        {urgent ? spoken : ''}
+      </div>
+    </>
+  );
+
+  if (!visible || !snapshot) return liveRegions;
 
   return (
-    <div role="status" className={`Simple_Alert Simple_Alert--${snapshot.type}${exiting ? ' Simple_Alert--exit' : ''}`}>
+    <>
+    {liveRegions}
+    <div className={`Simple_Alert Simple_Alert--${snapshot.type}${exiting ? ' Simple_Alert--exit' : ''}`}>
       <span className="Simple_Alert__icon" aria-hidden="true">{ICONS[snapshot.type]}</span>
       <div className="Simple_Alert__body">
         <span className="Simple_Alert__label">{t(LABEL_KEYS[snapshot.type])}</span>
@@ -70,6 +87,7 @@ const Simple_Alert: React.FC = () => {
       </button>
       <span className="Simple_Alert__progress" />
     </div>
+    </>
   );
 };
 

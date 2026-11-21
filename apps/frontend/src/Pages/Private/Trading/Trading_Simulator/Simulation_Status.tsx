@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { Simulation_Run } from '../../../../Hooks/Trading/useSimulation';
+import { localeOf } from '../../../../utils/locale';
 
 /**
  * Onde vai a simulação: primeiro as velas (o downloader, mês a mês), depois a
@@ -11,7 +12,7 @@ const Simulation_Status = ({ run }: { run: Simulation_Run }) => {
 
   const downloading = run.status === 'queued' && run.download.status !== 'done';
   const formatMonth = (date: string) =>
-    new Date(date).toLocaleDateString(i18n.language, { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    new Date(date).toLocaleDateString(localeOf(i18n.language), { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
   const { message, percent } = (() => {
     if (run.status === 'failed') return { message: t('trading.runFailed', { error: run.error ?? '' }), percent: 100 };

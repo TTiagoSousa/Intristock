@@ -287,6 +287,13 @@ export class PrismaMarketDataRepository implements MarketDataRepository {
   }
 
   // Acorda o downloader, que está à escuta deste canal (LISTEN)
+  // Os downloads de um utilizador na fila ou a correr
+  async countActiveDownloads(userId: string) {
+    return this.prisma.marketDataDownload.count({
+      where: { userId, status: { in: ['queued', 'running'] } },
+    });
+  }
+
   async notifyDownload(id: string) {
     await this.prisma
       .$executeRaw`SELECT pg_notify('market_data_download', ${id})`;

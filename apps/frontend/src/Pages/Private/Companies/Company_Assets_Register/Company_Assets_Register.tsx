@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyAssets, type CompanyAsset } from '../../../../Hooks/Companies/useCompanyAssets';
@@ -12,12 +12,13 @@ import Delete_Asset_Popover from './Delete_Asset_Popover';
 import * as Icon from '../../../../Imports/icons';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import './Company_Assets_Register.scss';
+import { localeOf } from '../../../../utils/locale';
 
 const Company_Assets_Register = () => {
   const { slug } = useParams();
   const { companies } = useCompanies();
   const { can } = useCompany();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { formatIn } = useCurrencyFormat();
 
   const company = companies.find((item) => item.slug === slug);
@@ -114,7 +115,7 @@ const Company_Assets_Register = () => {
                         <span className="Pill">{t(`assets.category_${asset.category}`)}</span>
                       </td>
                       <td className="Numeric Left">
-                        {new Date(asset.acquisitionDate).toLocaleDateString()}
+                        {new Date(asset.acquisitionDate).toLocaleDateString(localeOf(i18n.language))}
                       </td>
                       <td className="Amount">{money(Number(asset.acquisitionValue))}</td>
                       <td className="Amount">{Number(asset.depreciationRate)}%</td>

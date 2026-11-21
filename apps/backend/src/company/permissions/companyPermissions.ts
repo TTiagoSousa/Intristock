@@ -19,6 +19,8 @@ export const COMPANY_PERMISSION_AREAS = {
   stock: ['view', 'create', 'delete'],
   assets: ['view', 'create', 'edit', 'delete'],
   trading: ['view', 'create', 'edit', 'delete'],
+  // O banco de horas: ver as horas e os pagamentos; gerir as ligações, os clientes, as pessoas e marcar pagos
+  timesheet: ['view', 'manage'],
 } as const;
 
 type Areas = typeof COMPANY_PERMISSION_AREAS;

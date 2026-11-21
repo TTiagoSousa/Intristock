@@ -99,7 +99,7 @@ const Security = () => {
         <div className="Security_Foot">
           <Simple_Button
             type="submit"
-            text={saving ? t('common.saving') : t('security.change')}
+            text={t('security.change')}
             disabled={saving || !currentPassword || !newPassword || !confirmPassword}
             small
             auto

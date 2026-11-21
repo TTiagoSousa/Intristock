@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../../../../Contexts/Alert_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -18,7 +18,7 @@ import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_B
 import Global_Pagination from '../../../../Components/Pagination/Global_Pagination/Global_Pagination';
 import { usePagedList } from '../../../../Hooks/usePagedList';
 import * as Icon from '../../../../Imports/icons';
-import Confirm_Popover from '../../Companies/Company_Members/Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import Debt_Popover from './Debt_Popover';
 import Debt_Movement_Popover from './Debt_Movement_Popover';
 import { formatDay, localeOf } from '../Earnings/earningsLabels';
@@ -46,6 +46,7 @@ type Deleting = { kind: 'debt'; item: Personal_Debt } | { kind: 'movement'; item
  */
 const Debts_Register = () => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const { formatIn } = useCurrencyFormat();
   const { setAlert } = useAlert();
   const locale = localeOf(i18n.language);
@@ -86,7 +87,7 @@ const Debts_Register = () => {
       <div className="Card Earnings_Filter_Card">
         <div className="Earnings_Filters">
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('debts.debt')}</span>
+            <label className="Eyebrow" htmlFor="movement-filter-debt">{t('debts.debt')}</label>
             <Global_Dropdown
               id="movement-filter-debt"
               value={filters.debtId}
@@ -98,13 +99,13 @@ const Debts_Register = () => {
             />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterKind')}</span>
-            <div className="Tabs">
+            <span className="Eyebrow" id={`${groupId}-filterKind`}>{t('earnings.filterKind')}</span>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterKind`}>
               {['', ...DEBT_MOVEMENT_KINDS].map((kind) => (
                 <button
                   key={kind || 'all'}
                   type="button"
-                  className={filters.kind === kind ? 'Active' : ''}
+                  className={filters.kind === kind ? 'Active' : ''} aria-pressed={filters.kind === kind}
                   onClick={() => setFilter('kind', kind)}
                 >
                   {kind ? t(`debts.movement_${kind}`) : t('earnings.all')}
@@ -113,11 +114,11 @@ const Debts_Register = () => {
             </div>
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterFrom')}</span>
+            <label className="Eyebrow" htmlFor="movement-filter-from">{t('earnings.filterFrom')}</label>
             <Global_Input id="movement-filter-from" type="date" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterTo')}</span>
+            <label className="Eyebrow" htmlFor="movement-filter-to">{t('earnings.filterTo')}</label>
             <Global_Input id="movement-filter-to" type="date" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
           </div>
           {filtered && (
@@ -242,7 +243,7 @@ const Debts_Register = () => {
           <div className="Earnings_Controls">
             <div className="Tabs">
               {DUE_PERIODS.map((period) => (
-                <button key={period} type="button" className={dueMonths === period ? 'Active' : ''} onClick={() => setDueMonths(period)}>
+                <button key={period} type="button" className={dueMonths === period ? 'Active' : ''} aria-pressed={dueMonths === period} onClick={() => setDueMonths(period)}>
                   {t('purchasesDashboard.months', { count: period })}
                 </button>
               ))}
@@ -501,7 +502,7 @@ const Debts_Register = () => {
               : t('debts.deleteMovementConfirm')
           }
           confirmText={t('common.delete')}
-          saving={state.saving}
+          busy={state.saving}
           onClose={close}
           onConfirm={async () => {
             const done = deleting.kind === 'debt' ? await state.deleteDebt(deleting.item.id) : await state.deleteMovement(deleting.item.id);

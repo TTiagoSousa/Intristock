@@ -17,6 +17,7 @@ import { saveMemberPay } from './helpers/saveMemberPay';
 import { deleteMemberPay } from './helpers/deleteMemberPay';
 import { saveMemberContract } from './helpers/saveMemberContract';
 import { findUpcomingMemberPayments } from './helpers/findUpcomingMemberPayments';
+import { CompanyInvitationService } from 'src/company-invitation/company-invitation.service';
 
 export interface UploadedMemberFile {
   originalname: string;
@@ -35,6 +36,7 @@ export class CompanyMemberService {
     private readonly companyRepository: PrismaCompanyRepository,
     private readonly memberRepository: PrismaCompanyMemberRepository,
     private readonly storage: StorageService,
+    private readonly invitations: CompanyInvitationService,
   ) {}
 
   private assert(
@@ -58,14 +60,14 @@ export class CompanyMemberService {
     return this.memberRepository.findPays(memberId);
   }
 
-  savePay(
+  async savePay(
     userId: string,
     companyId: string,
     memberId: string,
     payId: string | null,
     dto: CreateMemberPayDto | UpdateMemberPayDto,
   ) {
-    return saveMemberPay(
+    const pay = await saveMemberPay(
       userId,
       companyId,
       memberId,
@@ -74,15 +76,21 @@ export class CompanyMemberService {
       this.companyRepository,
       this.memberRepository,
     );
+    // Uma proposta (nova ou mudada) vai, outra vez, à pessoa para aceitar
+    if (pay.status === 'proposed') {
+      await this.invitations.proposalCancelled(pay.id);
+      await this.invitations.payProposed(pay.id);
+    }
+    return pay;
   }
 
-  deletePay(
+  async deletePay(
     userId: string,
     companyId: string,
     memberId: string,
     payId: string,
   ) {
-    return deleteMemberPay(
+    await deleteMemberPay(
       userId,
       companyId,
       memberId,
@@ -90,6 +98,8 @@ export class CompanyMemberService {
       this.companyRepository,
       this.memberRepository,
     );
+    // Só depois de apagado (e com permissão para isso) o aviso deixa de pedir resposta
+    await this.invitations.proposalCancelled(payId);
   }
 
   async findContracts(userId: string, companyId: string, memberId: string) {

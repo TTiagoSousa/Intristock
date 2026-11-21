@@ -1,3 +1,4 @@
+import { isoDay } from 'src/utils/dates';
 import { PrismaCurrencyRepository } from '../repositories/prisma/prisma-currency-repository';
 import { PrismaCurrencyHourRateRepository } from '../repositories/prisma/prisma-currency-hour-rate-repository';
 import {
@@ -9,7 +10,6 @@ import { AVAILABLE_CURRENCIES } from './findAllCurrencies';
 // Quantos dias se pedem numa volta (os outros ficam para a seguinte)
 const MAX_DAYS_PER_RUN = 60;
 
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * Enche o passado da `CurrencyHourRate` desde o dia da primeira transação de um

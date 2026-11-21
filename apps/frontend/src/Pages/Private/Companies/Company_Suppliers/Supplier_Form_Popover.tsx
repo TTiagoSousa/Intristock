@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { CompanySupplier } from '../../../../Hooks/Companies/useCompanySuppliers';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
@@ -7,6 +7,7 @@ import { useSupplierForm } from '../../../../Hooks/Companies/useSupplierForm';
 import Supplier_Form_Fields, { Supplier_Form_Popovers } from './Supplier_Form_Fields';
 import type { New_Supplier_State } from './Company_Supplier';
 import Supplier_Catalog from './Supplier_Catalog';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Supplier_Form_Popover_Props {
   companyId: string;
@@ -33,15 +34,6 @@ const Supplier_Form_Popover = ({
   const [mode, setMode] = useState<'new' | 'catalog'>('new');
   const form = useSupplierForm({ companyId, supplier, onSaved: () => onSaved() });
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
   // A página leva o que já foi escrito aqui, e no fim volta para onde se estava
   const openAdvanced = () => {
     const state: New_Supplier_State = { values: form.values, returnTo: location.pathname };
@@ -54,12 +46,8 @@ const Supplier_Form_Popover = ({
   };
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <form
-        className="Popover_Card"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={form.submit}
-      >
+    <>
+      <Popover_Shell onClose={onClose} as="form" onSubmit={form.submit}>
         <div className="Popover_Header">
           <div className="Popover_Header_Text">
             <span className="Popover_Title">
@@ -111,16 +99,16 @@ const Supplier_Form_Popover = ({
           <div className="Form_Action">
             <Simple_Button
               type="submit"
-              text={form.saving ? t('common.saving') : t('common.save')}
+              text={t('common.save')}
               disabled={form.saving}
             />
           </div>
           )}
         </div>
-      </form>
+      </Popover_Shell>
 
       <Supplier_Form_Popovers form={form} companyId={companyId} companyName={companyName} />
-    </div>
+    </>
   );
 };
 

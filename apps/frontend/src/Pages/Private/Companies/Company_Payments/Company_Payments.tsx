@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyPayments } from '../../../../Hooks/Companies/useCompanyPayments';
@@ -17,6 +17,8 @@ import type { CompanyPayment } from '../../../../Hooks/Companies/useCompanyPayme
 import * as Icon from '../../../../Imports/icons';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import './Company_Payments.scss';
+import { localeOf } from '../../../../utils/locale';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 const Company_Payments = () => {
   const { slug } = useParams();
@@ -70,7 +72,7 @@ const Company_Payments = () => {
 
     if (Number.isNaN(value)) return '—';
 
-    const formatted = value.toLocaleString(i18n.language, {
+    const formatted = value.toLocaleString(localeOf(i18n.language), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -87,13 +89,13 @@ const Company_Payments = () => {
 
     if (Number.isNaN(value)) return null;
 
-    return `${value.toLocaleString(i18n.language, {
+    return `${value.toLocaleString(localeOf(i18n.language), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })} ${company.currency.symbol}`;
   };
 
-  const formatDate = (value: string) => new Date(value).toLocaleDateString(i18n.language);
+  const formatDate = (value: string) => new Date(value).toLocaleDateString(localeOf(i18n.language));
 
   // Num pagamento a fornecedor ou a um membro mostra-se o nome; nos outros, só o tipo de parte
   const formatCounterparty = (payment: CompanyPayment) =>
@@ -165,7 +167,7 @@ const Company_Payments = () => {
                       <tr
                         key={payment.id}
                         className="Payment_Row"
-                        onClick={() => setPaymentToView(payment)}
+                        onClick={() => setPaymentToView(payment)} tabIndex={0} onKeyDown={activateOnKey}
                       >
                         <td>{formatDate(payment.paymentDate)}</td>
                         <td>{t(`payments.type_${payment.paymentType}`)}</td>

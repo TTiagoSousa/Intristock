@@ -10,8 +10,10 @@ import { getMyCompanyAccess } from './getMyCompanyAccess';
 
 /**
  * Junta um membro à empresa: com `accountEmail`, um utilizador da instalação
- * (com um cargo ou sem nenhum); sem ele, uma pessoa sem conta — só um registo,
- * com o nome obrigatório e sem cargo. Os dados da pessoa vão nos dois.
+ * (com um cargo ou sem nenhum) — vai como convite (`invited`), que a pessoa aceita ou recusa
+ * nos avisos, e só então entra; sem ele, uma pessoa sem conta — só um registo,
+ * com o nome obrigatório e sem cargo. Os dados da pessoa vão nos dois. Quem recusou pode ser
+ * convidado outra vez.
  */
 export async function addCompanyMember(
   userId: string,
@@ -38,14 +40,19 @@ export async function addCompanyMember(
     return accessRepository.createRecordMember(companyId, profile);
   }
 
+  // Sem conta com esse email devolve null: o service responde como a um convite feito,
+  // para o formulário não servir para descobrir que contas há na instalação
   const target = await userRepository.findByEmail(dto.accountEmail.trim().toLowerCase());
-  if (!target) throw new NotFoundException('Não há nenhum utilizador com esse email');
+  if (!target) return null;
 
   if (target.id === company.createdById) {
     throw new BadRequestException('O dono da empresa já tem acesso a tudo');
   }
-  if (await companyRepository.findMember(companyId, target.id)) {
-    throw new ConflictException('Esse utilizador já é membro desta empresa');
+  const existing = await companyRepository.findMember(companyId, target.id);
+  if (existing && existing.status !== 'declined') {
+    throw new ConflictException(
+      existing.status === 'invited' ? 'Esse utilizador já foi convidado' : 'Esse utilizador já é membro desta empresa',
+    );
   }
 
   if (dto.roleId) {
@@ -54,9 +61,17 @@ export async function addCompanyMember(
     assertCanGrant(await getMyCompanyAccess(userId, companyId, companyRepository), role.permissions);
   }
 
-  const member = await companyRepository.addMember({ companyId, userId: target.id });
+  const invite = { status: 'invited', invitedById: userId, invitedAt: new Date(), respondedAt: null };
+  const member = existing ?? (await companyRepository.addMember({
+      companyId,
+      userId: target.id,
+      status: invite.status,
+      invitedById: invite.invitedById,
+      invitedAt: invite.invitedAt,
+    }));
   return accessRepository.updateMember(member.id, {
     ...profile,
+    ...invite,
     ...(dto.roleId ? { roleId: dto.roleId } : {}),
   });
 }

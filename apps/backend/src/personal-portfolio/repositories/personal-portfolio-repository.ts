@@ -178,6 +178,9 @@ export interface PersonalPortfolioRepository {
     data: Partial<Omit<BrokerConnection, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>,
   ): Promise<BrokerConnection>;
   deleteConnection(connectionId: string): Promise<void>;
+  /** O instante da ordem ou do dividendo mais antigo que ficou de fora (até lá se volta a ler). */
+  findSkippedSince(connectionId: string): Promise<Date | null>;
+  saveSkippedSince(connectionId: string, at: Date | null): Promise<void>;
   findConnectionPortfolio(connectionId: string, externalId: string): Promise<PersonalPortfolio | null>;
   findDetachedApiPortfolio(userId: string, platformId: string, externalId: string): Promise<PersonalPortfolio | null>;
   attachPortfolio(portfolioId: string, connectionId: string): Promise<PersonalPortfolio>;

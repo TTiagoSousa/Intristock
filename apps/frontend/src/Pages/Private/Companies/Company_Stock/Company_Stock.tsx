@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useBreadcrumbSegmentLabel } from '../../../../Contexts/Breadcrumb_Context';

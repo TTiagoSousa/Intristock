@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# intristock-config — a configuração do backend e do frontend num só sítio.
+# intristock-config — a configuração do backend, do frontend e dos backups num só sítio.
 #
 #   intristock-config              menu: ↑/↓ escolhe, Enter edita, "Guardar" aplica
 #   intristock-config backend      abre o backend.env inteiro no nano
 #   intristock-config frontend     abre o frontend.env inteiro no nano
+#   intristock-config backup       abre o backup.env inteiro no nano (cópia externa, dias)
 #
 # O backend só lê o ambiente ao arrancar: guardar reinicia-o. O frontend só o lê no
-# build: guardar volta a compilar e a publicar o site.
+# build: guardar volta a compilar e a publicar o site. O backup.env conta no próximo
+# backup.
 #
 # A base de dados, os segredos JWT e a ENCRYPTION_KEY não aparecem no menu: mudá-los
 # por engano tirava toda a gente da sessão ou deixava as chaves das APIs ilegíveis.
@@ -20,8 +22,17 @@ APP_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 require_root
 [ -f "$BACKEND_ENV" ] || die "Falta $BACKEND_ENV — corre primeiro o install.sh."
 export LANG=C.UTF-8 LC_ALL=C.UTF-8 PATH="/usr/local/bin:$PATH"
+ensure_backup_env
 
 ok() { printf '\033[1;32m ✓\033[0m %s\n' "$*"; }
+
+file_of() {
+  case "$1" in
+    frontend) echo "$FRONTEND_ENV" ;;
+    backup) echo "$BACKUP_ENV" ;;
+    *) echo "$BACKEND_ENV" ;;
+  esac
+}
 
 apply_frontend() {
   msg "O frontend só lê a configuração no build — a compilar e a publicar…"
@@ -30,9 +41,9 @@ apply_frontend() {
 
 # --- modo ficheiro inteiro -------------------------------------------------------------
 
-raw_edit() { # raw_edit backend|frontend
+raw_edit() { # raw_edit backend|frontend|backup
   local which="$1" file
-  if [ "$which" = frontend ]; then file="$FRONTEND_ENV"; else file="$BACKEND_ENV"; fi
+  file="$(file_of "$which")"
   cp -p "$file" "$file.bak"
   ${EDITOR:-nano} "$file"
   if cmp -s "$file" "$file.bak"; then msg "Sem alterações."; exit 0; fi
@@ -42,23 +53,24 @@ raw_edit() { # raw_edit backend|frontend
     die "A ENCRYPTION_KEY não pode mudar — o ficheiro anterior foi reposto. As chaves das APIs guardadas deixavam de abrir."
   fi
 
-  if [ "$which" = frontend ]; then
-    apply_frontend
-  else
-    restart_backend && ok "Configuração aplicada, backend reiniciado."
-  fi
+  case "$which" in
+    frontend) apply_frontend ;;
+    backup) ok "Guardado: conta no próximo backup." ;;
+    *) restart_backend && ok "Configuração aplicada, backend reiniciado." ;;
+  esac
   exit 0
 }
 
 case "${1:-}" in
   backend|--raw) raw_edit backend ;;
   frontend) raw_edit frontend ;;
+  backup) raw_edit backup ;;
 esac
 command -v whiptail >/dev/null || raw_edit backend
 
 # --- o que aparece no menu -------------------------------------------------------------
 
-# FICHEIRO|CHAVE|descrição|tipo — tipo: url, secret ou text
+# FICHEIRO|CHAVE|descrição|tipo — tipo: url, secret, path, number ou text
 SETTINGS=(
   "backend|FRONTEND_URL|Endereço por onde se abre a app, ex. https://intristock.exemplo.pt (CORS).|url"
   "backend|TZ|Fuso horário do servidor, ex. Europe/Lisbon.|text"
@@ -68,9 +80,11 @@ SETTINGS=(
   "backend|S3_ACCESS_KEY|Chave de acesso ao storage.|text"
   "backend|S3_SECRET_KEY|Segredo do storage.|secret"
   "frontend|VITE_API_URL|Onde o site chama a API. Por omissão /api (o nginx desta VM).|text"
+  "backup|BACKUP_COPY_DIR|Cópia de cada backup diário para fora do disco da VM: uma pasta já montada (NFS, SMB, um disco), ex. /mnt/backups. Em branco, só em /var/backups/intristock.|path"
+  "backup|BACKUP_KEEP_DAYS|Dias que se guardam os backups da base de dados e da configuração (em branco: 14).|number"
+  "backup|BACKUP_GARAGE_KEEP_DAYS|Dias que se guardam os backups dos documentos, que são maiores (em branco: 3).|number"
 )
 
-file_of() { if [ "$1" = frontend ]; then echo "$FRONTEND_ENV"; else echo "$BACKEND_ENV"; fi; }
 
 declare -A CURRENT=() PENDING=()
 for entry in "${SETTINGS[@]}"; do
@@ -122,6 +136,20 @@ edit_setting() { # edit_setting CHAVE descrição tipo
         continue
       fi
     fi
+    if [ "$kind" = path ] && [ -n "$value" ]; then
+      value="${value%/}"
+      if [[ "$value" != /* ]] || [[ "$value" =~ [[:space:]] ]]; then
+        wt --title "Valor inválido" --msgbox "Usa um caminho completo, sem espaços, ex. /mnt/backups" "$(H 8)" "$W" || true
+        continue
+      fi
+      if [ ! -d "$value" ]; then
+        wt --title "Pasta por montar?" --msgbox "A pasta $value não existe agora. Fica gravada, mas o backup falha (e avisa) enquanto não existir." "$(H 9)" "$W" || true
+      fi
+    fi
+    if [ "$kind" = number ] && [ -n "$value" ] && ! [[ "$value" =~ ^[0-9]+$ ]]; then
+      wt --title "Valor inválido" --msgbox "Um número de dias, ex. 14" "$(H 8)" "$W" || true
+      continue
+    fi
     break
   done
   stage "$key" "$value"
@@ -131,15 +159,21 @@ save_and_apply() {
   local key where backend_changed="" frontend_changed="" summary=""
   cp -p "$BACKEND_ENV" "$BACKEND_ENV.bak"
   cp -p "$FRONTEND_ENV" "$FRONTEND_ENV.bak"
+  cp -p "$BACKUP_ENV" "$BACKUP_ENV.bak"
   for entry in "${SETTINGS[@]}"; do
     IFS='|' read -r where key _ _ <<<"$entry"
     [ -n "${PENDING[$key]+x}" ] || continue
     set_env_value "$(file_of "$where")" "$key" "${PENDING[$key]}"
     summary+="  • $key\n"
-    if [ "$where" = frontend ]; then frontend_changed=1; else backend_changed=1; fi
+    case "$where" in
+      frontend) frontend_changed=1 ;;
+      backup) ;;
+      *) backend_changed=1 ;;
+    esac
   done
   chown root:"$APP_USER" "$BACKEND_ENV"; chmod 640 "$BACKEND_ENV"
   chmod 644 "$FRONTEND_ENV"
+  chown root:root "$BACKUP_ENV"; chmod 600 "$BACKUP_ENV"
 
   clear 2>/dev/null || true
   ok "Guardado (cópia anterior em .bak):"
@@ -162,13 +196,14 @@ while :; do
   items+=("Guardar" "$save_label" \
           "Backend" "  Editar o backend.env inteiro no nano" \
           "Frontend" "  Editar o frontend.env inteiro no nano" \
+          "Backups" "  Editar o backup.env inteiro no nano" \
           "Sair" "  Sair sem guardar")
 
   rc=0
   choice="$(wt --title "Configuração do IntriStock" --ok-button "Escolher" --cancel-button "Sair" \
     --default-item "$choice" \
     --menu "↑/↓ mover · Enter editar · as alteradas ficam com *" \
-    "$(H 22)" "$W" "$(H 13)" "${items[@]}")" || rc=$?
+    "$(H 25)" "$W" "$(H 16)" "${items[@]}")" || rc=$?
   [ "$rc" -eq 0 ] || choice="Sair"
 
   case "$choice" in
@@ -190,6 +225,7 @@ while :; do
       exit 0 ;;
     Backend) clear 2>/dev/null || true; raw_edit backend ;;
     Frontend) clear 2>/dev/null || true; raw_edit frontend ;;
+    Backups) clear 2>/dev/null || true; raw_edit backup ;;
     *)
       for entry in "${SETTINGS[@]}"; do
         IFS='|' read -r where key text kind <<<"$entry"

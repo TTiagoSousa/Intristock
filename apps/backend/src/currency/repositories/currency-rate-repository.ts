@@ -20,4 +20,8 @@ export interface CurrencyRateRepository {
     quoteCurrencyId: string,
     rate: number,
   ): Promise<CurrencyRate>;
+  // Várias de uma vez (as que já existem ficam como estão)
+  saveMany(
+    rows: { date: Date; baseCurrencyId: string; quoteCurrencyId: string; rate: number }[],
+  ): Promise<number>;
 }

@@ -15,6 +15,12 @@ export interface MemberPayData {
   endDate?: Date | null;
   dueDate?: Date | null;
   withholdingPct?: number | null;
+  // As propostas a um membro com conta (ver `CompanyMemberPay.status`)
+  status?: string;
+  proposedById?: string | null;
+  respondedAt?: Date | null;
+  responseNote?: string | null;
+  replacesId?: string | null;
 }
 
 export interface MemberContractData {
@@ -60,6 +66,13 @@ export interface CompanyMemberRepository {
     kind: string,
     data: MemberPayData,
   ): Promise<CompanyMemberPay>;
+  createPayReplacing(
+    memberId: string,
+    kind: string,
+    data: MemberPayData,
+    closeReplaced: { id: string; endDate: Date } | null,
+  ): Promise<CompanyMemberPay>;
+  countPayIncomes(payId: string): Promise<number>;
   updatePay(payId: string, data: MemberPayData): Promise<CompanyMemberPay>;
   deletePay(payId: string): Promise<void>;
 
@@ -92,6 +105,6 @@ export interface CompanyMemberRepository {
 
   // Os salários e recibos verdes de todos os membros da empresa
   findCompanyPays(companyId: string): Promise<MemberPayWithMember[]>;
-  // `payId|período` de cada um já pago (pagamentos não cancelados)
+  // `payId|período` de cada um já pago (pagamentos concluídos)
   findPaidPeriods(payIds: string[]): Promise<Set<string>>;
 }

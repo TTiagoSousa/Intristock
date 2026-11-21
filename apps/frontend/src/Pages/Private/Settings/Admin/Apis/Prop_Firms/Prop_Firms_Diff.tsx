@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import Simple_Button from '../../../../../../Components/Buttons/Simple_Button/Simple_Button';
 import Global_Input from '../../../../../../Components/Inputs/Global_Input/Global_Input';
@@ -10,6 +10,7 @@ import {
   type Prop_Firm_Compare_Status,
 } from '../../../../../../Hooks/Admin/usePropFirmSync';
 import { getErrorMessage } from '../../../../../../Hooks/useAsyncRequest';
+import { activateOnKey } from '../../../../../../utils/rowKeyboard';
 
 type Filter = 'all' | Prop_Firm_Compare_Status;
 const FILTERS: Filter[] = ['all', 'new', 'changed', 'same', 'removed', 'local'];
@@ -78,7 +79,7 @@ const Prop_Firms_Diff = ({ formatDate, onCompared }: Prop_Firms_Diff_Props) => {
             : t('adminApis.propFirms.compareIntro')}
         </span>
         <Simple_Button
-          text={loading ? t('adminApis.propFirms.comparing') : t('adminApis.propFirms.compareNow')}
+          text={t('adminApis.propFirms.compareNow')}
           onClick={compare}
           disabled={loading}
           variant="Ghost"
@@ -94,7 +95,7 @@ const Prop_Firms_Diff = ({ formatDate, onCompared }: Prop_Firms_Diff_Props) => {
           <div className="Prop_Firms_Filters">
             <div className="Tabs">
               {FILTERS.map((key) => (
-                <button key={key} type="button" className={filter === key ? 'Active' : ''} onClick={() => setFilter(key)}>
+                <button key={key} type="button" className={filter === key ? 'Active' : ''} aria-pressed={filter === key} onClick={() => setFilter(key)}>
                   {t(`adminApis.propFirms.filter_${key}`, { count: key === 'all' ? data.rows.length : data.counts[key] })}
                 </button>
               ))}
@@ -124,7 +125,7 @@ const Prop_Firms_Diff = ({ formatDate, onCompared }: Prop_Firms_Diff_Props) => {
                   <tr
                     key={row.key}
                     className={row.db ? 'Clickable' : ''}
-                    onClick={() => row.db && navigate(row.db.id)}
+                    onClick={() => row.db && navigate(row.db.id)} tabIndex={row.db ? 0 : undefined} onKeyDown={activateOnKey}
                   >
                     <td>
                       <span className="Prop_Firm_Name">{row.name}</span>

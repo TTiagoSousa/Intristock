@@ -2,15 +2,21 @@
 
 Respeita o limite de peso por minuto: a Binance diz em cada resposta quanto já
 se gastou, e perto do teto espera pelo minuto seguinte em vez de levar um 429
-(e, se insistir, um bloqueio do IP).
+(e, se insistir, um bloqueio do IP). O peso é do IP: as threads que vão ao
+mesmo endereço (o spot ou os futuros) esperam todas juntas (`RateLimiter`).
+Uma ligação cortada, um timeout ou um 5xx repetem-se (`RETRIES` vezes, cada vez
+a esperar mais), como na Coinbase.
 """
 
 import logging
+import threading
 import time
 import uuid
 from datetime import datetime, timezone
 
 import requests
+
+from . import control
 
 log = logging.getLogger(__name__)
 
@@ -29,26 +35,70 @@ SAFETY = 0.8
 # Funding dos perpétuos: 1000 por página (perto de um ano, de 8 em 8 horas)
 FUNDING_URL = "https://fapi.binance.com/fapi/v1/fundingRate"
 
-session = requests.Session()
+# As tentativas numa ligação cortada, num timeout ou num 5xx
+RETRIES = 6
+
+# Um limite por endereço (o peso do spot e o dos futuros contam à parte)
+LIMITERS = {"spot": control.RateLimiter(), "futures": control.RateLimiter()}
+
+# Uma sessão por thread (o requests não garante que se possa partilhar uma)
+_local = threading.local()
+
+
+def _session() -> requests.Session:
+    session = getattr(_local, "session", None)
+    if session is None:
+        session = _local.session = requests.Session()
+    return session
 
 
 def _endpoint(instrument_type: str) -> tuple[str, int]:
     return ENDPOINTS["spot" if instrument_type == "spot" else "futures"]
 
 
-def _wait_for_next_minute() -> None:
-    time.sleep(60 - time.time() % 60 + 1)
+def _limiter(url: str) -> control.RateLimiter:
+    return LIMITERS["futures" if "://fapi." in url else "spot"]
+
+
+def _until_next_minute() -> float:
+    return 60 - time.time() % 60 + 1
+
+
+def _retry_delay(failures: int) -> float:
+    return 1 + failures * 2
 
 
 def _get(url: str, limit: int, params: dict) -> list:
+    limiter = _limiter(url)
+    failures = 0
     while True:
-        response = session.get(url, params=params, timeout=30)
+        limiter.acquire()
+        try:
+            response = _session().get(url, params=params, timeout=30)
+        except (requests.ConnectionError, requests.Timeout) as error:
+            # A rede falhou (ou a Binance não respondeu a tempo): espera e tenta outra vez
+            failures += 1
+            if failures >= RETRIES:
+                raise RuntimeError(f"A Binance não respondeu depois de {RETRIES} tentativas: {error}") from error
+            log.warning("Binance sem resposta (%s), à espera %ss", error, _retry_delay(failures))
+            control.sleep(_retry_delay(failures))
+            continue
 
-        # 429: demasiados pedidos; 418: IP bloqueado por ter ignorado os 429
+        # 429: demasiados pedidos; 418: IP bloqueado por ter ignorado os 429. A
+        # espera vale para todas as threads que vão a este endereço
         if response.status_code in (418, 429):
             wait = int(response.headers.get("Retry-After", "60"))
             log.warning("Binance pediu para esperar %ss (HTTP %s)", wait, response.status_code)
-            time.sleep(wait)
+            limiter.pause(wait)
+            continue
+
+        # Um erro do lado deles: espera e tenta outra vez
+        if response.status_code >= 500:
+            failures += 1
+            if failures >= RETRIES:
+                response.raise_for_status()
+            log.warning("Binance respondeu HTTP %s, à espera %ss", response.status_code, _retry_delay(failures))
+            control.sleep(_retry_delay(failures))
             continue
 
         response.raise_for_status()
@@ -56,7 +106,7 @@ def _get(url: str, limit: int, params: dict) -> list:
         used = int(response.headers.get("X-MBX-USED-WEIGHT-1M", "0"))
         if used > limit * SAFETY:
             log.info("Peso da Binance em %s/%s, à espera do minuto seguinte", used, limit)
-            _wait_for_next_minute()
+            limiter.pause(_until_next_minute())
 
         return response.json()
 
@@ -71,6 +121,7 @@ def fetch_candles(
     cursor = start_ms
 
     while cursor < end_ms:
+        control.check()
         page = _get(
             url,
             limit,
@@ -117,6 +168,7 @@ def fetch_funding(instrument_id: str, symbol: str, start_ms: int, end_ms: int) -
     cursor = start_ms
 
     while cursor < end_ms:
+        control.check()
         page = _get(
             FUNDING_URL,
             ENDPOINTS["futures"][1],

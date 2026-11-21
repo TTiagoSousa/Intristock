@@ -39,8 +39,11 @@ model Currency {
   /// O ativo de dinheiro desta moeda
   cashAsset             Asset?
   hourRates             CurrencyHourRate[]
+  timeTrackingConnections TimeTrackingConnection[]
+  timeTrackingSettlements TimeTrackingSettlement[]
 
   @@index([shortCode])
+  timeTrackingPayouts TimeTrackingPayout[]
 }
 
 /// A cotação de mercado de um dia: 1 `base` = `rate` `quote`. Serve para propor a
@@ -145,6 +148,8 @@ model User {
   /// Bloqueado pelo admin até esta data (não entra nem usa a sessão); nulo = livre. Para sempre é `active` falso
   blockedUntil   DateTime?
   blockedReason  String?
+  /// A última mudança da password: as sessões emitidas antes deixam de valer
+  passwordChangedAt DateTime?
   countryId      String?
   country        Country?  @relation(fields: [countryId], references: [id])
   createdAt      DateTime  @default(now())
@@ -170,9 +175,13 @@ model User {
   debts                 PersonalDebt[]
   portfolios            PersonalPortfolio[]
   brokerConnections     BrokerConnection[]
+  timeTrackingPeople    TimeTrackingPerson[]
 
   @@index([email])
   @@index([countryId])
+  companyInvitesSent  CompanyMember[]    @relation("CompanyMemberInvitedBy")
+  memberPaysProposed  CompanyMemberPay[] @relation("CompanyMemberPayProposedBy")
+  timeTrackingPayouts TimeTrackingPayout[] @relation("TimeTrackingPayoutUser")
 }
 
 /// Configuração da instalação que o admin edita na app (APIs externas e afins).
@@ -302,6 +311,8 @@ model Company {
   stockMovements CompanyStockMovement[]
   incomeSources  PersonalIncomeSource[]
   expenses       PersonalExpense[]
+  timeTrackingConnections TimeTrackingConnection[]
+  timeTrackingSettlements TimeTrackingSettlement[]
 
   @@index([createdById])
   @@index([parentId])
@@ -309,6 +320,7 @@ model Company {
   @@index([currencyId])
   @@index([slug])
   @@index([status])
+  timeTrackingPayouts TimeTrackingPayout[]
 }
 
 /// Uma pessoa da empresa. Com `userId` é uma conta que entra na app (com cargo e
@@ -350,6 +362,14 @@ model CompanyMember {
   iban                 String?
   notes                String?
 
+  /// Um membro com conta entra por convite: `invited` até a pessoa aceitar (`active`) ou
+  /// recusar (`declined`). Só os `active` entram na empresa. Os sem conta são sempre `active`.
+  status      String    @default("active")
+  invitedById String?
+  invitedBy   User?     @relation("CompanyMemberInvitedBy", fields: [invitedById], references: [id])
+  invitedAt   DateTime?
+  respondedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -357,6 +377,7 @@ model CompanyMember {
   contracts     CompanyMemberContract[]
   documents     CompanyMemberDocument[]
   payments      CompanyPayment[]
+  timeTrackingPeople      TimeTrackingPerson[]
   /// A moeda em que se lhe paga (sem ela, a da empresa): os salários e os recibos
   /// verdes dele estão nela
   currencyId    String?
@@ -369,10 +390,12 @@ model CompanyMember {
   @@unique([companyId, userId])
   @@index([companyId])
   @@index([userId])
+  @@index([userId, status])
   @@index([roleId])
   @@index([countryId])
   @@index([currencyId])
   @@index([bankAccountId])
+  timeTrackingPayouts TimeTrackingPayout[]
 }
 
 /// O que se paga a um membro, na moeda dele (`CompanyMember.currencyId`, ou a da empresa):
@@ -402,6 +425,19 @@ model CompanyMemberPay {
   /// freelance
   dueDate         DateTime?              @db.Date
   withholdingPct  Decimal?
+  /// A um membro com conta o salário vai como proposta (`proposed`) que ele aceita ou recusa;
+  /// só os `accepted` contam (próximos pagamentos, ganhos esperados). `cancelled`: a empresa
+  /// retirou-a. Os de membros sem conta, ou de quem se paga a si próprio, são logo `accepted`.
+  status          String                 @default("accepted")
+  proposedById    String?
+  proposedBy      User?                  @relation("CompanyMemberPayProposedBy", fields: [proposedById], references: [id])
+  respondedAt     DateTime?
+  responseNote    String?
+  /// O salário que esta proposta substitui: o antigo continua até ela ser aceite (aí fecha
+  /// na véspera do início desta)
+  replacesId      String?
+  replaces        CompanyMemberPay?      @relation("PayReplaces", fields: [replacesId], references: [id], onDelete: SetNull)
+  replacedBy      CompanyMemberPay[]     @relation("PayReplaces")
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 
@@ -410,6 +446,7 @@ model CompanyMemberPay {
 
   @@index([memberId])
   @@index([contractId])
+  @@index([replacesId])
 }
 
 /// Um contrato de um membro (trabalho, prestação de serviços, estágio…), com os
@@ -599,7 +636,7 @@ model BankAccount {
   platformId     String
   platform       Platform @relation(fields: [platformId], references: [id])
   name           String
-  iban           String?  @unique
+  iban           String?
   currencyId     String
   currency       Currency @relation(fields: [currencyId], references: [id])
   initialBalance Decimal  @default(0)
@@ -618,6 +655,9 @@ model BankAccount {
   debtMovements         PersonalDebtMovement[]
   portfolioTransactions PersonalPortfolioTransaction[]
 
+  /// O IBAN é único em cada dono (a pessoa ou a empresa), não na instalação toda
+  @@unique([userId, iban])
+  @@unique([companyId, iban])
   @@index([userId])
   @@index([companyId])
   @@index([platformId])
@@ -670,6 +710,7 @@ model CompanySupplier {
   payments  CompanyPayment[]
   itemLinks CompanyItemSupplier[]
   phones    CompanySupplierPhone[]
+  timeTrackingClients TimeTrackingClient[]
 
   @@unique([companyId, slug])
   @@unique([companyId, platformId])
@@ -779,8 +820,10 @@ model CompanyPayment {
   assets          CompanyAsset[]
   stockMovements  CompanyStockMovement[]
   personalExpense PersonalExpense?
+  timeTrackingSettlement TimeTrackingSettlement?
+  confirmedIncome PersonalIncome? @relation("PersonalIncomeCompanyPayment")
 
-  @@index([companyId])
+  @@index([companyId, paymentDate])
   @@index([supplierId])
   @@index([memberId])
   @@index([memberPayId, memberPayPeriod])
@@ -788,6 +831,7 @@ model CompanyPayment {
   @@index([toBankAccountId])
   @@index([currencyId])
   @@index([paymentDate])
+  timeTrackingPayout TimeTrackingPayout?
 }
 
 // calculationType: real, on_paid_amount, on_previous_row_amount, on_previous_row_total
@@ -1574,11 +1618,15 @@ model Notification {
   data      Json
   /// a página que abre ao clicar
   link      String?
+  /// Num aviso que pede resposta (um convite, uma proposta, um pagamento a confirmar):
+  /// pending | accepted | declined | cancelled | done; nulo nos outros
+  actionStatus String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
   @@index([userId, createdAt])
   @@index([userId, readAt])
+  @@index([kind, actionStatus])
 }
 
 // --- Finanças pessoais: ganhos ------------------------------------------------
@@ -1657,8 +1705,12 @@ model PersonalIncome {
   /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
   /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
   rateHour       DateTime?             @db.Timestamptz
+  /// O pagamento da empresa que este ganho confirma (um ganho por pagamento)
+  companyPaymentId String?             @unique
+  companyPayment   CompanyPayment?     @relation("PersonalIncomeCompanyPayment", fields: [companyPaymentId], references: [id], onDelete: SetNull)
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
+
 
   /// Cada período de um salário recebe-se uma vez
   @@unique([memberPayId, period])
@@ -1666,6 +1718,7 @@ model PersonalIncome {
   @@index([userId, date])
   @@index([currencyId])
   @@index([bankAccountId])
+  timeTrackingPayout TimeTrackingPayout?
 }
 
 // --- Finanças pessoais: despesas -----------------------------------------------
@@ -2058,4 +2111,252 @@ model PersonalPortfolioTransaction {
   @@index([assetId])
   @@index([currencyId])
   @@index([bankAccountId])
+}
+
+// --- Empresas: banco de horas (ligações a apps de horas, por agora o solidtime) ---
+
+/// Uma ligação de uma empresa a uma app de horas (por agora o solidtime), numa organização dela.
+/// É da empresa, não de quem a criou.
+model TimeTrackingConnection {
+  id               String    @id @default(uuid())
+  companyId        String
+  company          Company   @relation(fields: [companyId], references: [id])
+  /// solidtime
+  provider         String
+  /// O endereço da instalação, sem barra no fim (https://solidtime.exemplo.pt)
+  baseUrl          String
+  /// A chave, cifrada (secret-box); nunca sai para o browser
+  apiToken         String
+  organizationId   String
+  organizationName String
+  /// A moeda da organização na app (EUR)
+  currencyId       String
+  currency         Currency  @relation(fields: [currencyId], references: [id])
+  /// active | error | paused
+  status           String    @default("active")
+  /// De quantas em quantas horas sincroniza sozinha: 1, 24 ou 168
+  syncEveryHours   Int       @default(1)
+  lastError        String?
+  syncedAt         DateTime?
+  createdById      String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  clients  TimeTrackingClient[]
+  projects TimeTrackingProject[]
+  people   TimeTrackingPerson[]
+  entries  TimeTrackingEntry[]
+
+  @@unique([companyId, provider, baseUrl, organizationId])
+  @@index([currencyId])
+}
+
+/// Um cliente da app, ligado a um cliente (fornecedor) da empresa
+model TimeTrackingClient {
+  id             String                 @id @default(uuid())
+  connectionId   String
+  connection     TimeTrackingConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId     String
+  name           String
+  isArchived     Boolean                @default(false)
+  supplierId     String?
+  supplier       CompanySupplier?       @relation(fields: [supplierId], references: [id])
+  /// O preço por hora daqui (vale mais que o da app); nulo = o da app
+  hourlyRate     Decimal?
+  /// freelance (recibo verde) | invoice | none
+  billing        String                 @default("freelance")
+  withholdingPct Decimal?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  projects    TimeTrackingProject[]
+  entries     TimeTrackingEntry[]
+  settlements TimeTrackingSettlement[]
+
+  @@unique([connectionId, externalId])
+  @@index([supplierId])
+}
+
+model TimeTrackingProject {
+  id           String                 @id @default(uuid())
+  connectionId String
+  connection   TimeTrackingConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId   String
+  clientId     String?
+  client       TimeTrackingClient?    @relation(fields: [clientId], references: [id])
+  name         String
+  color        String?
+  /// O preço por hora na app (vem em cêntimos; aqui em unidades)
+  billableRate Decimal?
+  isBillable   Boolean                @default(true)
+  isArchived   Boolean                @default(false)
+
+  entries TimeTrackingEntry[]
+
+  @@unique([connectionId, externalId])
+  @@index([clientId])
+}
+
+/// Um utilizador da app, ligado a um membro da empresa (a quem vão os ganhos pessoais)
+model TimeTrackingPerson {
+  id           String                 @id @default(uuid())
+  connectionId String
+  connection   TimeTrackingConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId   String
+  name         String
+  /// O preço por hora do membro na app (sem ele, o da organização)
+  billableRate Decimal?
+  memberId     String?
+  member       CompanyMember?         @relation(fields: [memberId], references: [id])
+  /// A conta a quem vão os ganhos pessoais: a do membro, ou a do dono da empresa (que não é membro)
+  userId       String?
+  user         User?                  @relation(fields: [userId], references: [id])
+
+  /// O que a empresa paga a esta pessoa por hora (vazio = o valor das horas, o preço do cliente)
+  payRate           Decimal?
+  /// A retenção do que se lhe paga (recibo verde); vazio = sem retenção
+  payWithholdingPct Decimal?
+
+  entries     TimeTrackingEntry[]
+  settlements TimeTrackingSettlement[]
+  payouts     TimeTrackingPayout[]
+
+  @@unique([connectionId, externalId])
+  @@index([memberId])
+  @@index([userId])
+}
+
+/// Um registo de tempo. O preço e o valor calculam-se ao ler; o que está pago vê-se nas
+/// alocações (um registo pode ficar pago em parte)
+model TimeTrackingEntry {
+  id           String                 @id @default(uuid())
+  connectionId String
+  connection   TimeTrackingConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId   String
+  projectId    String?
+  project      TimeTrackingProject?   @relation(fields: [projectId], references: [id])
+  clientId     String?
+  client       TimeTrackingClient?    @relation(fields: [clientId], references: [id])
+  personId     String?
+  person       TimeTrackingPerson?    @relation(fields: [personId], references: [id])
+  start        DateTime               @db.Timestamptz
+  end          DateTime?              @db.Timestamptz
+  seconds      Int
+  description  String?
+  billable     Boolean                @default(true)
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  allocations TimeTrackingAllocation[]
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId, start])
+  @@index([clientId, start])
+  @@index([personId, start])
+  payoutAllocations TimeTrackingPayoutAllocation[]
+}
+
+/// Um pagamento de um cliente (de uma pessoa): as horas entre duas datas (`range`) ou um
+/// número de horas (`hours`, «50 € por 5 h», das mais antigas por pagar; o que faltar fica
+/// adiantado e as horas novas desse cliente consomem-no)
+model TimeTrackingSettlement {
+  id               String             @id @default(uuid())
+  companyId        String
+  company          Company            @relation(fields: [companyId], references: [id])
+  clientId         String
+  client           TimeTrackingClient @relation(fields: [clientId], references: [id])
+  /// Só as horas desta pessoa da app (sem ela, as do cliente todas)
+  personId         String?
+  person           TimeTrackingPerson? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  note             String?
+  createdById      String?
+  /// range | hours
+  mode             String             @default("range")
+  fromDate         DateTime?          @db.Date
+  toDate           DateTime?          @db.Date
+  /// As horas que cobre (com as adiantadas)
+  seconds          Int
+  hourlyRate       Decimal
+  grossAmount      Decimal
+  withholdingPct   Decimal?
+  netAmount        Decimal
+  currencyId       String
+  currency         Currency           @relation(fields: [currencyId], references: [id])
+  paidAt           DateTime           @db.Date
+  /// O recebimento na empresa, se se gravou
+  companyPaymentId String?            @unique
+  companyPayment   CompanyPayment?    @relation(fields: [companyPaymentId], references: [id])
+  createdAt        DateTime           @default(now())
+
+  allocations TimeTrackingAllocation[]
+
+  @@index([companyId, paidAt])
+  @@index([clientId])
+  @@index([personId])
+}
+
+/// O que a empresa pagou a quem fez as horas (à parte do que o cliente pagou à empresa)
+model TimeTrackingPayout {
+  id               String             @id @default(uuid())
+  companyId        String
+  company          Company            @relation(fields: [companyId], references: [id])
+  personId         String
+  person           TimeTrackingPerson @relation(fields: [personId], references: [id])
+  memberId         String?
+  member           CompanyMember?     @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  /// A conta que recebe (a do membro ou a do dono)
+  userId           String?
+  user             User?              @relation("TimeTrackingPayoutUser", fields: [userId], references: [id], onDelete: SetNull)
+  seconds          Int
+  hourlyRate       Decimal
+  grossAmount      Decimal
+  withholdingPct   Decimal?
+  netAmount        Decimal
+  currencyId       String
+  currency         Currency           @relation(fields: [currencyId], references: [id])
+  paidAt           DateTime           @db.Date
+  /// O pagamento na empresa, se se gravou
+  companyPaymentId String?            @unique
+  companyPayment   CompanyPayment?    @relation(fields: [companyPaymentId], references: [id], onDelete: SetNull)
+  /// O ganho da pessoa (já, se pagou a si própria; senão quando ela confirmar)
+  personalIncomeId String?            @unique
+  personalIncome   PersonalIncome?    @relation(fields: [personalIncomeId], references: [id], onDelete: SetNull)
+  note             String?
+  /// A resposta de quem recebe: received | declined (nulo = por responder)
+  confirmation     String?
+  respondedAt      DateTime?
+  createdById      String
+  createdAt        DateTime           @default(now())
+
+  allocations TimeTrackingPayoutAllocation[]
+
+  @@index([companyId, paidAt])
+  @@index([personId])
+  @@index([userId])
+}
+
+/// Quanto de um registo um pagamento à pessoa paga
+model TimeTrackingPayoutAllocation {
+  id       String             @id @default(uuid())
+  payoutId String
+  payout   TimeTrackingPayout @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+  entryId  String
+  entry    TimeTrackingEntry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  seconds  Int
+
+  @@unique([payoutId, entryId])
+  @@index([entryId])
+}
+
+/// Quanto de um registo uma liquidação paga
+model TimeTrackingAllocation {
+  id           String                 @id @default(uuid())
+  settlementId String
+  settlement   TimeTrackingSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  entryId      String
+  entry        TimeTrackingEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  seconds      Int
+
+  @@unique([settlementId, entryId])
+  @@index([entryId])
 }

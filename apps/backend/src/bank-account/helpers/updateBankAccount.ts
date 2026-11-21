@@ -46,10 +46,10 @@ export async function updateBankAccount(
     const iban = dto.iban.trim();
 
     if (iban && iban !== account.iban) {
-      const existing = await bankAccountRepository.findByIban(iban);
+      const existing = await bankAccountRepository.findByOwnerIban({ companyId }, iban);
 
       if (existing && existing.id !== bankAccountId) {
-        throw new ConflictException(`Já existe uma conta com o IBAN "${iban}"`);
+        throw new ConflictException(`A empresa já tem uma conta com o IBAN "${iban}"`);
       }
     }
 

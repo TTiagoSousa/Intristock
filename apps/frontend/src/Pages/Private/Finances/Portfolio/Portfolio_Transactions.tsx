@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useDayRates } from '../../../../Hooks/Finances/useDayRates';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
@@ -19,6 +19,7 @@ import Platform_Badge from './Platform_Badge';
 import Goods_Popover from './Goods/Goods_Popover';
 import '../Earnings/Earnings.scss';
 import './Portfolio.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 const PAGE_SIZE = 20;
 
@@ -30,6 +31,7 @@ const PAGE_SIZE = 20;
  */
 const Portfolio_Transactions = () => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const navigate = useNavigate();
   const locale = localeOf(i18n.language);
   const { currencies, selectedCurrency } = useCurrency();
@@ -74,21 +76,21 @@ const Portfolio_Transactions = () => {
       <div className="Card Earnings_Filter_Card">
         <div className="Earnings_Filters Portfolio_Filters">
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterFrom')}</span>
+            <label className="Eyebrow" htmlFor="portfolio-filter-from">{t('portfolio.filterFrom')}</label>
             <Global_Input id="portfolio-filter-from" type="date" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterTo')}</span>
+            <label className="Eyebrow" htmlFor="portfolio-filter-to">{t('portfolio.filterTo')}</label>
             <Global_Input id="portfolio-filter-to" type="date" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterSource')}</span>
-            <div className="Tabs">
+            <span className="Eyebrow" id={`${groupId}-filterSource`}>{t('portfolio.filterSource')}</span>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterSource`}>
               {(['', 'manual', 'api'] as const).map((source) => (
                 <button
                   key={source || 'all'}
                   type="button"
-                  className={filters.source === source ? 'Active' : ''}
+                  className={filters.source === source ? 'Active' : ''} aria-pressed={filters.source === source}
                   onClick={() => setFilter('source', source)}
                 >
                   {source ? t(`portfolio.source_${source}`) : t('portfolio.all')}
@@ -97,7 +99,7 @@ const Portfolio_Transactions = () => {
             </div>
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterPlatform')}</span>
+            <label className="Eyebrow" htmlFor="portfolio-filter-platform">{t('portfolio.filterPlatform')}</label>
             <Global_Dropdown
               id="portfolio-filter-platform"
               value={filters.platformId}
@@ -106,7 +108,7 @@ const Portfolio_Transactions = () => {
             />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterPortfolio')}</span>
+            <label className="Eyebrow" htmlFor="portfolio-filter-portfolio">{t('portfolio.filterPortfolio')}</label>
             <Global_Dropdown
               id="portfolio-filter-portfolio"
               value={filters.portfolioId}
@@ -118,7 +120,7 @@ const Portfolio_Transactions = () => {
             />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterAsset')}</span>
+            <label className="Eyebrow" htmlFor="portfolio-filter-asset">{t('portfolio.filterAsset')}</label>
             <Global_Dropdown
               id="portfolio-filter-asset"
               value={filters.assetId}
@@ -130,7 +132,7 @@ const Portfolio_Transactions = () => {
             />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('portfolio.filterKind')}</span>
+            <label className="Eyebrow" htmlFor="portfolio-filter-kind">{t('portfolio.filterKind')}</label>
             <Global_Dropdown
               id="portfolio-filter-kind"
               value={filters.kind}
@@ -188,7 +190,7 @@ const Portfolio_Transactions = () => {
                       <tr
                         key={tx.id}
                         className={tx.asset.subClass === 'vehicle' ? 'Clickable' : undefined}
-                        onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined}
+                        onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined} tabIndex={tx.asset.subClass === 'vehicle' ? 0 : undefined} onKeyDown={activateOnKey}
                       >
                         <td className="Num">{formatDay(tx.date.slice(0, 10), locale)}</td>
                         <td>

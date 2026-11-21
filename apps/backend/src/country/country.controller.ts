@@ -13,7 +13,9 @@ export class CountryController {
     return this.countryService.sync();
   }
 
+  // Com sessão: o ecrã de login não precisa do catálogo
   @Get()
+  @UseGuards(JwtUserAuthGuard)
   findAll() {
     return this.countryService.findAll();
   }

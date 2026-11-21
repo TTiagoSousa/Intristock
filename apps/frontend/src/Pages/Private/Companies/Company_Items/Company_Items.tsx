@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyItems } from '../../../../Hooks/Companies/useCompanyItems';
@@ -12,6 +12,7 @@ import type { CompanyItem } from '../../../../Hooks/Companies/useCompanyItems';
 import * as Icon from '../../../../Imports/icons';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import './Company_Items.scss';
+import { localeOf } from '../../../../utils/locale';
 
 const Company_Items = () => {
   const { slug } = useParams();
@@ -46,7 +47,7 @@ const Company_Items = () => {
 
     if (Number.isNaN(value)) return '—';
 
-    const formatted = value.toLocaleString(i18n.language, {
+    const formatted = value.toLocaleString(localeOf(i18n.language), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });

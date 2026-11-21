@@ -3,6 +3,7 @@ import { PrismaCurrencyRepository } from './repositories/prisma/prisma-currency-
 import { PrismaCurrencyRateRepository } from './repositories/prisma/prisma-currency-rate-repository';
 import { PrismaCurrencyHourRateRepository } from './repositories/prisma/prisma-currency-hour-rate-repository';
 import { AppSettingService } from 'src/app-setting/app-setting.service';
+import { CurrencyRateFillService } from './currency-rate-fill.service';
 import { createCurrency } from './helpers/createCurrency';
 import { findAllCurrencies } from './helpers/findAllCurrencies';
 import { updateCurrencyRates } from './helpers/updateCurrencyRates';
@@ -25,6 +26,7 @@ export class CurrencyService {
     private readonly rateRepository: PrismaCurrencyRateRepository,
     private readonly hourRateRepository: PrismaCurrencyHourRateRepository,
     private readonly appSettingService: AppSettingService,
+    private readonly rateFill: CurrencyRateFillService,
   ) {}
 
   async create(dto: CreateCurrencyDto) {
@@ -62,7 +64,8 @@ export class CurrencyService {
       needs,
       this.rateRepository,
       this.hourRateRepository,
-      () => this.appSettingService.apiConfig('currency'),
+      // Os dias sem cotação vão para a fila, que os pede à API fora do pedido
+      (missing) => this.rateFill.enqueue(missing),
     );
   }
 

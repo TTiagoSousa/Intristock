@@ -3,6 +3,8 @@ import { Request } from 'express';
 import { JwtUserAuthGuard } from 'src/auth-user/guards/jwt-user-auth.guard';
 import { JwtUserPayload } from 'src/auth-user/jwt-payload.interface';
 import { GoodsService } from './goods.service';
+import { UserThrottle } from 'src/common/throttle/user-throttle.decorator';
+import { GOODS_PRICES_LIMIT } from 'src/common/throttle/throttle.constants';
 import {
   AddGoodsValuationDto,
   CreateGoodsDto,
@@ -28,6 +30,7 @@ export class GoodsController {
 
   // A pesquisa de preços (2 pesquisas da SerpApi); não grava nada
   @Post('prices')
+  @UserThrottle(GOODS_PRICES_LIMIT)
   prices(@Body() dto: GoodsPricesDto) {
     return this.goodsService.prices(dto);
   }

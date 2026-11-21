@@ -119,3 +119,16 @@
   from{ transform: scaleX(1); }
   to{ transform: scaleX(0); }
 }
+
+// As zonas do leitor de ecrã: na página, sem se verem
+.Simple_Alert__live{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

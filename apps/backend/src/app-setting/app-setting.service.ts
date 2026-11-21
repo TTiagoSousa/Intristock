@@ -7,6 +7,8 @@ import { getSetupStatus } from './helpers/getSetupStatus';
 import { getApisHealth } from './helpers/checkApiHealth';
 import { ApiKind } from './helpers/apiProviders';
 import { SaveApiSettingsDto } from './dto/save-api-settings.dto';
+import { findJobLastRun } from './helpers/findJobLastRun';
+import { saveJobLastRun } from './helpers/saveJobLastRun';
 
 @Injectable()
 export class AppSettingService {
@@ -31,5 +33,14 @@ export class AppSettingService {
 
   status() {
     return getSetupStatus(this.settingRepository);
+  }
+
+  /** Quando correu pela última vez uma tarefa agendada (`startScheduledJob`). */
+  jobLastRunAt(job: string) {
+    return findJobLastRun(job, this.settingRepository);
+  }
+
+  markJobRun(job: string, at = new Date()) {
+    return saveJobLastRun(job, at, this.settingRepository);
   }
 }

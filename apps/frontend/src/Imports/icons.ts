@@ -45,3 +45,4 @@ export { default as Copy } from '../Assets/Icons/Copy/Copy';
 export { default as Arrow_Up } from '../Assets/Icons/Arrow_Up/Arrow_Up';
 export { default as Trend } from '../Assets/Icons/Trend/Trend';
 export { default as Pie } from '../Assets/Icons/Pie/Pie';
+export { default as Clock } from '../Assets/Icons/Clock/Clock';

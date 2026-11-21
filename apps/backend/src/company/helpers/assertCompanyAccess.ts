@@ -62,7 +62,8 @@ export async function assertCompanyAccess(
   if (company.createdById !== userId) {
     const member = await companyRepository.findMember(companyId, userId);
 
-    if (!member) {
+    // Um convite por aceitar (ou recusado) ainda não dá acesso
+    if (!member || member.status !== 'active') {
       throw new ForbiddenException(options.notYours);
     }
 

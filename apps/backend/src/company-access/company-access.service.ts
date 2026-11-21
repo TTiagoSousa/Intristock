@@ -15,6 +15,13 @@ import { findCompanyMember } from './helpers/findCompanyMember';
 import { addCompanyMember } from './helpers/addCompanyMember';
 import { updateCompanyMember } from './helpers/updateCompanyMember';
 import { removeCompanyMember } from './helpers/removeCompanyMember';
+import { CompanyInvitationService } from 'src/company-invitation/company-invitation.service';
+
+// A resposta de um convite, haja ou não conta com o email
+const INVITE_SENT = {
+  invited: true,
+  message: 'Se houver uma conta com esse email, o convite foi enviado.',
+};
 
 /** Os cargos de cada empresa, os membros e o que cada um pode fazer. */
 @Injectable()
@@ -23,6 +30,7 @@ export class CompanyAccessService {
     private readonly companyRepository: PrismaCompanyRepository,
     private readonly userRepository: PrismaUserRepository,
     private readonly accessRepository: PrismaCompanyAccessRepository,
+    private readonly invitations: CompanyInvitationService,
   ) {}
 
   permissionCatalog() {
@@ -57,8 +65,8 @@ export class CompanyAccessService {
     return findCompanyMember(userId, companyId, memberId, this.companyRepository, this.accessRepository);
   }
 
-  addMember(userId: string, companyId: string, dto: AddCompanyMemberDto) {
-    return addCompanyMember(
+  async addMember(userId: string, companyId: string, dto: AddCompanyMemberDto) {
+    const member = await addCompanyMember(
       userId,
       companyId,
       dto,
@@ -66,13 +74,21 @@ export class CompanyAccessService {
       this.userRepository,
       this.accessRepository,
     );
+    if (!dto.accountEmail) return member;
+
+    // Uma conta vai como convite: a pessoa responde nos avisos. A resposta é a mesma
+    // haja ou não conta com o email (não se descobrem contas por aqui)
+    if (member?.userId) await this.invitations.invited(member.id, userId);
+    return INVITE_SENT;
   }
 
   updateMember(userId: string, companyId: string, memberId: string, dto: UpdateCompanyMemberDto) {
     return updateCompanyMember(userId, companyId, memberId, dto, this.companyRepository, this.accessRepository);
   }
 
-  removeMember(userId: string, companyId: string, memberId: string) {
-    return removeCompanyMember(userId, companyId, memberId, this.companyRepository, this.accessRepository);
+  async removeMember(userId: string, companyId: string, memberId: string) {
+    const result = await removeCompanyMember(userId, companyId, memberId, this.companyRepository, this.accessRepository);
+    await this.invitations.inviteCancelled(memberId);
+    return result;
   }
 }

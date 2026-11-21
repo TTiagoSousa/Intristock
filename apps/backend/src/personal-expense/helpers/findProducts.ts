@@ -1,9 +1,9 @@
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalExpenseRepository } from '../repositories/prisma/prisma-personal-expense-repository';
 import { ExpenseCurrency } from '../repositories/personal-expense-repository';
 import { ProductsQueryDto } from '../dto/personal-expense.dto';
 
-const FALLBACK_CURRENCY = 'EUR';
 const round = (value: number) => Math.round(value * 100) / 100;
 
 /**
@@ -21,10 +21,11 @@ export async function findProducts(
     repository.findProducts(userId),
     repository.findProductPurchases(userId),
   ]);
-  const target: ExpenseCurrency | null =
-    (query.currencyId
-      ? await repository.findCurrency(query.currencyId)
-      : null) ?? (await repository.findCurrencyByCode(FALLBACK_CURRENCY));
+  const target: ExpenseCurrency | null = await pickDisplayCurrency(
+    query.currencyId,
+    [],
+    repository,
+  );
   const converter = await currencyService.converter(
     target,
     purchases.map((purchase) => ({

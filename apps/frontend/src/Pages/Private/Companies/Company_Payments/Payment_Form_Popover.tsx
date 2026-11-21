@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanySupplierOptions } from '../../../../Hooks/Companies/useCompanyOptions';
 import { usePaymentMemberOptions } from '../../../../Hooks/Companies/usePaymentMemberOptions';
@@ -19,19 +19,16 @@ import type {
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
-import * as Icon from '../../../../Imports/icons';
 import type { New_Supplier_State } from '../Company_Suppliers/Company_Supplier';
-import type { New_Item_State } from '../Company_Items/Company_Item';
+import { localToday } from '../../../../utils/dates';
+import { localeOf } from '../../../../utils/locale';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
-// Linha em edição: os valores ficam string enquanto se escreve e só são
-// convertidos no submit
-interface Draft_Line {
-  // Chave estável da linha — o itemId não serve, pode estar vazio ou repetido
-  key: string;
-  itemId: string;
-  quantity: string;
-  unitPrice: string;
-}
+import { emptyLine, lineTotal, roundMoney, type Draft_Line } from './paymentForm';
+import Payment_Company_Amount_Field from './Payment_Company_Amount_Field';
+import Payment_Lines_Field from './Payment_Lines_Field';
+import Payment_Taxes_Field from './Payment_Taxes_Field';
+import Payment_Files_Field from './Payment_Files_Field';
 
 interface Payment_Form_Popover_Props {
   companyId: string;
@@ -52,28 +49,6 @@ interface Payment_Form_Popover_Props {
   // existir, porque é a ele que ficam agarrados
   onSubmit: (payload: CompanyPaymentPayload, files: File[]) => Promise<void>;
 }
-
-// KB até 1 MB, depois MB — números com sete dígitos não dizem nada a ninguém
-const formatSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-};
-
-// Contador em vez de crypto.randomUUID: esse só existe em https ou localhost,
-// e a VM abre-se em http pelo IP
-let lineSeq = 0;
-
-const emptyLine = (): Draft_Line => ({
-  key: `line-${++lineSeq}`,
-  itemId: '',
-  quantity: '1',
-  unitPrice: '',
-});
-
-// Dinheiro com 2 casas: quantidade × preço em floats deixa restos
-const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
 const Payment_Form_Popover = ({
   companyId,
@@ -111,7 +86,7 @@ const Payment_Form_Popover = ({
   // Vazio, vale a cotação do dia.
   const [companyAmount, setCompanyAmount] = useState('');
   // Hoje por defeito, no formato que o input date espera
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(localToday());
   const [status, setStatus] = useState<PaymentStatus>('completed');
   const [reference, setReference] = useState('');
   const [description, setDescription] = useState('');
@@ -127,17 +102,7 @@ const Payment_Form_Popover = ({
   // sido arranjada em julho e só paga em novembro
   // Ficheiros escolhidos, ainda por enviar — só sobem depois de gravar
   const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   // Só itens ativos: um item desativado não deve entrar em compras novas
   const activeItems = items.filter((item) => item.isActive);
@@ -169,15 +134,6 @@ const Payment_Form_Popover = ({
     setLines((current) =>
       current.map((line) => (line.key === key ? { ...line, ...changes } : line)),
     );
-
-  const lineTotal = (line: Draft_Line) => {
-    const quantity = Number(line.quantity);
-    const unitPrice = Number(line.unitPrice);
-
-    if (Number.isNaN(quantity) || Number.isNaN(unitPrice)) return 0;
-
-    return roundMoney(quantity * unitPrice);
-  };
 
   const hasLines = lines.length > 0;
   const linesTotal = roundMoney(lines.reduce((sum, line) => sum + lineTotal(line), 0));
@@ -214,7 +170,7 @@ const Payment_Form_Popover = ({
   const companyCurrency = currencies.find((currency) => currency.id === companyCurrencyId);
 
   const formatIn = (value: number, symbol: string | undefined) =>
-    `${value.toLocaleString(i18n.language, {
+    `${value.toLocaleString(localeOf(i18n.language), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })} ${symbol ?? ''}`.trim();
@@ -252,7 +208,7 @@ const Payment_Form_Popover = ({
     const what =
       entry.part === 'salary'
         ? t('upcomingPayments.part_salary', {
-            month: new Date(`${entry.period.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(i18n.language, {
+            month: new Date(`${entry.period.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(localeOf(i18n.language), {
               month: 'long',
               timeZone: 'UTC',
             }),
@@ -413,537 +369,309 @@ const Payment_Form_Popover = ({
   });
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <form className="Popover_Card Wide" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{t('payments.createTitle')}</span>
-            <span className="Popover_Subtitle">{companyName}</span>
-          </div>
-
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
+    <Popover_Shell onClose={onClose} as="form" className="Wide" onSubmit={handleSubmit}>
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{t('payments.createTitle')}</span>
+          <span className="Popover_Subtitle">{companyName}</span>
         </div>
 
-        <div className="Popover_Body">
-          <div className="Form_Field">
-            <label htmlFor="payment-type">{t('payments.columnType')} *</label>
-            <Global_Dropdown
-              id="payment-type"
-              value={paymentType}
-              onChange={(value) => setPaymentType(value as PaymentType)}
-              options={[
-                { value: 'pay', label: t('payments.type_pay') },
-                { value: 'receive', label: t('payments.type_receive') },
-                { value: 'internal_transfer', label: t('payments.type_internal_transfer') },
-              ]}
-            />
-          </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
 
-          <div className="Form_Field">
-            <label htmlFor="payment-party-type">{t('payments.partyType')} *</label>
-            <Global_Dropdown
-              id="payment-party-type"
-              value={partyType}
-              onChange={(value) => setPartyType(value as PartyType)}
-              options={[
-                { value: 'supplier', label: t('payments.party_supplier') },
-                { value: 'member', label: t('payments.party_memberOption') },
-                { value: 'shareholder', label: t('payments.party_shareholderOption') },
-                { value: 'customer', label: t('payments.party_customer') },
-              ]}
-            />
-            {partyType === 'shareholder' && <span className="Field_Hint">{t('payments.shareholderHint')}</span>}
-          </div>
+      <div className="Popover_Body">
+        <div className="Form_Field">
+          <label htmlFor="payment-type">{t('payments.columnType')} *</label>
+          <Global_Dropdown
+            id="payment-type"
+            value={paymentType}
+            onChange={(value) => setPaymentType(value as PaymentType)}
+            options={[
+              { value: 'pay', label: t('payments.type_pay') },
+              { value: 'receive', label: t('payments.type_receive') },
+              { value: 'internal_transfer', label: t('payments.type_internal_transfer') },
+            ]}
+          />
+        </div>
 
-          {partyType === 'member' && (
-            <>
-              <div className="Form_Field">
-                <label htmlFor="payment-member">{t('payments.member')} *</label>
-                <Global_Dropdown
-                  id="payment-member"
-                  value={memberId}
-                  onChange={(value) => {
-                    setMemberId(String(value));
-                    setMemberPayKey('');
-                  }}
-                  placeholder={t('payments.selectPlaceholder')}
-                  searchable
-                  options={members.map((member) => ({ value: member.id, label: member.name }))}
-                />
-              </div>
-              <div className="Form_Field">
-                <label htmlFor="payment-member-pay">{t('payments.memberPay')}</label>
-                <Global_Dropdown
-                  id="payment-member-pay"
-                  value={memberPayKey}
-                  onChange={(value) => handleMemberPayChange(String(value))}
-                  disabled={!memberId}
-                  options={[
-                    { value: '', label: t('payments.memberPayNone') },
-                    ...memberUpcoming.map((entry) => ({
-                      value: `${entry.memberPayId}|${entry.period}`,
-                      label: upcomingLabel(entry),
-                    })),
-                  ]}
-                />
-                <span className="Field_Hint">{t('payments.memberPayHint')}</span>
-              </div>
-            </>
-          )}
+        <div className="Form_Field">
+          <label htmlFor="payment-party-type">{t('payments.partyType')} *</label>
+          <Global_Dropdown
+            id="payment-party-type"
+            value={partyType}
+            onChange={(value) => setPartyType(value as PartyType)}
+            options={[
+              { value: 'supplier', label: t('payments.party_supplier') },
+              { value: 'member', label: t('payments.party_memberOption') },
+              { value: 'shareholder', label: t('payments.party_shareholderOption') },
+              { value: 'customer', label: t('payments.party_customer') },
+            ]}
+          />
+          {partyType === 'shareholder' && <span className="Field_Hint">{t('payments.shareholderHint')}</span>}
+        </div>
 
-          {partyType === 'supplier' && (
+        {partyType === 'member' && (
+          <>
             <div className="Form_Field">
-              <label htmlFor="payment-supplier">{t('payments.columnSupplier')} *</label>
+              <label htmlFor="payment-member">{t('payments.member')} *</label>
               <Global_Dropdown
-                id="payment-supplier"
-                value={supplierId}
-                onChange={(value) => handleSupplierChange(value as string)}
-                disabled={loadingSuppliers}
+                id="payment-member"
+                value={memberId}
+                onChange={(value) => {
+                  setMemberId(String(value));
+                  setMemberPayKey('');
+                }}
                 placeholder={t('payments.selectPlaceholder')}
                 searchable
-                // Criar um fornecedor sai daqui para a página inteira; no fim
-                // volta aos pagamentos e o formulário reabre com ele escolhido
-                action={{
-                  label: t('payments.newSupplier'),
-                  onClick: () => {
-                    const state: New_Supplier_State = { returnTo: location.pathname };
-                    navigate(`/Companies/${slug}/compras/fornecedores/new-supplier`, { state });
-                  },
-                }}
-                options={suppliers.map((supplier) => ({
-                  value: supplier.id,
-                  label: supplier.name,
-                }))}
+                options={members.map((member) => ({ value: member.id, label: member.name }))}
               />
             </div>
-          )}
-
-          {/* Um recebimento não sai de lado nenhum; um pagamento não entra */}
-          {paymentType !== 'receive' && (
             <div className="Form_Field">
-              <label htmlFor="payment-from-account">{t('payments.fromAccount')} *</label>
+              <label htmlFor="payment-member-pay">{t('payments.memberPay')}</label>
               <Global_Dropdown
-                id="payment-from-account"
-                value={fromBankAccountId}
-                onChange={(value) => setFromBankAccountId(value as string)}
-                disabled={loadingBankAccounts}
-                placeholder={t('payments.selectPlaceholder')}
-                options={bankAccountOptions}
+                id="payment-member-pay"
+                value={memberPayKey}
+                onChange={(value) => handleMemberPayChange(String(value))}
+                disabled={!memberId}
+                options={[
+                  { value: '', label: t('payments.memberPayNone') },
+                  ...memberUpcoming.map((entry) => ({
+                    value: `${entry.memberPayId}|${entry.period}`,
+                    label: upcomingLabel(entry),
+                  })),
+                ]}
               />
+              <span className="Field_Hint">{t('payments.memberPayHint')}</span>
             </div>
-          )}
+          </>
+        )}
 
-          {paymentType !== 'pay' && (
-            <div className="Form_Field">
-              <label htmlFor="payment-to-account">{t('payments.toAccount')} *</label>
-              <Global_Dropdown
-                id="payment-to-account"
-                value={toBankAccountId}
-                onChange={(value) => setToBankAccountId(value as string)}
-                disabled={loadingBankAccounts}
-                placeholder={t('payments.selectPlaceholder')}
-                options={bankAccountOptions}
-              />
-            </div>
-          )}
-
+        {partyType === 'supplier' && (
           <div className="Form_Field">
-            <label htmlFor="payment-currency">{t('payments.columnCurrency')}</label>
-            {/* O valor, as linhas e os impostos ficam nesta moeda */}
+            <label htmlFor="payment-supplier">{t('payments.columnSupplier')} *</label>
             <Global_Dropdown
-              id="payment-currency"
-              value={currencyId}
-              onChange={(value) => setCurrencyId(value as string)}
+              id="payment-supplier"
+              value={supplierId}
+              onChange={(value) => handleSupplierChange(value as string)}
+              disabled={loadingSuppliers}
+              placeholder={t('payments.selectPlaceholder')}
               searchable
-              options={currencies.map((currency) => ({
-                value: currency.id,
-                label: `${currency.shortCode} (${currency.symbol})`,
+              // Criar um fornecedor sai daqui para a página inteira; no fim
+              // volta aos pagamentos e o formulário reabre com ele escolhido
+              action={{
+                label: t('payments.newSupplier'),
+                onClick: () => {
+                  const state: New_Supplier_State = { returnTo: location.pathname };
+                  navigate(`/Companies/${slug}/compras/fornecedores/new-supplier`, { state });
+                },
+              }}
+              options={suppliers.map((supplier) => ({
+                value: supplier.id,
+                label: supplier.name,
               }))}
             />
           </div>
+        )}
 
-          {/* Noutra moeda: o valor na da empresa. Proposto pela cotação do dia
-              (em cinzento); escrever outro fixa o do extrato. */}
-          {isForeign && (
-            <div className="Form_Field">
-              <label htmlFor="payment-company-amount">
-                {t('payments.companyAmount', { code: companyCode })}
-              </label>
-              <Global_Input
-                id="payment-company-amount"
-                type="number"
-                value={companyAmount}
-                onChange={(e) => setCompanyAmount(e.target.value)}
-                placeholder={suggestedCompanyAmount === null ? '0.00' : suggestedCompanyAmount.toFixed(2)}
-              />
-              {manualCompanyAmount ? (
-                <span className="Field_Hint">
-                  {t('payments.rateManual')}
-                  {' · '}
-                  <button type="button" className="Hint_Action" onClick={() => setCompanyAmount('')}>
-                    {t('payments.rateUseMarket')}
-                  </button>
-                </span>
-              ) : exchange.loading ? (
-                <span className="Field_Hint">{t('payments.rateLoading', { date: shownDate })}</span>
-              ) : exchange.rate !== null ? (
-                <span className="Field_Hint">
-                  {t('payments.rateMarket', {
-                    date: shownDate,
-                    from: paymentCurrency?.shortCode ?? '',
-                    rate: exchange.rate.toLocaleString(i18n.language, { maximumFractionDigits: 6 }),
-                    to: companyCode,
-                  })}
-                </span>
-              ) : (
-                <span className="Field_Hint Field_Hint_Error">
-                  {t('payments.rateMissing', { code: companyCode })}
-                </span>
-              )}
-            </div>
-          )}
-
+        {/* Um recebimento não sai de lado nenhum; um pagamento não entra */}
+        {paymentType !== 'receive' && (
           <div className="Form_Field">
-            <label htmlFor="payment-date">{t('payments.columnDate')} *</label>
-            <Global_Input
-              id="payment-date"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
-          </div>
-
-          <div className="Form_Field">
-            <label htmlFor="payment-status">{t('payments.columnStatus')}</label>
+            <label htmlFor="payment-from-account">{t('payments.fromAccount')} *</label>
             <Global_Dropdown
-              id="payment-status"
-              value={status}
-              onChange={(value) => setStatus(value as PaymentStatus)}
-              options={[
-                { value: 'completed', label: t('payments.status_completed') },
-                { value: 'draft', label: t('payments.status_draft') },
-                { value: 'cancelled', label: t('payments.status_cancelled') },
-              ]}
+              id="payment-from-account"
+              value={fromBankAccountId}
+              onChange={(value) => setFromBankAccountId(value as string)}
+              disabled={loadingBankAccounts}
+              placeholder={t('payments.selectPlaceholder')}
+              options={bankAccountOptions}
             />
           </div>
+        )}
 
+        {paymentType !== 'pay' && (
           <div className="Form_Field">
-            <label htmlFor="payment-reference">{t('payments.reference')}</label>
+            <label htmlFor="payment-to-account">{t('payments.toAccount')} *</label>
+            <Global_Dropdown
+              id="payment-to-account"
+              value={toBankAccountId}
+              onChange={(value) => setToBankAccountId(value as string)}
+              disabled={loadingBankAccounts}
+              placeholder={t('payments.selectPlaceholder')}
+              options={bankAccountOptions}
+            />
+          </div>
+        )}
+
+        <div className="Form_Field">
+          <label htmlFor="payment-currency">{t('payments.columnCurrency')}</label>
+          {/* O valor, as linhas e os impostos ficam nesta moeda */}
+          <Global_Dropdown
+            id="payment-currency"
+            value={currencyId}
+            onChange={(value) => setCurrencyId(value as string)}
+            searchable
+            options={currencies.map((currency) => ({
+              value: currency.id,
+              label: `${currency.shortCode} (${currency.symbol})`,
+            }))}
+          />
+        </div>
+
+        {isForeign && (
+          <Payment_Company_Amount_Field
+            companyAmount={companyAmount}
+            setCompanyAmount={setCompanyAmount}
+            suggestedCompanyAmount={suggestedCompanyAmount}
+            manualCompanyAmount={manualCompanyAmount}
+            exchange={exchange}
+            shownDate={shownDate}
+            paymentCode={paymentCurrency?.shortCode ?? ''}
+            companyCode={companyCode}
+          />
+        )}
+
+        <div className="Form_Field">
+          <label htmlFor="payment-date">{t('payments.columnDate')} *</label>
+          <Global_Input
+            id="payment-date"
+            type="date"
+            value={paymentDate}
+            onChange={(e) => setPaymentDate(e.target.value)}
+          />
+        </div>
+
+        <div className="Form_Field">
+          <label htmlFor="payment-status">{t('payments.columnStatus')}</label>
+          <Global_Dropdown
+            id="payment-status"
+            value={status}
+            onChange={(value) => setStatus(value as PaymentStatus)}
+            options={[
+              { value: 'completed', label: t('payments.status_completed') },
+              { value: 'draft', label: t('payments.status_draft') },
+              { value: 'cancelled', label: t('payments.status_cancelled') },
+            ]}
+          />
+        </div>
+
+        <div className="Form_Field">
+          <label htmlFor="payment-reference">{t('payments.reference')}</label>
+          <Global_Input
+            id="payment-reference"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder={t('payments.referencePlaceholder')}
+          />
+        </div>
+
+        <Payment_Lines_Field
+          lines={lines}
+          setLines={setLines}
+          updateLine={updateLine}
+          handleItemChange={handleItemChange}
+          itemOptions={itemOptions}
+          activeItemsCount={activeItems.length}
+          loadingItems={loadingItems}
+          selectedSupplierId={selectedSupplierId}
+          formatMoney={formatMoney}
+        />
+
+        <Payment_Taxes_Field
+          taxes={taxes}
+          loadingTaxes={loadingTaxes}
+          appliedTaxes={appliedTaxes}
+          availableTaxes={availableTaxes}
+          setSelectedTaxIds={setSelectedTaxIds}
+          companyCountryId={companyCountryId}
+          baseAmount={baseAmount}
+          hasTaxes={hasTaxes}
+          pricesIncludeTax={pricesIncludeTax}
+          setPricesIncludeTax={setPricesIncludeTax}
+          formatMoney={formatMoney}
+        />
+
+        <div className="Form_Field">
+          <label htmlFor="payment-amount">
+            {pricesIncludeTax && hasTaxes
+              ? `${t('payments.typedAmount')} *`
+              : `${t('payments.baseAmount')} *`}
+          </label>
+          {hasLines ? (
+            // Com linhas a base é a soma delas — editá-la à mão só criaria um
+            // pagamento cujo total não bate com o próprio detalhe
+            <div className="Amount_Readonly">
+              <span>{formatMoney(typedTotal)}</span>
+              <span className="Amount_Hint">{t('payments.amountFromLines')}</span>
+            </div>
+          ) : (
             <Global_Input
-              id="payment-reference"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder={t('payments.referencePlaceholder')}
+              id="payment-amount"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
             />
-          </div>
+          )}
+        </div>
 
-          {/* Detalhe do que foi comprado. Sem linhas, o pagamento é só um valor. */}
-          <div className="Form_Field Full_Width">
-            <div className="Lines_Header">
-              <label>{t('payments.linesTitle')}</label>
-              <div className="Documents_Action">
-                <Simple_Button
-                  text={t('payments.addLine')}
-                  onClick={() => setLines((current) => [...current, emptyLine()])}
-                  disabled={loadingItems || activeItems.length === 0}
-                />
-              </div>
+        <div className="Form_Field">
+          <label>{t('payments.columnAmount')}</label>
+          <div className="Amount_Summary">
+            <div className="Amount_Row">
+              <span>{t('payments.baseAmount')}</span>
+              <span>{formatMoney(baseAmount)}</span>
             </div>
-
-            {activeItems.length === 0 && !loadingItems ? (
-              <span className="Lines_Empty">{t('payments.noItems')}</span>
-            ) : lines.length === 0 ? (
-              <span className="Lines_Empty">{t('payments.noLines')}</span>
-            ) : (
-              <div className="Payment_Lines">
-                {lines.map((line) => (
-                  <div className="Payment_Line" key={line.key}>
-                    <div className="Line_Item">
-                      <Global_Dropdown
-                        value={line.itemId}
-                        onChange={(value) => handleItemChange(line.key, value as string)}
-                        placeholder={t('payments.selectItem')}
-                        searchable
-                        // Criar um item sai daqui para a página inteira; no fim
-                        // volta aos pagamentos e o formulário reabre com ele numa linha
-                        action={{
-                          label: t('payments.newItem'),
-                          onClick: () => {
-                            // O item novo já fica ligado ao fornecedor escolhido
-                            const state: New_Item_State = {
-                              returnTo: location.pathname,
-                              supplierId: selectedSupplierId || undefined,
-                            };
-                            navigate(`/Companies/${slug}/compras/itens/new-item`, { state });
-                          },
-                        }}
-                        options={itemOptions}
-                      />
-                    </div>
-
-                    <div className="Line_Number">
-                      <Global_Input
-                        type="number"
-                        value={line.quantity}
-                        onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
-                        placeholder={t('payments.quantity')}
-                      />
-                    </div>
-
-                    <div className="Line_Number">
-                      <Global_Input
-                        type="number"
-                        value={line.unitPrice}
-                        onChange={(e) => updateLine(line.key, { unitPrice: e.target.value })}
-                        placeholder={t('payments.unitPrice')}
-                      />
-                    </div>
-
-                    <span className="Line_Total">{formatMoney(lineTotal(line))}</span>
-
-                    <button
-                      type="button"
-                      className="Line_Remove"
-                      onClick={() =>
-                        setLines((current) => current.filter((entry) => entry.key !== line.key))
-                      }
-                      title={t('common.delete')}
-                      aria-label={t('common.delete')}
-                    >
-                      <Icon.Trash />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* O IVA e afins somam-se por cima da base. Os valores que ficam
-              gravados são os que o backend calcula — isto aqui é a prévia. */}
-          <div className="Form_Field Full_Width">
-            <div className="Lines_Header">
-              <label>{t('payments.taxesTitle')}</label>
+            <div className="Amount_Row">
+              <span>{t('payments.taxesTitle')}</span>
+              <span>{formatMoney(taxTotal)}</span>
             </div>
-
-            {loadingTaxes ? (
-              <span className="Lines_Empty">{t('common.loading')}</span>
-            ) : taxes.length === 0 ? (
-              <span className="Lines_Empty">{t('payments.noTaxesAvailable')}</span>
-            ) : (
-              <>
-                {/* Já escolhidos, pela ordem em que entraram — a ordem conta
-                    quando um imposto incide sobre a linha anterior */}
-                {appliedTaxes.length > 0 && (
-                  <div className="Tax_Rows">
-                    {appliedTaxes.map((tax) => (
-                      <div className="Tax_Row" key={tax.id}>
-                        <span className="Tax_Row_Name">
-                          {tax.name}
-                          {tax.countryId !== companyCountryId && tax.country && (
-                            <span className="Tax_Row_Country">{tax.country.name}</span>
-                          )}
-                        </span>
-                        <span className="Tax_Row_Rate">{tax.rate}%</span>
-                        <span className="Tax_Row_Value">
-                          {formatMoney(roundMoney((baseAmount * tax.rate) / 100))}
-                        </span>
-                        <button
-                          type="button"
-                          className="Line_Remove"
-                          onClick={() =>
-                            setSelectedTaxIds((current) => current.filter((id) => id !== tax.id))
-                          }
-                          title={t('common.delete')}
-                          aria-label={t('common.delete')}
-                        >
-                          <Icon.Trash />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {availableTaxes.length > 0 && (
-                  <Global_Dropdown
-                    id="payment-add-tax"
-                    value=""
-                    onChange={(value) =>
-                      setSelectedTaxIds((current) => [...current, value as string])
-                    }
-                    placeholder={t('payments.addTax')}
-                    searchable
-                    options={availableTaxes.map((tax) => ({
-                      value: tax.id,
-                      // O país só aparece quando não é o da empresa, senão
-                      // repetia-se em todas as linhas sem dizer nada
-                      label:
-                        tax.countryId === companyCountryId || !tax.country
-                          ? `${tax.name} (${tax.rate}%)`
-                          : `${tax.name} (${tax.rate}%) · ${tax.country.name}`,
-                    }))}
-                  />
-                )}
-              </>
-            )}
-
-            {/* A fatura tanto pode vir "100 + IVA" como "123 com IVA incluído".
-                Nos dois casos o que fica guardado é 100 + 23. */}
-            {hasTaxes && (
-              <label className="Checkbox_Field Inclusive_Toggle" htmlFor="payment-inclusive">
-                <input
-                  id="payment-inclusive"
-                  type="checkbox"
-                  checked={pricesIncludeTax}
-                  onChange={(e) => setPricesIncludeTax(e.target.checked)}
-                />
-                <span>{t('payments.pricesIncludeTax')}</span>
-              </label>
-            )}
-          </div>
-
-          <div className="Form_Field">
-            <label htmlFor="payment-amount">
-              {pricesIncludeTax && hasTaxes
-                ? `${t('payments.typedAmount')} *`
-                : `${t('payments.baseAmount')} *`}
-            </label>
-            {hasLines ? (
-              // Com linhas a base é a soma delas — editá-la à mão só criaria um
-              // pagamento cujo total não bate com o próprio detalhe
-              <div className="Amount_Readonly">
-                <span>{formatMoney(typedTotal)}</span>
-                <span className="Amount_Hint">{t('payments.amountFromLines')}</span>
-              </div>
-            ) : (
-              <Global_Input
-                id="payment-amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-              />
-            )}
-          </div>
-
-          <div className="Form_Field">
-            <label>{t('payments.columnAmount')}</label>
-            <div className="Amount_Summary">
+            <div className="Amount_Row Total">
+              <span>{t('payments.grossAmount')}</span>
+              <span>{formatMoney(grossAmount)}</span>
+            </div>
+            {isForeign && (
               <div className="Amount_Row">
-                <span>{t('payments.baseAmount')}</span>
-                <span>{formatMoney(baseAmount)}</span>
-              </div>
-              <div className="Amount_Row">
-                <span>{t('payments.taxesTitle')}</span>
-                <span>{formatMoney(taxTotal)}</span>
-              </div>
-              <div className="Amount_Row Total">
-                <span>{t('payments.grossAmount')}</span>
-                <span>{formatMoney(grossAmount)}</span>
-              </div>
-              {isForeign && (
-                <div className="Amount_Row">
-                  <span>{t('payments.companyAmount', { code: companyCode })}</span>
-                  <span>
-                    {shownCompanyAmount === null
-                      ? '—'
-                      : formatIn(shownCompanyAmount, companyCurrency?.symbol)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Ficam em espera: um documento agarra-se a um pagamento, e o
-              pagamento só existe depois de gravar */}
-          <div className="Form_Field Full_Width">
-            <div className="Documents_Header">
-              <label>{t('documents.title')}</label>
-              <div className="Documents_Action">
-                <Simple_Button
-                  text={t('documents.add')}
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={saving}
-                />
-              </div>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".pdf,.png,.jpg,.jpeg,.webp"
-              className="Documents_Input"
-              onChange={(e) => {
-                const chosen = e.target.files;
-
-                if (chosen) setFiles((current) => [...current, ...Array.from(chosen)]);
-
-                // Sem isto, escolher o mesmo ficheiro outra vez não dispara o onChange
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-            />
-
-            {files.length === 0 ? (
-              <span className="Lines_Empty">{t('documents.emptyForm')}</span>
-            ) : (
-              <div className="Documents_List">
-                {files.map((file, index) => (
-                  <div className="Document_Row" key={`${file.name}-${index}`}>
-                    {/* Ainda não há nada para descarregar — é só a lista do
-                        que vai ser enviado */}
-                    <div className="Document_Info">
-                      <span className="Document_Name">{file.name}</span>
-                      <span className="Document_Meta">{formatSize(file.size)}</span>
-                    </div>
-
-                    <div className="Document_Actions">
-                      <button
-                        type="button"
-                        className="Row_Action Danger"
-                        onClick={() =>
-                          setFiles((current) => current.filter((_, i) => i !== index))
-                        }
-                        title={t('common.delete')}
-                        aria-label={t('common.delete')}
-                      >
-                        <Icon.Trash />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                <span>{t('payments.companyAmount', { code: companyCode })}</span>
+                <span>
+                  {shownCompanyAmount === null
+                    ? '—'
+                    : formatIn(shownCompanyAmount, companyCurrency?.symbol)}
+                </span>
               </div>
             )}
-          </div>
-
-          <div className="Form_Field Full_Width">
-            <label htmlFor="payment-description">{t('payments.description')}</label>
-            <textarea
-              id="payment-description"
-              className="Form_Textarea"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('payments.descriptionPlaceholder')}
-              rows={3}
-            />
           </div>
         </div>
 
-        <div className="Popover_Footer">
-          <div className="Form_Action">
-            <Simple_Button text={t('common.cancel')} onClick={onClose} />
-          </div>
-          <div className="Form_Action">
-            <Simple_Button
-              type="submit"
-              text={saving ? t('common.saving') : t('common.save')}
-              disabled={saving}
-            />
-          </div>
+        <Payment_Files_Field files={files} setFiles={setFiles} saving={saving} />
+
+        <div className="Form_Field Full_Width">
+          <label htmlFor="payment-description">{t('payments.description')}</label>
+          <textarea
+            id="payment-description"
+            className="Form_Textarea"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t('payments.descriptionPlaceholder')}
+            rows={3}
+          />
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={t('common.cancel')} onClick={onClose} />
+        </div>
+        <div className="Form_Action">
+          <Simple_Button
+            type="submit"
+            text={t('common.save')}
+            disabled={saving}
+          />
+        </div>
+      </div>
+    </Popover_Shell>
   );
 };
 

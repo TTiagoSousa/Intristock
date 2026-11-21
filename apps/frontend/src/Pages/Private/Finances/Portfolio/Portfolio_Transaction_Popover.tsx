@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
@@ -22,6 +22,7 @@ import { createGoods, type Create_Goods_Body } from '../../../../Hooks/Finances/
 import { getErrorMessage } from '../../../../Hooks/useAsyncRequest';
 import { localToday, parseAmount } from '../../../../Hooks/Finances/portfolioInput';
 import './Portfolio.scss';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Portfolio_Transaction_Popover_Props {
   onClose: () => void;
@@ -69,14 +70,6 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
   const [bankAccountId, setBankAccountId] = useState(NONE);
   const [notes, setNotes] = useState('');
   const [goodsSaving, setGoodsSaving] = useState(false);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   const goTo = (next: Step) => {
     setError(null);
@@ -275,7 +268,7 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
           <div className="Form_Field">
             <div className="Tabs">
               {CASH_TRANSACTION_KINDS.map((option) => (
-                <button key={option} type="button" className={kind === option ? 'Active' : ''} onClick={() => setKind(option)}>
+                <button key={option} type="button" className={kind === option ? 'Active' : ''} aria-pressed={kind === option} onClick={() => setKind(option)}>
                   {t(`portfolio.kind_${option}`)}
                 </button>
               ))}
@@ -327,7 +320,7 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
             <Simple_Button text={t('portfolio.back')} onClick={() => goTo('asset')} variant="Ghost" />
           </div>
           <div className="Form_Action">
-            <Simple_Button type="submit" text={saving ? t('common.saving') : t('common.save')} disabled={saving || !valid} />
+            <Simple_Button type="submit" text={t('common.save')} disabled={saving || !valid} />
           </div>
         </div>
       </form>
@@ -335,9 +328,9 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
   }
 
   return createPortal(
-    <div className="Popover_Backdrop" onClick={onClose}>
+    <Popover_Shell onClose={onClose} bare>
       {content}
-    </div>,
+    </Popover_Shell>,
     document.body,
   );
 };

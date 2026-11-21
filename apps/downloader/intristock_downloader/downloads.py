@@ -2,20 +2,24 @@
 
 Para cada mês do intervalo pedido, vê no MarketDataMonth se já está no
 ClickHouse. Os que faltam descarrega-os da corretora do mercado (Binance ou
-Coinbase); os que outro processo está
+Coinbase); os que outro trabalhador está
 a descarregar espera por eles. O mês corrente volta sempre a ser pedido, porque
 entretanto há velas novas.
+
+Vários pedidos correm ao mesmo tempo (um por thread, ver `__main__`); a fila
+dá primeiro os que têm menos meses por descarregar, para um pedido de anos não
+fazer esperar os pequenos. Ao parar (`control.Stopped`), o pedido a meio volta
+à fila e o mês a meio fica por descarregar.
 """
 
 import logging
-import time
 from datetime import datetime, timedelta, timezone
 
 import psycopg
 from clickhouse_connect.driver.client import Client
 from psycopg.rows import dict_row
 
-from . import binance, coinbase
+from . import binance, coinbase, control
 from .clickhouse import insert_candles, insert_funding
 from .months import months_between, next_month, to_ms
 
@@ -23,21 +27,49 @@ log = logging.getLogger(__name__)
 
 # Um mês "a carregar" há mais do que isto é de um processo que morreu
 STALE_LOADING = timedelta(minutes=15)
+# O que fica no mês que estava a meio quando o downloader parou
+INTERRUPTED = "Interrompido (o downloader parou); volta a ser descarregado"
 
 
 def reset_interrupted(conn: psycopg.Connection) -> None:
-    """Pedidos que ficaram a meio (o downloader foi reiniciado) voltam à fila."""
+    """Pedidos que ficaram a meio (o downloader foi reiniciado) voltam à fila, e
+    os meses que estavam a carregar ficam por descarregar (sem esperar que passem
+    os `STALE_LOADING`). Só no arranque: há um downloader só."""
     with conn.transaction():
         result = conn.execute(
-            """UPDATE "MarketDataDownload" SET status = 'queued', "startedAt" = NULL
+            """UPDATE "MarketDataDownload" SET status = 'queued', "startedAt" = NULL, "currentMonth" = NULL
                WHERE status = 'running'"""
+        )
+        conn.execute(
+            """UPDATE "MarketDataMonth" SET status = 'failed', error = %s, "updatedAt" = now()
+               WHERE status = 'loading'""",
+            (INTERRUPTED,),
         )
     if result.rowcount:
         log.info("%s pedido(s) interrompido(s) voltaram à fila", result.rowcount)
 
 
+def requeue(conn: psycopg.Connection, download_id: str, instrument_id: str | None, month: datetime | None) -> None:
+    """Um pedido a meio volta à fila (o downloader está a parar ou a ligação ao
+    Postgres caiu) e o mês que estava a carregar fica por descarregar."""
+    with conn.transaction():
+        conn.execute(
+            """UPDATE "MarketDataDownload" SET status = 'queued', "startedAt" = NULL, "currentMonth" = NULL
+               WHERE id = %s AND status = 'running'""",
+            (download_id,),
+        )
+        if instrument_id and month:
+            conn.execute(
+                """UPDATE "MarketDataMonth" SET status = 'failed', error = %s, "updatedAt" = now()
+                   WHERE "instrumentId" = %s AND month = %s AND status = 'loading'""",
+                (INTERRUPTED, instrument_id, month.replace(tzinfo=None)),
+            )
+
+
 def claim_next(conn: psycopg.Connection) -> dict | None:
-    # SKIP LOCKED: com vários downloaders, cada um apanha um pedido diferente
+    """O próximo pedido: o com menos meses por descarregar (os que ainda não
+    estão `loaded`) e, entre esses, o mais antigo. SKIP LOCKED: com vários
+    trabalhadores, cada um apanha um pedido diferente."""
     with conn.transaction():
         return conn.execute(
             """
@@ -46,10 +78,24 @@ def claim_next(conn: psycopg.Connection) -> dict | None:
               FROM "Instrument" i
              WHERE i.id = d."instrumentId"
                AND d.id = (
-                   SELECT id FROM "MarketDataDownload"
-                    WHERE status = 'queued'
-                    ORDER BY "createdAt"
-                    FOR UPDATE SKIP LOCKED
+                   SELECT q.id FROM "MarketDataDownload" q
+                    WHERE q.status = 'queued'
+                    ORDER BY (
+                          SELECT count(*)
+                            FROM generate_series(
+                                     date_trunc('month', q."fromDate"),
+                                     q."toDate" - interval '1 millisecond',
+                                     interval '1 month'
+                                 ) AS m(month)
+                           WHERE NOT EXISTS (
+                                 SELECT 1 FROM "MarketDataMonth" mm
+                                  WHERE mm."instrumentId" = q."instrumentId"
+                                    AND mm.month = m.month
+                                    AND mm.status = 'loaded'
+                           )
+                          ),
+                          q."createdAt"
+                    FOR UPDATE OF q SKIP LOCKED
                     LIMIT 1
                )
             RETURNING d.id, d."instrumentId", d."fromDate", d."toDate",
@@ -141,7 +187,20 @@ def _fetch_candles(source: str, job: dict, instrument_id: str, start_ms: int, en
     raise ValueError(f"Corretora sem velas para descarregar: {source}")
 
 
-def process(conn: psycopg.Connection, clickhouse: Client, job: dict) -> None:
+def process(conn: psycopg.Connection, clickhouse: Client, job: dict, current: dict | None = None) -> None:
+    """Descarrega um pedido. `current` (se vier) fica com o mês que está a
+    carregar, para quem chama o devolver à fila se a ligação ao Postgres cair.
+    Ao parar (`control.Stopped`) o pedido volta à fila e o erro sobe."""
+    current = current if current is not None else {}
+    try:
+        _process(conn, clickhouse, job, current)
+    except control.Stopped:
+        log.info("Pedido %s interrompido: volta à fila", job["id"])
+        requeue(conn, job["id"], job["instrumentId"], current.get("month"))
+        raise
+
+
+def _process(conn: psycopg.Connection, clickhouse: Client, job: dict, current: dict) -> None:
     download_id = job["id"]
     instrument_id = job["instrumentId"]
     start, end = _utc(job["fromDate"]), _utc(job["toDate"])
@@ -155,6 +214,8 @@ def process(conn: psycopg.Connection, clickhouse: Client, job: dict) -> None:
     if source == "coinbase" and listed_at is None:
         try:
             first = coinbase.first_candle_ms(job["symbol"], to_ms(min(end, datetime.now(timezone.utc))))
+        except control.Stopped:
+            raise
         except Exception as error:  # noqa: BLE001
             message = str(error)[:500]
             log.exception("Falhou a procura do início de %s", job["symbol"])
@@ -167,17 +228,18 @@ def process(conn: psycopg.Connection, clickhouse: Client, job: dict) -> None:
         _progress(conn, download_id, index, total_candles, month)
         month_end = next_month(month)
         now = datetime.now(timezone.utc)
-        current = month_end > now
+        current_month = month_end > now
 
         while True:
-            action, candles = _claim_month(conn, instrument_id, month, current)
+            action, candles = _claim_month(conn, instrument_id, month, current_month)
             if action != "wait":
                 break
-            time.sleep(2)
+            control.sleep(2)
 
         if action == "skip":
             total_candles += candles
             continue
+        current["month"] = month
 
         try:
             # Antes da listagem não há velas: nem vale a pena perguntar
@@ -186,6 +248,8 @@ def process(conn: psycopg.Connection, clickhouse: Client, job: dict) -> None:
             else:
                 rows = _fetch_candles(source, job, instrument_id, to_ms(month), to_ms(min(month_end, now)))
             insert_candles(clickhouse, rows)
+        except control.Stopped:
+            raise
         except Exception as error:  # noqa: BLE001 — qualquer falha marca o mês e o pedido
             message = str(error)[:500]
             log.exception("Falhou %s de %s", month.strftime("%Y-%m"), job["symbol"])
@@ -194,6 +258,7 @@ def process(conn: psycopg.Connection, clickhouse: Client, job: dict) -> None:
             return
 
         _finish_month(conn, instrument_id, month, "loaded", candles=len(rows))
+        current["month"] = None
         total_candles += len(rows)
         log.info("%s %s: %s velas", job["symbol"], month.strftime("%Y-%m"), len(rows))
 
@@ -204,6 +269,8 @@ def process(conn: psycopg.Connection, clickhouse: Client, job: dict) -> None:
             funding = binance.fetch_funding(instrument_id, job["symbol"], to_ms(start), to_ms(min(end, datetime.now(timezone.utc))))
             insert_funding(clickhouse, funding)
             log.info("%s: %s taxas de funding", job["symbol"], len(funding))
+        except control.Stopped:
+            raise
         except Exception as error:  # noqa: BLE001
             message = str(error)[:500]
             log.exception("Falhou o funding de %s", job["symbol"])

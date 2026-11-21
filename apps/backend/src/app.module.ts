@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { AuthEmployeeModule } from './auth-employee/auth-employee.module';
-import { EmployeeModule } from './employee/employee.module';
-import { JobTypeModule } from './job-type/job-type.module';
+import { DEFAULT_THROTTLE, THROTTLE_MESSAGE } from './common/throttle/throttle.constants';
 import { UserModule } from './user/user.module';
 import { AuthUserModule } from './auth-user/auth-user.module';
-import { CalculatorModule } from './calculator/calculator.module';
+import { CalculatorModule } from './calculator-catalog/calculator.module';
 import { CalculatorsModule } from './calculators/calculators.module';
 import { CurrencyModule } from './currency/currency.module';
 import { CountryModule } from './country/country.module';
@@ -39,6 +38,9 @@ import { MarketDataModule } from './market-data/market-data.module';
 import { SimulationModule } from './simulation/simulation.module';
 import { LiveTestModule } from './live-test/live-test.module';
 import { NotificationModule } from './notification/notification.module';
+import { TimeTrackingModule } from './time-tracking/time-tracking.module';
+import { CompanyInvitationModule } from './company-invitation/company-invitation.module';
+import { RetentionModule } from './retention/retention.module';
 
 @Module({
   imports: [
@@ -46,10 +48,12 @@ import { NotificationModule } from './notification/notification.module';
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
     }),
+    // Sem guard global: só contam as rotas com o LoginThrottlerGuard ou o
+    // UserThrottlerGuard (common/throttle)
+    ThrottlerModule.forRoot({ throttlers: [DEFAULT_THROTTLE], errorMessage: THROTTLE_MESSAGE }),
     PrismaModule,
-    AuthEmployeeModule,
-    EmployeeModule,
-    JobTypeModule,
+    // Os módulos antigos (auth-employee, employee, job-type) ficam no código mas não
+    // se montam: deixavam rotas vivas, como POST /auth-employee/login
     UserModule,
     AuthUserModule,
     CalculatorModule,
@@ -83,6 +87,9 @@ import { NotificationModule } from './notification/notification.module';
     SimulationModule,
     LiveTestModule,
     NotificationModule,
+    TimeTrackingModule,
+    CompanyInvitationModule,
+    RetentionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

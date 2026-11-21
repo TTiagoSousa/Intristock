@@ -29,10 +29,18 @@ src/personal-portfolio/
 2. Write the helper in `helpers/<name>.ts`.
 3. Add the repository methods it needs.
 4. Call the helper from the service and expose it in the controller, with the guard and the access check.
-5. Add the route to [docs/api.md](../api.md).
+5. Add the route to [docs/api.md](../api.md); `node scripts/check-api-docs.mjs` (and the CI) fails if a mounted route is missing or a documented one does not exist.
 
 Fixed routes (`@Get('catalog')`) go before parameter routes (`@Get(':slug')`) in the controller, or Nest matches the parameter first.
 
 ## Background services
 
-Timers run as Nest services that start with the module (`OnModuleInit`): the market sync (`market-data`), the prop firm sync, the hourly exchange rates and the version watcher. They log and retry on the next round instead of failing the app.
+Timers run as Nest services that start with the module. Periodic jobs use `startScheduledJob` (`src/common/scheduledJob.ts`): it keeps the last run in `AppSetting` (`jobs.<name>.lastRunAt`), so a restart does not rerun a job whose interval has not passed, and each job has its own first delay (`staggerMs`). They log and retry on the next round instead of failing the app. The full list, with intervals and API limits, is in [architecture](../architecture.md#scheduled-jobs); a new job goes there too.
+
+## Cross-cutting rules
+
+- `main.ts` sets helmet, the CSRF middleware (writes need a JSON or multipart body; multipart and body-less writes need `X-Requested-With`), the global `PrismaExceptionFilter` (P2002/P2003 → 409, P2025 → 404) and the production secrets check.
+- Rate limits are per route: `LoginThrottlerGuard` on the login and `@UserThrottle(...)` (per user) on routes that call paid or shared APIs (`src/common/throttle`). There is no global throttler guard.
+- Writes that must not run twice (paying a salary period, settling or paying out hours, a product name) take a PostgreSQL advisory lock inside the transaction (`pg_advisory_xact_lock`).
+- Secrets are stored with `encryptSecret(value, secretContext(table, owner, field))` and read with the same context.
+- Fixed rules live in small pure helpers with a `*.spec.ts` next to them; `npm test` runs them.

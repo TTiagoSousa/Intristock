@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../../../../Contexts/Alert_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -12,13 +12,15 @@ import {
   type Income_Source,
   type Personal_Income,
 } from '../../../../Hooks/Finances/usePersonalIncome';
+import { invitationsApi } from '../../../../Hooks/System/useInvitations';
+import { getErrorMessage } from '../../../../Hooks/useAsyncRequest';
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import Global_Pagination from '../../../../Components/Pagination/Global_Pagination/Global_Pagination';
 import { usePagedList } from '../../../../Hooks/usePagedList';
 import * as Icon from '../../../../Imports/icons';
-import Confirm_Popover from '../../Companies/Company_Members/Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import Income_Popover from './Income_Popover';
 import Income_Source_Popover from './Income_Source_Popover';
 import Converted_Amount from './Converted_Amount';
@@ -45,6 +47,7 @@ type Deleting = { kind: 'income'; item: Personal_Income } | { kind: 'source'; it
  */
 const Earnings_Register = () => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const navigate = useNavigate();
   const { formatIn } = useCurrencyFormat();
   const { setAlert } = useAlert();
@@ -54,6 +57,20 @@ const Earnings_Register = () => {
   const state = useIncomeRegister(filters, expectedMonths);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [deleting, setDeleting] = useState<Deleting | null>(null);
+  // As horas que a empresa já pagou: confirmar que se recebeu
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const confirmPayout = async (payoutId: string) => {
+    setConfirming(payoutId);
+    try {
+      await invitationsApi.confirmPayment('time_tracking', payoutId, true);
+      setAlert({ open: true, type: 'success', message: t('invitations.confirmed') });
+      state.reload();
+    } catch (reason) {
+      setAlert({ open: true, type: 'error', message: getErrorMessage(reason) });
+    } finally {
+      setConfirming(null);
+    }
+  };
   // As três tabelas às páginas de 10 linhas
   const expectedPage = usePagedList(state.expected, 10);
   const incomesPage = usePagedList(state.incomes, 10);
@@ -97,15 +114,15 @@ const Earnings_Register = () => {
       <div className="Card Earnings_Filter_Card">
         <div className="Earnings_Filters">
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterFrom')}</span>
+            <label className="Eyebrow" htmlFor="income-filter-from">{t('earnings.filterFrom')}</label>
             <Global_Input id="income-filter-from" type="date" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterTo')}</span>
+            <label className="Eyebrow" htmlFor="income-filter-to">{t('earnings.filterTo')}</label>
             <Global_Input id="income-filter-to" type="date" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('earnings.filterKind')}</span>
+            <label className="Eyebrow" htmlFor="income-filter-kind">{t('earnings.filterKind')}</label>
             <Global_Dropdown
               id="income-filter-kind"
               value={filters.kind}
@@ -117,7 +134,7 @@ const Earnings_Register = () => {
             />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('earnings.filterSource')}</span>
+            <label className="Eyebrow" htmlFor="income-filter-source">{t('earnings.filterSource')}</label>
             <Global_Dropdown
               id="income-filter-source"
               value={filters.sourceId}
@@ -129,13 +146,13 @@ const Earnings_Register = () => {
             />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterStatus')}</span>
-            <div className="Tabs">
+            <span className="Eyebrow" id={`${groupId}-filterStatus`}>{t('earnings.filterStatus')}</span>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterStatus`}>
               {['', 'received', 'pending'].map((status) => (
                 <button
                   key={status || 'all'}
                   type="button"
-                  className={filters.status === status ? 'Active' : ''}
+                  className={filters.status === status ? 'Active' : ''} aria-pressed={filters.status === status}
                   onClick={() => setFilter('status', status)}
                 >
                   {status ? t(`earnings.status_${status}`) : t('earnings.all')}
@@ -290,7 +307,7 @@ const Earnings_Register = () => {
                 <button
                   key={period}
                   type="button"
-                  className={expectedMonths === period ? 'Active' : ''}
+                  className={expectedMonths === period ? 'Active' : ''} aria-pressed={expectedMonths === period}
                   onClick={() => setExpectedMonths(period)}
                 >
                   {t('purchasesDashboard.months', { count: period })}
@@ -322,7 +339,7 @@ const Earnings_Register = () => {
                   </thead>
                   <tbody>
                     {expectedPage.pageItems.map((income) => (
-                      <tr key={`${income.memberPayId ?? income.sourceId}|${income.period}`}>
+                      <tr key={`${income.origin}|${income.part}|${income.payoutId ?? ''}|${income.memberPayId ?? income.sourceId ?? income.company?.id}|${income.name}|${income.period}`}>
                         <td className="Num">
                           {formatDay(income.date, locale)}
                           {income.overdue && <span className="Pill Bad Earnings_Pill">{t('earnings.overdue')}</span>}
@@ -331,6 +348,9 @@ const Earnings_Register = () => {
                           <span className="Earnings_Strong">{income.name}</span>
                           {income.origin === 'company' && (
                             <span className="Pill Info Earnings_Pill">{t('earnings.fromCompany')}</span>
+                          )}
+                          {income.origin === 'time_tracking' && (
+                            <span className="Pill Info Earnings_Pill">{t('earnings.fromTimeTracking')}</span>
                           )}
                         </td>
                         <td>
@@ -344,13 +364,34 @@ const Earnings_Register = () => {
                           <Converted_Amount value={rated.money(income.amount, income.currency, income.date)} />
                         </td>
                         <td className="Right">
-                          <button
-                            type="button"
-                            className="Earnings_Action"
-                            onClick={() => setEditing({ kind: 'income', income: null, expected: income })}
-                          >
-                            {t('earnings.receive')}
-                          </button>
+                          {income.payoutId ? (
+                            // A empresa já pagou estas horas: confirmar cria o ganho (recebido)
+                            <button
+                              type="button"
+                              className="Earnings_Action"
+                              disabled={confirming === income.payoutId}
+                              onClick={() => void confirmPayout(income.payoutId!)}
+                            >
+                              {t('earnings.confirmReceived')}
+                            </button>
+                          ) : income.origin === 'time_tracking' ? (
+                            // As horas pagam-se no banco de horas da empresa, não aqui
+                            <button
+                              type="button"
+                              className="Earnings_Action"
+                              onClick={() => navigate(`/Companies/${income.company?.slug}/horas/registo`)}
+                            >
+                              {t('earnings.openTimeTracking')}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="Earnings_Action"
+                              onClick={() => setEditing({ kind: 'income', income: null, expected: income })}
+                            >
+                              {t('earnings.receive')}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -503,7 +544,7 @@ const Earnings_Register = () => {
           }
           message={t(deleting.kind === 'income' ? 'earnings.deleteIncomeConfirm' : 'earnings.deleteSourceConfirm')}
           confirmText={t('common.delete')}
-          saving={state.saving}
+          busy={state.saving}
           onClose={close}
           onConfirm={async () => {
             const done =

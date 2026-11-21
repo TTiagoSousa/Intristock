@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -53,6 +53,7 @@ const Portfolio_Position_Form = ({
   onSubmit,
 }: Portfolio_Position_Form_Props) => {
   const { t } = useTranslation();
+  const groupId = useId();
   const { currencies } = useCurrency();
   const { formatIn } = useCurrencyFormat();
   const crypto = assetType === 'crypto';
@@ -186,13 +187,13 @@ const Portfolio_Position_Form = ({
       <div className="Popover_Body Single_Column">
         {crypto && (
           <div className="Form_Field">
-            <label>{t('portfolio.exchange')}</label>
-            <div className="Tabs">
+            <label id={`${groupId}-exchange`}>{t('portfolio.exchange')}</label>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-exchange`}>
               {CRYPTO_SOURCES.map((option) => (
                 <button
                   key={option}
                   type="button"
-                  className={source === option ? 'Active' : ''}
+                  className={source === option ? 'Active' : ''} aria-pressed={source === option}
                   onClick={() => {
                     setSource(option);
                     changeMarket();
@@ -260,7 +261,7 @@ const Portfolio_Position_Form = ({
               <button
                 key={option}
                 type="button"
-                className={kind === option ? 'Active' : ''}
+                className={kind === option ? 'Active' : ''} aria-pressed={kind === option}
                 onClick={() => setKind(option)}
               >
                 {t(`portfolio.kind_${option}`)}
@@ -347,7 +348,7 @@ const Portfolio_Position_Form = ({
           <Simple_Button text={t('portfolio.back')} onClick={onBack} variant="Ghost" />
         </div>
         <div className="Form_Action">
-          <Simple_Button type="submit" text={saving ? t('common.saving') : t('common.save')} disabled={saving || !valid} />
+          <Simple_Button type="submit" text={t('common.save')} disabled={saving || !valid} />
         </div>
       </div>
     </form>

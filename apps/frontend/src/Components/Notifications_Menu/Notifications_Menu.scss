@@ -134,3 +134,41 @@
   font-size: 12px;
   color: var(--text-3);
 }
+
+// Os botões de um aviso que pede resposta (aceitar/recusar, recebi/não recebi)
+.Notifications_Actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 8px 8px 28px;
+}
+
+.Notifications_Action{
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--notifications-action-line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: transform 160ms var(--ease-out);
+
+  &:hover{ background-color: var(--notifications-item-hover); }
+  &:active{ transform: scale(0.97); }
+  &:disabled{ opacity: 0.5; }
+
+  &.Primary{
+    border-color: var(--notifications-badge-background);
+    background-color: var(--notifications-badge-background);
+    color: var(--notifications-badge-text);
+  }
+}
+
+.Notifications_Footer{
+  padding: 10px 12px;
+  border-top: 1px solid var(--notifications-dropdown-line);
+  font-size: 12px;
+  color: var(--notifications-link);
+  text-align: center;
+
+  &:hover{ text-decoration: underline; }
+}

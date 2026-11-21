@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import * as Intermediate_Pages from '../Imports/intermediaryPages';
 import { useAuth } from '../Contexts/Auth_Context';
 
@@ -13,7 +13,9 @@ const AuthenticationCheck = ({ children }: AuthenticationCheckProps) => {
 
   useEffect(() => {
     if (!isLoading && !authenticated) {
-      navigate('/');
+      // Ao login, com a página pedida para voltar a ela depois de entrar
+      const here = window.location.pathname + window.location.search;
+      navigate(`/Auth?next=${encodeURIComponent(here)}`, { replace: true });
     }
   }, [isLoading, authenticated, navigate]);
 

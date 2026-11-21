@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -11,6 +11,7 @@ import { formatDay, localeOf } from '../Earnings/earningsLabels';
 import { formatMonth, installmentLabel } from './debtsLabels';
 import '../Earnings/Earnings.scss';
 import './Debts.scss';
+import { localMonth } from '../../../../utils/dates';
 
 // Os meses para trás e a projeção para a frente que se escolhem
 const PERIODS = [6, 12, 24] as const;
@@ -36,6 +37,7 @@ const readKind = (): Chart_Kind => {
  */
 const Debts_Dashboard = () => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const navigate = useNavigate();
   const { currencies, selectedCurrency } = useCurrency();
   const { formatIn } = useCurrencyFormat();
@@ -54,8 +56,8 @@ const Debts_Dashboard = () => {
   // Abre as datas com o que estava à vista: os meses para trás e a projeção
   const openCustom = () => {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + future, 1));
+    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth() - (months - 1), 1));
+    const end = new Date(Date.UTC(now.getFullYear(), now.getMonth() + future, 1));
     setRange((current) => ({
       from: current.from || start.toISOString().slice(0, 7),
       to: current.to || end.toISOString().slice(0, 7),
@@ -74,7 +76,8 @@ const Debts_Dashboard = () => {
 
   const code = data?.currency?.shortCode ?? selectedCurrency;
   const format = (value: number) => formatIn(value, code);
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  // O mês de hoje no browser (não em UTC)
+  const currentMonth = localMonth();
   const monthDate = (month: string) => new Date(`${month}-01T00:00:00Z`);
   const hasLent = (data?.months ?? []).some((entry) => entry.lent > 0);
   // O saldo pelos movimentos até hoje e o projetado à frente; nas linhas o mês de
@@ -145,13 +148,13 @@ const Debts_Dashboard = () => {
       {/* Os filtros do gráfico e o registo, num cartão esticado por cima dele */}
       <div className="Card Earnings_Toolbar">
         <div className="Earnings_Filter Inline">
-          <span className="Eyebrow">{t('purchasesDashboard.filterPeriod')}</span>
-          <div className="Tabs">
+          <span className="Eyebrow" id={`${groupId}-filterPeriod`}>{t('purchasesDashboard.filterPeriod')}</span>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterPeriod`}>
             {PERIODS.map((period) => (
               <button
                 key={period}
                 type="button"
-                className={!custom && months === period ? 'Active' : ''}
+                className={!custom && months === period ? 'Active' : ''} aria-pressed={!custom && months === period}
                 onClick={() => {
                   setCustom(false);
                   setMonths(period);
@@ -160,14 +163,14 @@ const Debts_Dashboard = () => {
                 {t('purchasesDashboard.months', { count: period })}
               </button>
             ))}
-            <button type="button" className={custom ? 'Active' : ''} onClick={openCustom}>
+            <button type="button" className={custom ? 'Active' : ''} aria-pressed={custom} onClick={openCustom}>
               {t('purchasesDashboard.customDates')}
             </button>
           </div>
         </div>
         {custom ? (
           <div className="Earnings_Filter Inline">
-            <span className="Eyebrow">{t('purchasesDashboard.filterRange')}</span>
+            <label className="Eyebrow" htmlFor="debts-chart-from">{t('purchasesDashboard.filterRange')}</label>
             <div className="Earnings_Range">
               <Global_Input
                 id="debts-chart-from"
@@ -186,10 +189,10 @@ const Debts_Dashboard = () => {
           </div>
         ) : (
           <div className="Earnings_Filter Inline">
-            <span className="Eyebrow">{t('debts.filterProjection')}</span>
-            <div className="Tabs">
+            <span className="Eyebrow" id={`${groupId}-filterProjection`}>{t('debts.filterProjection')}</span>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterProjection`}>
               {FUTURES.map((option) => (
-                <button key={option} type="button" className={future === option ? 'Active' : ''} onClick={() => setFuture(option)}>
+                <button key={option} type="button" className={future === option ? 'Active' : ''} aria-pressed={future === option} onClick={() => setFuture(option)}>
                   {option === 0 ? t('purchasesDashboard.noFuture') : t('purchasesDashboard.months', { count: option })}
                 </button>
               ))}
@@ -219,7 +222,7 @@ const Debts_Dashboard = () => {
           <div className="Earnings_Controls">
             <div className="Tabs">
               {(['bars', 'lines'] as Chart_Kind[]).map((option) => (
-                <button key={option} type="button" className={kind === option ? 'Active' : ''} onClick={() => chooseKind(option)}>
+                <button key={option} type="button" className={kind === option ? 'Active' : ''} aria-pressed={kind === option} onClick={() => chooseKind(option)}>
                   {t(`purchasesDashboard.${option}`)}
                 </button>
               ))}

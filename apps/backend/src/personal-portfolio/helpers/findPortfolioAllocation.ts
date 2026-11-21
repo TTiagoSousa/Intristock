@@ -1,3 +1,4 @@
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { PortfolioCurrency } from '../repositories/personal-portfolio-repository';
@@ -7,7 +8,6 @@ import { applyToPosition, CASH_SIGN, compareLedger, emptyPosition, Position, POS
 export const ALLOCATION_CATEGORIES = ['cash', 'securities', 'crypto', 'property', 'goods', 'other'] as const;
 export type AllocationCategory = (typeof ALLOCATION_CATEGORIES)[number];
 
-const FALLBACK_CURRENCY = 'EUR';
 // Abaixo disto (na moeda pedida) não conta: saldos a zero, arredondamentos
 const MIN_VALUE = 0.005;
 const round = (value: number) => Math.round(value * 100) / 100;
@@ -48,9 +48,7 @@ export async function findPortfolioAllocation(
   currencyService: CurrencyService,
 ) {
   const transactions = (await repository.findUserTransactions(userId)).sort(compareLedger);
-  const currency =
-    (currencyId ? await repository.findCurrency(currencyId) : null) ??
-    (await repository.findCurrencyByCode(FALLBACK_CURRENCY));
+  const currency = await pickDisplayCurrency(currencyId, [], repository);
 
   // O dinheiro por moeda e as posições por mercado (ou ativo), de todos os portefólios
   const cash = new Map<string, { amount: number; currency: PortfolioCurrency }>();

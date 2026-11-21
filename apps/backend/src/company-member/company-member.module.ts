@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { CompanyModule } from 'src/company/company.module';
 import { StorageModule } from 'src/storage/storage.module';
+import { CompanyInvitationModule } from 'src/company-invitation/company-invitation.module';
 import { CompanyMemberController } from './company-member.controller';
 import { CompanyMemberService } from './company-member.service';
 import { PrismaCompanyMemberRepository } from './repositories/prisma/prisma-company-member-repository';
 
 @Module({
-  imports: [CompanyModule, StorageModule],
+  imports: [CompanyModule, StorageModule, CompanyInvitationModule],
   controllers: [CompanyMemberController],
   providers: [
     CompanyMemberService,

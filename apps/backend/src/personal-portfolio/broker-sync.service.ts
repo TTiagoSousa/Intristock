@@ -7,10 +7,12 @@ import {
 import { StockPriceService } from 'src/market-data/stock-price.service';
 import { PrismaPersonalPortfolioRepository } from './repositories/prisma/prisma-personal-portfolio-repository';
 import { syncTrading212 } from './helpers/syncTrading212';
-import { isConnectionDue } from './helpers/isConnectionDue';
+import { isConnectionDue } from 'src/common/isConnectionDue';
 
 // De quanto em quanto tempo se vê se há ligações por sincronizar
 const CHECK_EVERY_MS = 5 * 60 * 1000;
+// A primeira vez depois do arranque
+const FIRST_CHECK_MS = 120_000;
 
 /**
  * Sincroniza as ligações às corretoras no intervalo de cada uma (`syncEveryHours`: de hora
@@ -30,8 +32,10 @@ export class BrokerSyncService implements OnModuleInit, OnModuleDestroy {
     private readonly stocks: StockPriceService,
   ) {}
 
+  // Quando cada ligação sincronizou fica na base (`syncedAt`): no arranque só correm as em
+  // atraso, e só passado um bocado (as outras tarefas têm outros tempos)
   onModuleInit() {
-    void this.check();
+    setTimeout(() => void this.check(), FIRST_CHECK_MS).unref();
     this.timer = setInterval(() => void this.check(), CHECK_EVERY_MS);
   }
 

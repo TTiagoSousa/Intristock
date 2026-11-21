@@ -2,18 +2,20 @@
 
 A Coinbase dá até 300 velas por pedido, das mais recentes para as mais
 antigas, e não tem vela nos minutos sem negócio. O limite público ronda os 10
-pedidos por segundo: vai-se a pouco menos disso, e num 429 espera-se e tenta-se
-outra vez. Antes de descarregar procura-se o primeiro dia com velas (as
+pedidos por segundo (do IP): vai-se a pouco menos disso, com o intervalo
+partilhado pelas threads (`RateLimiter`), e num 429 espera-se e tenta-se outra vez. Antes de descarregar procura-se o primeiro dia com velas (as
 diárias, 300 dias por pedido), para não perguntar pelos meses em que o mercado
 ainda não existia.
 """
 
 import logging
-import time
+import threading
 import uuid
 from datetime import datetime, timezone
 
 import requests
+
+from . import control
 
 log = logging.getLogger(__name__)
 
@@ -29,9 +31,19 @@ RETRIES = 6
 # A Coinbase Exchange abriu em janeiro de 2015
 EARLIEST = datetime(2015, 1, 1, tzinfo=timezone.utc)
 
-session = requests.Session()
-session.headers["User-Agent"] = "IntriStock"
-_last_request = 0.0
+# O intervalo entre pedidos, o mesmo para todas as threads
+LIMITER = control.RateLimiter(MIN_INTERVAL_S)
+
+# Uma sessão por thread (o requests não garante que se possa partilhar uma)
+_local = threading.local()
+
+
+def _session() -> requests.Session:
+    session = getattr(_local, "session", None)
+    if session is None:
+        session = _local.session = requests.Session()
+        session.headers["User-Agent"] = "IntriStock"
+    return session
 
 
 def _iso(seconds: int) -> str:
@@ -40,14 +52,10 @@ def _iso(seconds: int) -> str:
 
 def _get(symbol: str, granularity: int, start_s: int, end_s: int) -> list:
     """Uma página de velas com início em [start_s, end_s] (o `end` é inclusivo)."""
-    global _last_request
     for attempt in range(RETRIES):
-        wait = MIN_INTERVAL_S - (time.monotonic() - _last_request)
-        if wait > 0:
-            time.sleep(wait)
-        _last_request = time.monotonic()
+        LIMITER.acquire()
         try:
-            response = session.get(
+            response = _session().get(
                 f"{BASE_URL}/{symbol}/candles",
                 params={"granularity": granularity, "start": _iso(start_s), "end": _iso(end_s)},
                 timeout=30,
@@ -56,12 +64,14 @@ def _get(symbol: str, granularity: int, start_s: int, end_s: int) -> list:
             # A Coinbase às vezes corta a ligação: espera e tenta outra vez
             delay = 1 + attempt * 2
             log.warning("Coinbase sem resposta em %s (%s), à espera %ss", symbol, error, delay)
-            time.sleep(delay)
+            control.sleep(delay)
             continue
         if response.status_code == 429 or response.status_code >= 500:
             delay = 1 + attempt * 2
             log.warning("Coinbase respondeu HTTP %s em %s, à espera %ss", response.status_code, symbol, delay)
-            time.sleep(delay)
+            if response.status_code == 429:
+                LIMITER.pause(delay)
+            control.sleep(delay)
             continue
         response.raise_for_status()
         return response.json()
@@ -91,6 +101,7 @@ def fetch_candles(instrument_id: str, symbol: str, start_ms: int, end_ms: int) -
     end_s = end_ms // 1000
 
     while cursor < end_s:
+        control.check()
         window_end = min(cursor + PAGE * MINUTE_S, end_s)
         page = _get(symbol, MINUTE_S, cursor, window_end - MINUTE_S)
         # [início s, mínima, máxima, abertura, fecho, volume]

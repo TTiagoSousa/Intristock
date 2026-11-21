@@ -1,0 +1,82 @@
+{
+  "cross": {
+    "finalCapital": 9568.37,
+    "longs": 37,
+    "path": "fe7cc1db59ea282c",
+    "shorts": 0,
+    "trades": 37,
+    "wins": 14
+  },
+  "cross+gaps": {
+    "finalCapital": 9643.18,
+    "longs": 37,
+    "path": "ff74e2bfde054b40",
+    "shorts": 0,
+    "trades": 37,
+    "wins": 15
+  },
+  "futures": {
+    "finalCapital": 0.0,
+    "longs": 2,
+    "path": "2671bd76552c6498",
+    "shorts": 22,
+    "trades": 24,
+    "wins": 12
+  },
+  "futures+gaps": {
+    "finalCapital": 0.0,
+    "longs": 2,
+    "path": "4d1c7116e24743a5",
+    "shorts": 22,
+    "trades": 24,
+    "wins": 12
+  },
+  "isolated": {
+    "finalCapital": 0.0,
+    "longs": 74,
+    "path": "e88fba07ff14351c",
+    "shorts": 0,
+    "trades": 74,
+    "wins": 5
+  },
+  "isolated+gaps": {
+    "finalCapital": 0.0,
+    "longs": 70,
+    "path": "27b303aefbf01f3f",
+    "shorts": 0,
+    "trades": 70,
+    "wins": 4
+  },
+  "levels": {
+    "finalCapital": 7029.01,
+    "longs": 163,
+    "path": "b3e42841b84bd941",
+    "shorts": 108,
+    "trades": 271,
+    "wins": 96
+  },
+  "levels+gaps": {
+    "finalCapital": 6910.77,
+    "longs": 166,
+    "path": "b69eac2735a818d8",
+    "shorts": 108,
+    "trades": 274,
+    "wins": 97
+  },
+  "rules": {
+    "finalCapital": 10080.95,
+    "longs": 11,
+    "path": "fc16f66b60c2251a",
+    "shorts": 0,
+    "trades": 11,
+    "wins": 3
+  },
+  "rules+gaps": {
+    "finalCapital": 10080.95,
+    "longs": 11,
+    "path": "fc16f66b60c2251a",
+    "shorts": 0,
+    "trades": 11,
+    "wins": 3
+  }
+}

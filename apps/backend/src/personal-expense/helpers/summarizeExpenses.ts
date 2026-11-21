@@ -1,3 +1,5 @@
+import { isoDay as day } from 'src/utils/dates';
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { BadRequestException } from '@nestjs/common';
 import { PrismaPersonalExpenseRepository } from '../repositories/prisma/prisma-personal-expense-repository';
@@ -9,7 +11,6 @@ import {
 import { findExpenses } from './findExpenses';
 
 const DEFAULT_MONTHS = 12;
-const FALLBACK_CURRENCY = 'EUR';
 // Quantas lojas e produtos vão nas listas do dashboard
 const TOP = 8;
 
@@ -73,7 +74,6 @@ export async function summarizeExpenses(
         `O intervalo não pode ter mais de ${MAX_EXPENSE_RANGE_MONTHS} meses`,
       );
   }
-  const day = (date: Date) => date.toISOString().slice(0, 10);
   const inRange = (date: string) =>
     date >= day(rangeStart) && date <= day(rangeEnd);
   const inCards = (date: string) =>
@@ -122,19 +122,11 @@ export async function summarizeExpenses(
       }))
       .sort((a, b) => b.total - a.total);
 
-  let currency: ExpenseCurrency | null = query.currencyId
-    ? await repository.findCurrency(query.currencyId)
-    : null;
-  if (!currency) {
-    const uses = new Map<string, number>();
-    for (const expense of expenses)
-      uses.set(expense.currencyId, (uses.get(expense.currencyId) ?? 0) + 1);
-    const top = [...uses.entries()].sort((a, b) => b[1] - a[1])[0];
-    currency = top
-      ? await repository.findCurrency(top[0])
-      : await repository.findCurrencyByCode(FALLBACK_CURRENCY);
-  }
-  const target = currency;
+  const target: ExpenseCurrency | null = await pickDisplayCurrency(
+    query.currencyId,
+    expenses.map((expense) => expense.currencyId),
+    repository,
+  );
   const converter = await currencyService.converter(
     target,
     expenses.map((expense) => ({

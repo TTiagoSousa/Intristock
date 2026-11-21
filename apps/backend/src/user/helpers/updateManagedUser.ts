@@ -42,7 +42,11 @@ export async function updateManagedUser(
     Object.assign(data, splitFullName(dto.fullName));
   if (dto.role !== undefined) data.role = dto.role;
   if (dto.active !== undefined) data.active = dto.active;
-  if (dto.password) data.hashedPassword = await bcrypt.hash(dto.password, 12);
+  // Uma password nova fecha as sessões abertas da conta
+  if (dto.password) {
+    data.hashedPassword = await bcrypt.hash(dto.password, 12);
+    data.passwordChangedAt = new Date();
+  }
 
   return userRepository.update(id, data);
 }

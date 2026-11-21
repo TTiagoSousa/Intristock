@@ -24,6 +24,10 @@ export const End_Points = {
     Notifications_Endpoint:       () => '/notifications',
     Notifications_Read_All_Endpoint: () => '/notifications/read-all',
     Notification_Read_Endpoint:   (id: string) => `/notifications/${id}/read`,
+    Invitations_Endpoint:         () => '/invitations',
+    Invitation_Member_Endpoint:   (id: string) => `/invitations/members/${id}`,
+    Invitation_Pay_Endpoint:      (id: string) => `/invitations/pays/${id}`,
+    Invitation_Payment_Endpoint:  (id: string) => `/invitations/payments/${id}`,
     Calculators_Endpoint:         () => '/calculator',
     Calculator_Endpoint:          (id: string) => `/calculator/${id}`,
     Saved_Simulations_Endpoint:          () => '/calculators/saved',
@@ -155,4 +159,6 @@ export const End_Points = {
     Live_Test_Events_Endpoint:    (id: string) => `/live-tests/${id}/events`,
     Live_Test_Stop_Endpoint:      (id: string) => `/live-tests/${id}/stop`,
     Live_Test_Stream_Endpoint:    (id: string) => `/live-tests/${id}/stream`,
+    // O banco de horas de uma empresa
+    Time_Tracking_Endpoint:       (companyId: string, path: string) => `/company/${companyId}/time-tracking/${path}`,
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import http from '../../../../../../Service/httpService';
 import { End_Points } from '../../../../../../Service/endPoints';
@@ -12,6 +12,7 @@ import '../../Admin.scss';
 import '../Apis.scss';
 import '../Prop_Firms/Prop_Firms.scss';
 import './Exchanges.scss';
+import { localeOf } from '../../../../../../utils/locale';
 
 interface Stored_Exchange {
   id: string;
@@ -46,7 +47,7 @@ const Exchanges_Page = () => {
   const [country, setCountry] = useState('all');
   const [search, setSearch] = useState('');
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const formatDate = (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 
   const load = () =>
@@ -101,7 +102,7 @@ const Exchanges_Page = () => {
         </div>
         <div className="Page_Head_Actions">
           <Simple_Button
-            text={running === 'exchanges' ? t('adminApis.sync.running') : t('adminApis.exchanges.syncNow')}
+            text={t('adminApis.exchanges.syncNow')}
             onClick={runSync}
             disabled={running !== null}
             auto
@@ -153,7 +154,7 @@ const Exchanges_Page = () => {
             <>
               <div className="Prop_Firms_Filters Exchanges_Filters">
                 <div className="Tabs">
-                  <button type="button" className={source === 'all' ? 'Active' : ''} onClick={() => setSource('all')}>
+                  <button type="button" className={source === 'all' ? 'Active' : ''} aria-pressed={source === 'all'} onClick={() => setSource('all')}>
                     {t('adminApis.propFirms.filter_all', { count: list.length })}
                   </button>
                   {sources.map((key) => (
@@ -164,7 +165,7 @@ const Exchanges_Page = () => {
                 </div>
                 <div className="Tabs">
                   {(['all', 'active', 'inactive'] as State_Filter[]).map((key) => (
-                    <button key={key} type="button" className={state === key ? 'Active' : ''} onClick={() => setState(key)}>
+                    <button key={key} type="button" className={state === key ? 'Active' : ''} aria-pressed={state === key} onClick={() => setState(key)}>
                       {t(`adminApis.propFirms.state_${key}`)}
                     </button>
                   ))}

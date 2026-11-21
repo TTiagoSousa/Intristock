@@ -17,6 +17,10 @@ export interface Month_Chart_Series {
   colorToken: string;
   // Mais clara nas barras e a tracejado nas linhas: o que ainda não aconteceu
   faded?: boolean;
+  // Nas barras empilhadas, as séries com a mesma chave empilham-se (sem ela, todas juntas)
+  stack?: string;
+  // Uma linha a mais no tooltip, por mês (o número de pagamentos)
+  notes?: (string | null)[];
 }
 
 interface Month_Chart_Props {
@@ -83,7 +87,9 @@ const Month_Chart = ({ kind, categories, labels, series, stacked, todayIndex, to
             (row) =>
               `<div class="Month_Chart_Tip_Row"><span class="Month_Chart_Tip_Dot" style="background:${row.color}"></span>` +
               `<span class="Month_Chart_Tip_Name">${escape(row.part.name)}</span>` +
-              `<span class="Month_Chart_Tip_Value">${escape(current.format(row.value ?? 0))}</span></div>`,
+              `<span class="Month_Chart_Tip_Value">${escape(current.format(row.value ?? 0))}</span>` +
+              (row.part.notes?.[index] ? `<span class="Month_Chart_Tip_Note">${escape(row.part.notes[index] ?? '')}</span>` : '') +
+              '</div>',
           )
           .join('');
         return `<div class="Month_Chart_Tip"><span class="Month_Chart_Tip_Label">${escape(current.labels[index] ?? '')}</span>${rows}</div>`;
@@ -94,7 +100,7 @@ const Month_Chart = ({ kind, categories, labels, series, stacked, todayIndex, to
           categories,
           series: current.series.map((part, position) => {
             const data: BarItem[] = part.values.map((value) => ({ value, opacity: part.faded ? 0.35 : 1 }));
-            return { id: part.id, name: part.name, data, color: colors[position], stack: stacked ? 'months' : undefined };
+            return { id: part.id, name: part.name, data, color: colors[position], stack: stacked ? (part.stack ?? 'months') : undefined };
           }),
           stacked: !!stacked,
           theme: { ...look, hover: token('month-chart-hover') } as Partial<BarTheme>,

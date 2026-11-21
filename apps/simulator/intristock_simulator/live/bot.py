@@ -12,6 +12,11 @@ registado (`memory`, que se grava com o teste para continuar depois de um
 reinício): as condições que mudaram, os sinais e o que lhes aconteceu, as ordens,
 as posições abertas e fechadas, as parciais, os reforços, os passos do stop, os
 depósitos e as pausas.
+
+Os minutos guardam-se em arrays do numpy que crescem (`MinuteBuffer`), não em
+listas de Python: ocupam ~4 vezes menos e o motor recebe-os sem conversões. A
+corrida do motor (`rerun`) pode ir para outro processo (`rerun_in_process`): o
+bot vai em pickle com os minutos e volta só o que mudou (`engine_result`).
 """
 
 from __future__ import annotations
@@ -34,6 +39,72 @@ MEMORY_DAYS = 3
 DAY_MS = 86_400_000
 # Velas de decisão novas de uma vez (um reinício longo): só a última mostra as condições
 MAX_CONDITION_BARS = 500
+# Os minutos para que o buffer tem lugar no início (cresce para o dobro quando enche)
+BUFFER_START = 4096
+_FIELDS = ("time", "open", "high", "low", "close", "volume")
+
+
+class MinuteBuffer:
+    """Os minutos fechados em arrays do numpy com folga no fim (cresce para o
+    dobro quando enche), mais um lugar para o minuto a decorrer."""
+
+    def __init__(self, capacity: int = BUFFER_START):
+        self.size = 0
+        self._arrays = self._allocate(max(2, capacity))
+
+    @staticmethod
+    def _allocate(capacity: int) -> dict[str, np.ndarray]:
+        return {name: np.empty(capacity, np.int64 if name == "time" else np.float64) for name in _FIELDS}
+
+    def _reserve(self, needed: int) -> None:
+        capacity = len(self._arrays["time"])
+        if needed <= capacity:
+            return
+        while capacity < needed:
+            capacity *= 2
+        grown = self._allocate(capacity)
+        for name in _FIELDS:
+            grown[name][:self.size] = self._arrays[name][:self.size]
+        self._arrays = grown
+
+    def append(self, minute: Minute) -> None:
+        self._reserve(self.size + 2)  # o minuto e o lugar do que está a decorrer
+        index = self.size
+        for name in _FIELDS:
+            self._arrays[name][index] = getattr(minute, name)
+        self.size += 1
+
+    def extend(self, columns: dict[str, np.ndarray]) -> None:
+        count = len(columns["time"])
+        if not count:
+            return
+        self._reserve(self.size + count + 1)
+        for name in _FIELDS:
+            self._arrays[name][self.size:self.size + count] = columns[name]
+        self.size += count
+
+    def column(self, name: str) -> np.ndarray:
+        return self._arrays[name][:self.size]
+
+    def candles(self, current: Minute | None) -> Candles:
+        """Os minutos fechados e, se vier, o que está a decorrer só com a abertura
+        (escrito no lugar a seguir ao último: não se copia nada)."""
+        size = self.size
+        if current is not None:
+            self._reserve(size + 1)
+            price = current.open
+            for name, value in zip(_FIELDS, (current.time, price, price, price, price, 0.0)):
+                self._arrays[name][size] = value
+            size += 1
+        return Candles(*(self._arrays[name][:size] for name in _FIELDS))
+
+    def __getstate__(self):
+        # Em pickle (para o processo do motor) vão só os minutos, sem a folga
+        return {"size": self.size, "arrays": {name: self._arrays[name][:self.size + 1].copy() for name in _FIELDS}}
+
+    def __setstate__(self, state):
+        self.size = state["size"]
+        self._arrays = state["arrays"]
 
 
 def _noop(*_args, **_kwargs) -> None:
@@ -92,12 +163,7 @@ class LiveBot:
         self.fee_entry = float(self.strategy.get("feeEntryPct", self.strategy.get("feePct", 0))) / 100
         self.fee_exit = float(self.strategy.get("feeExitPct", self.strategy.get("feePct", 0))) / 100
         # Os minutos fechados e o que está a decorrer
-        self.times: list[int] = []
-        self.opens: list[float] = []
-        self.highs: list[float] = []
-        self.lows: list[float] = []
-        self.closes: list[float] = []
-        self.volumes: list[float] = []
+        self.buffer = MinuteBuffer()
         self.current: Minute | None = None
         self.funding: tuple[np.ndarray, np.ndarray] | None = None
         self.memory = memory or {}
@@ -120,32 +186,55 @@ class LiveBot:
 
     # --- as velas ----------------------------------------------------------
     @property
+    def times(self) -> np.ndarray:
+        """O início de cada minuto fechado (ms UTC)."""
+        return self.buffer.column("time")
+
+    @property
+    def closes(self) -> np.ndarray:
+        return self.buffer.column("close")
+
+    @property
     def last_closed(self) -> int | None:
-        return self.times[-1] if self.times else None
+        return int(self.buffer.column("time")[-1]) if self.buffer.size else None
 
     def add_closed(self, minutes: list[Minute]) -> None:
-        """Junta minutos fechados (o histórico ou o que faltou depois de uma
-        ligação cair), por ordem e sem repetir."""
-        for minute in minutes:
-            if self.times and minute.time <= self.times[-1]:
-                continue
-            if self.current and minute.time >= self.current.time:
-                break
-            self._append(minute)
+        """Junta minutos fechados (o que faltou depois de uma ligação cair), por
+        ordem e sem repetir."""
+        if not minutes:
+            return
+        self.add_closed_arrays(*(np.asarray([getattr(minute, name) for minute in minutes]) for name in _FIELDS))
+
+    def add_closed_arrays(self, times, opens, highs, lows, closes, volumes) -> None:
+        """Junta minutos fechados em arrays (o histórico): como o `add_closed`,
+        salta os que já existem (ou repetidos) e para no minuto a decorrer."""
+        times = np.asarray(times, np.int64)
+        if not len(times):
+            return
+        last = self.last_closed
+        # Cada minuto tem de ser depois do último que já entrou (o de antes ou um destes)
+        before = np.maximum.accumulate(np.r_[np.iinfo(np.int64).min if last is None else last, times[:-1]])
+        keep = times > before
+        if self.current is not None:
+            late = np.flatnonzero(keep & (times >= self.current.time))
+            if len(late):
+                keep[late[0]:] = False
+        if not keep.any():
+            return
+        self.buffer.extend({
+            name: np.asarray(values, np.int64 if name == "time" else np.float64)[keep]
+            for name, values in zip(_FIELDS, (times, opens, highs, lows, closes, volumes))
+        })
 
     def _append(self, minute: Minute) -> None:
-        self.times.append(minute.time)
-        self.opens.append(minute.open)
-        self.highs.append(minute.high)
-        self.lows.append(minute.low)
-        self.closes.append(minute.close)
-        self.volumes.append(minute.volume)
+        self.buffer.append(minute)
 
     def on_minute(self, minute: Minute) -> bool:
         """A vela do minuto a decorrer mudou. Devolve True quando começa um minuto
         novo (o anterior fechou e já se sabe a abertura deste): é a altura de correr
         o motor outra vez."""
-        if self.times and minute.time <= self.times[-1]:
+        last = self.last_closed
+        if last is not None and minute.time <= last:
             return False
         if self.current is None or minute.time > self.current.time:
             if self.current is not None:
@@ -157,19 +246,7 @@ class LiveBot:
 
     def candles(self, until_ms: int | None = None, with_current: bool = True) -> Candles:
         """Os minutos para o motor: os fechados e o atual só com a abertura."""
-        times, opens, highs, lows, closes, volumes = (
-            self.times, self.opens, self.highs, self.lows, self.closes, self.volumes,
-        )
-        if with_current and self.current is not None:
-            price = self.current.open
-            times, opens, highs, lows, closes, volumes = (
-                times + [self.current.time], opens + [price], highs + [price], lows + [price], closes + [price],
-                volumes + [0.0],
-            )
-        candles = Candles(
-            np.asarray(times, np.int64), np.asarray(opens, np.float64), np.asarray(highs, np.float64),
-            np.asarray(lows, np.float64), np.asarray(closes, np.float64), np.asarray(volumes, np.float64),
-        )
+        candles = self.buffer.candles(self.current if with_current else None)
         if until_ms is not None:
             cut = int(np.searchsorted(candles.time, until_ms, side="left"))
             candles = Candles(*(array[:cut] for array in (
@@ -515,7 +592,8 @@ class LiveBot:
         """O preço do minuto a decorrer: o P&L das posições abertas e os toques no
         stop e no take (registados uma vez; quem decide a saída é o motor, no fim
         do minuto)."""
-        price = self.current.close if self.current else (self.closes[-1] if self.closes else math.nan)
+        closes = self.closes
+        price = self.current.close if self.current else (float(closes[-1]) if len(closes) else math.nan)
         unrealized = self._unrealized(price)
         touched = set(self.memory["touched"])
         events = []
@@ -554,3 +632,21 @@ class LiveBot:
         self._append(self.current)
         self.current = None
         return True
+
+    # --- o motor noutro processo -------------------------------------------
+    def engine_result(self) -> dict:
+        """O que a corrida do motor muda no bot (volta do processo do motor)."""
+        return {"memory": self.memory, "state": self.state, "capital": self.capital, "open_math": self.open_math}
+
+    def apply_engine_result(self, result: dict) -> None:
+        self.memory = result["memory"]
+        self.state = result["state"]
+        self.capital = result["capital"]
+        self.open_math = result["open_math"]
+
+
+def rerun_in_process(bot: LiveBot, now_ms: int, final: bool) -> tuple[list[dict], dict]:
+    """O `rerun` num processo do conjunto do motor: o bot chega em pickle (com os
+    minutos) e voltam os registos novos e o que mudou nele (`engine_result`)."""
+    events = bot.rerun(now_ms, final)
+    return events, bot.engine_result()

@@ -288,6 +288,12 @@ $wave-front: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
     &:last-child td{ border-bottom: none; }
     &:hover{ background-color: var(--surface-2); }
     &.Clickable{ cursor: pointer; }
+    // Abre pelo teclado (tabIndex): o foco vê-se como o rato
+    &[tabindex]:focus-visible{
+      outline: 2px solid var(--table-row-focus-ring);
+      outline-offset: -2px;
+      background-color: var(--surface-2);
+    }
   }
 
   tfoot td{

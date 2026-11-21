@@ -83,5 +83,16 @@ export const useCurrencyFormat = () => {
     return write(value, resolved, decimals);
   };
 
-  return { formatAmount, formatIn, symbol: selected?.symbol ?? FALLBACK.symbol };
+  /**
+   * Um valor que ainda não tem moeda (o banco de horas sem ligações, um aviso sem
+   * ela): só o número, com os separadores da moeda escolhida — sem inventar «€».
+   */
+  const formatPlain = (value: number, decimals = 2) =>
+    write(value, { ...(selected ?? FALLBACK), symbol: '', symbolFirst: false }, decimals);
+
+  /** Na moeda dela quando se sabe qual é; senão só o número. */
+  const formatMaybeIn = (value: number, currency: string | null | undefined, decimals = 2) =>
+    currency ? formatIn(value, currency, decimals) : formatPlain(value, decimals);
+
+  return { formatAmount, formatIn, formatPlain, formatMaybeIn, symbol: selected?.symbol ?? FALLBACK.symbol };
 };

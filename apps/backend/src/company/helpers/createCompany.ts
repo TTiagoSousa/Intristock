@@ -73,17 +73,9 @@ export async function createCompany(
             `IBAN repetido no pedido: "${account.iban}"`,
           );
         }
+        // Só se compara dentro do pedido: o IBAN é único por dono, e a empresa é nova
+        // (ver o de outra empresa revelava-o)
         ibansInRequest.add(account.iban);
-
-        const existing = await companyRepository.findBankAccountByIban(
-          account.iban,
-        );
-
-        if (existing) {
-          throw new ConflictException(
-            `Já existe uma conta com o IBAN "${account.iban}"`,
-          );
-        }
       }
     }
 

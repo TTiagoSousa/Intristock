@@ -8,6 +8,7 @@ export type UserUpdate = Partial<
     | 'fullName'
     | 'email'
     | 'hashedPassword'
+    | 'passwordChangedAt'
     | 'role'
     | 'active'
     | 'blockedUntil'
@@ -24,7 +25,7 @@ export interface UserOwnedData {
 
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
-  findById(id: string): Promise<Omit<User, 'hashedPassword'> | null>;
+  findById(id: string): Promise<Omit<User, 'hashedPassword' | 'passwordChangedAt'> | null>;
   findPasswordHash(id: string): Promise<string | null>;
   create(data: {
     firstName: string;
@@ -35,9 +36,9 @@ export interface UserRepository {
     role: string;
     active: boolean;
   }): Promise<User>;
-  findAll(): Promise<Omit<User, 'hashedPassword'>[]>;
+  findAll(): Promise<Omit<User, 'hashedPassword' | 'passwordChangedAt'>[]>;
   updatePassword(id: string, hashedPassword: string): Promise<User>;
-  update(id: string, data: UserUpdate): Promise<Omit<User, 'hashedPassword'>>;
+  update(id: string, data: UserUpdate): Promise<Omit<User, 'hashedPassword' | 'passwordChangedAt'>>;
   delete(id: string): Promise<void>;
   countUsableAdmins(exceptId: string): Promise<number>;
   countOwnedData(id: string): Promise<UserOwnedData>;

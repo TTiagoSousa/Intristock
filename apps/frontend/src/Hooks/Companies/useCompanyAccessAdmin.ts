@@ -27,6 +27,8 @@ export interface Company_Member {
   deniedPermissions: CompanyPermission[];
   // As que tem no fim: cargo + extra − tiradas
   permissions: CompanyPermission[];
+  // invited (convite por aceitar) | active | declined
+  status: 'invited' | 'active' | 'declined';
   createdAt: string;
 }
 
@@ -122,7 +124,11 @@ export const useCompanyAccessAdmin = (companyId: string | undefined) => {
     deleteRole: (roleId: string) =>
       mutate(() => http.delete(End_Points.Company_Role_Endpoint(id, roleId)), 'companyRoles.deleted'),
     addMember: (input: Member_Add_Input) =>
-      mutate(() => http.post(End_Points.Company_Members_Endpoint(id), input), 'companyMembers.added'),
+      // Com uma conta é um convite (entra quando a pessoa aceitar); sem ela, um registo
+      mutate(
+        () => http.post(End_Points.Company_Members_Endpoint(id), input),
+        input.accountEmail ? 'companyMembers.invited' : 'companyMembers.added',
+      ),
     updateMember: (memberId: string, update: Member_Update) =>
       mutate(() => http.patch(End_Points.Company_Member_Endpoint(id, memberId), update), 'companyMembers.updated'),
     removeMember: (memberId: string) =>

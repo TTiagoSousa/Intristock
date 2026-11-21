@@ -56,4 +56,13 @@ export class PrismaCurrencyRateRepository implements CurrencyRateRepository {
       create: { date, baseCurrencyId, quoteCurrencyId, rate },
     });
   }
+
+  // Várias de uma vez; as que já existem ficam como estão
+  async saveMany(
+    rows: { date: Date; baseCurrencyId: string; quoteCurrencyId: string; rate: number }[],
+  ): Promise<number> {
+    if (!rows.length) return 0;
+    const { count } = await this.prisma.currencyRate.createMany({ data: rows, skipDuplicates: true });
+    return count;
+  }
 }

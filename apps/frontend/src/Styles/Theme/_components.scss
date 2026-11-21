@@ -37,6 +37,11 @@ $components: (
   'notifications-unread-background':    var(--surface-2),
   'notifications-unread-dot':           var(--accent),
   'notifications-link':                 var(--accent),
+  'notifications-action-line':          var(--line),
+
+  // --- convites, propostas e pagamentos a confirmar (Invitations) ---
+  'invitations-line':                   var(--line),
+  'invitations-bad':                    var(--loss),
 
   // --- gráfico por mês das finanças (Month_Chart, da trading-chart) ---
   'month-chart-text':                   var(--text-2),
@@ -48,6 +53,29 @@ $components: (
   'month-chart-tooltip-background':     var(--surface),
   'month-chart-tooltip-text':           var(--text),
   'month-chart-tooltip-border':         var(--line),
+
+  // --- linhas de tabela que abrem pelo teclado (o contorno do foco) ---
+  'table-row-focus-ring':               var(--accent),
+
+  // --- gráfico de linhas das calculadoras (Line_Chart, da trading-chart) ---
+  'line-chart-text':                    var(--text-2),
+  'line-chart-muted':                   var(--text-3),
+  'line-chart-grid':                    var(--grid-line),
+  'line-chart-axis':                    var(--line),
+  'line-chart-tooltip-background':      var(--surface),
+  'line-chart-tooltip-text':            var(--text),
+  'line-chart-tooltip-border':          var(--line),
+
+  // --- banco de horas: uma cor por cliente no gráfico por mês, «outros» à parte ---
+  'time-tracking-selection-border':     var(--line-strong),
+  'time-tracking-selection-background': var(--surface-2),
+  'time-tracking-client-1':             var(--accent),
+  'time-tracking-client-2':             var(--teal),
+  'time-tracking-client-3':             var(--gold),
+  'time-tracking-client-4':             var(--violet),
+  'time-tracking-client-5':             var(--pink),
+  'time-tracking-client-other':         var(--text-3),
+  'time-tracking-project-dot':          var(--text-3),
 
   // --- gráfico do portefólio: uma cor por portefólio, o total à parte ---
   'portfolio-chart-total':              var(--text),
@@ -459,6 +487,7 @@ $components: (
   'auth-page-form-box-shadow':                             var(--shadow-lift),
   'auth-page-info-background':                             var(--surface-2),
   'auth-page-info-title-color':                            var(--text),
+  'auth-page-info-brand-muted-color':                      var(--text-3),
   'auth-page-info-text-color':                             var(--text-2),
   'auth-page-info-line-color':                             var(--line-strong),
   'auth-page-wallet-icon-color':                           var(--accent),

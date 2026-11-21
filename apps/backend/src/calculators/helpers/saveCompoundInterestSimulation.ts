@@ -1,5 +1,5 @@
 import { Prisma } from 'src/generated/prisma/client/client';
-import { PrismaCalculatorRepository } from 'src/calculator/repositories/prisma/prisma-calculator-repository';
+import { PrismaCalculatorRepository } from 'src/calculator-catalog/repositories/prisma/prisma-calculator-repository';
 import { PrismaCalculatorSimulationRepository } from '../repositories/prisma/prisma-calculator-simulation-repository';
 import { computeCompoundInterest } from '../engines/compound-interest.engine';
 import { CreateCompoundInterestSimulationDto } from '../dto/create-compound-interest-simulation.dto';

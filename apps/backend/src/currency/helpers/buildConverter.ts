@@ -1,9 +1,7 @@
+import { isoDay } from 'src/utils/dates';
 import { PrismaCurrencyRateRepository } from '../repositories/prisma/prisma-currency-rate-repository';
 import { PrismaCurrencyHourRateRepository } from '../repositories/prisma/prisma-currency-hour-rate-repository';
-import {
-  CurrencyApiConfig,
-  fetchHistoricalRates,
-} from './currencyBeaconClient';
+import { MissingDayRates } from './fetchMissingDayRates';
 
 /** O que o conversor precisa de cada moeda: o id, o código e a cotação de referência. */
 export type ConvertibleCurrency = {
@@ -34,26 +32,24 @@ export type Converter = {
   estimated: () => number;
 };
 
-// Os dias que se pedem à API num pedido (os outros ficam para a vez seguinte) e quantos ao mesmo tempo
+// Os dias que se põem na fila de cada leitura (os outros ficam para a vez seguinte)
 const MAX_FETCH_DAYS = 60;
-const FETCH_CONCURRENCY = 6;
 
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * Converte valores para `target` pela cotação do dia de cada um (um dia futuro
- * usa a de hoje): as da `CurrencyRate` e, as que faltam, um pedido à API por
- * dia com todas as moedas desse dia, que ficam guardadas. Sem a do dia (API em
- * baixo, por configurar, mais de `MAX_FETCH_DAYS` dias novos) vai pelo
- * `Currency.rate`, e `estimated` conta-os.
+ * usa a de hoje): as horas da `CurrencyHourRate` e as da `CurrencyRate`. Sem a do
+ * dia vai pelo `Currency.rate` (`estimated` conta-os) e o dia vai para a fila
+ * (`enqueueMissing`, até `MAX_FETCH_DAYS` por leitura), que o pede à API em fundo:
+ * abrir um dashboard nunca espera pela CurrencyBeacon.
  */
 export async function buildConverter(
   target: ConvertibleCurrency | null,
   needs: ConversionNeed[],
   rateRepository: PrismaCurrencyRateRepository,
   hourRateRepository: PrismaCurrencyHourRateRepository,
-  // Só se lê a configuração da API quando é mesmo preciso chamá-la
-  apiConfig: () => Promise<CurrencyApiConfig>,
+  // Os dias sem cotação guardada, para a fila os ir buscar à API fora do pedido
+  enqueueMissing: (missing: MissingDayRates[]) => void,
 ): Promise<Converter> {
   const today = isoDay(new Date());
   const dayOf = (day?: string | null) =>
@@ -181,43 +177,15 @@ export async function buildConverter(
         .sort((a, b) => b[0].localeCompare(a[0]))
         .slice(0, MAX_FETCH_DAYS);
 
-      let config: CurrencyApiConfig | null = null;
-      let apiDown = false;
-      const fetchDay = async (
-        day: string,
-        currencies: ConvertibleCurrency[],
-      ) => {
-        if (apiDown) return;
-        try {
-          config ??= await apiConfig();
-          // 1 `target` = X de cada uma: guarda-se o contrário, 1 dela em `target`
-          const quoted = await fetchHistoricalRates(
-            config,
-            target.shortCode,
-            currencies.map((currency) => currency.shortCode),
+      // Não se vai à API a meio da leitura: estes dias vão pela cotação de referência
+      // (`estimated` conta-os) e ficam na fila, que os guarda em fundo para a próxima vez
+      if (missing.length)
+        enqueueMissing(
+          missing.map(([day, currencies]) => ({
             day,
-          );
-          for (const currency of currencies) {
-            const value = quoted[currency.shortCode];
-            if (!value || !Number.isFinite(value) || value <= 0) continue;
-            rates.set(`${day}|${currency.id}`, 1 / value);
-            await rateRepository.save(
-              new Date(`${day}T00:00:00.000Z`),
-              currency.id,
-              target.id,
-              1 / value,
-            );
-          }
-        } catch {
-          // Por configurar ou em baixo: o resto vai pela cotação de referência
-          apiDown = true;
-        }
-      };
-      for (let index = 0; index < missing.length; index += FETCH_CONCURRENCY)
-        await Promise.all(
-          missing
-            .slice(index, index + FETCH_CONCURRENCY)
-            .map(([day, currencies]) => fetchDay(day, currencies)),
+            target: { id: target.id, shortCode: target.shortCode },
+            currencies: currencies.map(({ id, shortCode }) => ({ id, shortCode })),
+          })),
         );
     }
   }

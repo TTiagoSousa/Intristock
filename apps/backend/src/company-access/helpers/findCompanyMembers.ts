@@ -33,6 +33,8 @@ export async function findCompanyMembers(
       extraPermissions: member.extraPermissions,
       deniedPermissions: member.deniedPermissions,
       permissions: resolveMemberPermissions(member),
+      // invited | active | declined (os convites por aceitar ainda não entram)
+      status: member.status,
       createdAt: member.createdAt,
     })),
   };

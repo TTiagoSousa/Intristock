@@ -70,7 +70,7 @@ const Record_Page = <Tab extends string>({
           {!readOnly && (
             <Simple_Button
               type="submit"
-              text={saving ? t('common.saving') : t('common.save')}
+              text={t('common.save')}
               disabled={saving}
               small
               auto

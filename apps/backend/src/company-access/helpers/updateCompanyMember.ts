@@ -6,6 +6,7 @@ import { UpdateCompanyMemberDto } from '../dto/company-member.dto';
 import { assertCanGrant } from './assertCanGrant';
 import { buildMemberProfile } from './buildMemberProfile';
 import { getMyCompanyAccess } from './getMyCompanyAccess';
+import { resolveMemberPermissions } from 'src/company/permissions/companyPermissions';
 
 /**
  * Os dados de um membro e, se tem conta, o cargo e os ajustes dele (o que tem a
@@ -50,6 +51,24 @@ export async function updateCompanyMember(
   }
 
   const access = await getMyCompanyAccess(userId, companyId, companyRepository);
+
+  // Não se mexe no acesso de quem tem permissões que o gestor não tem: senão tirava-as
+  // (ou trocava-lhe o cargo) a quem manda mais do que ele
+  if (!access.owner) {
+    const currentRole = member.roleId ? await accessRepository.findRole(companyId, member.roleId) : null;
+    const own = new Set<string>(access.permissions);
+    const beyond = resolveMemberPermissions({
+      role: currentRole,
+      extraPermissions: member.extraPermissions,
+      deniedPermissions: member.deniedPermissions,
+    }).filter((p) => !own.has(p));
+    if (beyond.length > 0) {
+      throw new ForbiddenException(
+        `Não podes mudar o acesso de quem tem permissões que tu não tens (${beyond.join(', ')})`,
+      );
+    }
+  }
+
   if (dto.roleId) {
     const role = await accessRepository.findRole(companyId, dto.roleId);
     if (!role) throw new NotFoundException('Cargo não encontrado');
@@ -57,6 +76,10 @@ export async function updateCompanyMember(
   }
   if (dto.extraPermissions) {
     assertCanGrant(access, dto.extraPermissions.filter((p) => !member.extraPermissions.includes(p)));
+  }
+  // Tirar uma negação também devolve a permissão (vinda do cargo): só quem a tem
+  if (dto.deniedPermissions) {
+    assertCanGrant(access, member.deniedPermissions.filter((p) => !dto.deniedPermissions!.includes(p)));
   }
 
   return accessRepository.updateMember(memberId, {

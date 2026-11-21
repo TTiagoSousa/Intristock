@@ -10,7 +10,7 @@ In the **host shell** of Proxmox (Datacenter → node → Shell), as root:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/TTiagoSousa/Intristock/main/deploy/proxmox/vm-create.sh)"
 ```
 
-The script asks about the VM (ID, storage, disk, CPU, memory, network) and the app (address, admin), creates the VM from the official Debian cloud image and installs everything inside it, showing the progress. At the end it prints the address and the admin login. Passwords and tokens are passed through the QEMU guest agent and are never written on the host.
+The script asks about the VM (ID, storage, disk, CPU, memory, network) and the app (address, admin), creates the VM from the official Debian cloud image and installs everything inside it, showing the progress. At the end it prints the address and the admin login; with the admin password left blank it generates a random one and prints it once (it is not written anywhere). Passwords and tokens are passed through the QEMU guest agent and are never written on the host.
 
 Without menus: `NONINTERACTIVE=1` plus the variables you want to change (`VMID`, `STORAGE`, `DISK_GB`, `CORES`, `RAM_MB`, `NET_MODE`, `IP`, `GATEWAY`, `INSTALL_REF`, `APP_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`…). The header of `vm-create.sh` lists them all.
 
@@ -35,20 +35,27 @@ The chart library, [OpenChartsCandle](https://github.com/TTiagoSousa/OpenChartsC
 
 | Piece | Where |
 |---|---|
-| Code | `/opt/intristock` (a clone of the repository, user `intristock`) |
+| Code | `/opt/intristock` (a clone of the repository, owned by **root**; the app only reads it) |
+| Builds | `/opt/intristock-builds/<date>-<commit>`, owned by user `intristock` (dependencies, `dist`, `.venv`); the running one is `/opt/intristock-builds/current`, and the previous one is kept |
 | Backend configuration | `/etc/intristock/backend.env` |
+| Backup configuration | `/etc/intristock/backup.env` (external copy folder, retention) |
 | Services | `intristock` (backend), `intristock-downloader`, `intristock-simulator`, `garage`, `clickhouse-server`, `nginx`, `postgresql` |
 | Frontend | `/var/www/intristock` |
 | Documents | Garage in `/var/lib/garage`, bucket `intristock` |
-| Database backups | `/var/backups/intristock`, every day at 03:30, kept for 14 days |
-| Generated credentials | `/root/intristock-credentials.txt` |
+| Update state | request in `/var/lib/intristock/updates/request` (written by the app); status, log and lock in `/var/lib/intristock-state` (root) |
+| Backups | `/var/backups/intristock`, every day at 03:30: the database and the configuration (14 days) and the Garage documents (3 days) |
+| Generated credentials | `/root/intristock-credentials.txt` (without the admin password; keep a copy off the VM and delete it) |
 
 ## Updates
 
-The admin updates from the app (Versions → Update). Behind it, `deploy/proxmox/update.sh` fetches the tags, checks out the next version, installs what the VM needs, rebuilds, applies the migrations and restarts the services, writing its progress for the app to show.
+The admin updates from the app (Versions → Update). Behind it, `deploy/proxmox/update.sh` fetches the tags, checks out the next version, installs what the VM needs, builds it in a new directory next to the running one, dumps the database, applies the migrations, switches the `current` link and restarts the services, writing its progress for the app to show.
 
 - **One version at a time.** Both the app and the script refuse to skip a version, so every migration and upgrade step runs in order.
 - A version that needs a change on the VM ships it in `deploy/proxmox/upgrades/<version>.sh` or adds the package to `SYSTEM_PACKAGES` in `deploy/proxmox/lib.sh`.
+- **Rollback.** Any failure (or the script stopping half-way) puts back the previous code, the previous build (no rebuild), the previous frontend and, if the migrations had started, the database from the dump taken right before them.
+- **Health.** After the restart the backend must answer `GET /health` (which runs `SELECT 1`) and the workers must stay up.
+- **Ownership.** The `intristock` user never writes anything root runs: the repository and the deploy scripts are root's, the update status lives in a root directory, and the app only writes the update request. Older VMs move to this layout on their first update.
+- **Signed tags (optional).** With `/etc/intristock/release-signers` (SSH `allowed_signers`) or `/etc/intristock/release-key.asc` (GPG public key) on the VM, a tag without a valid signature is refused; without them the script only warns. `npm run release -- --push` signs the tag when git has `user.signingkey`. Tags are fetched without `--force`, so a tag the VM already has cannot change silently. New tags arrive through the hourly `intristock-fetch.timer`.
 
 ## After installing
 

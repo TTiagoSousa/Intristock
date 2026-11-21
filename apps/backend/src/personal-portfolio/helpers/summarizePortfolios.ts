@@ -1,3 +1,5 @@
+import { isoDay } from 'src/utils/dates';
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { PortfolioCurrency } from '../repositories/personal-portfolio-repository';
@@ -18,8 +20,6 @@ import { computeReturns, ReturnPoint, ReturnStep } from './portfolioReturns';
 // entre o dinheiro e as ações da mesma conta, ficam dentro)
 const EXTERNAL_FLOW: Record<string, number> = { deposit: 1, withdrawal: -1 };
 
-// Sem moeda pedida, a das transações mais usada, senão o euro
-const FALLBACK_CURRENCY = 'EUR';
 
 // Os períodos do gráfico: desde a primeira transação, ou para trás de hoje. Os curtos
 // vão hora a hora (o dinheiro pelo instante de cada movimento, as cotações de cada hora)
@@ -41,7 +41,6 @@ const MIN_DAYS = 30;
 const HOUR_MS = 3_600_000;
 
 const round = (value: number) => Math.round(value * 100) / 100;
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 const midnight = (day: string) => new Date(`${day}T00:00:00.000Z`);
 
 type PricedPosition = Position & {
@@ -97,15 +96,11 @@ export async function summarizePortfolios(
         a.at.getTime() - b.at.getTime() || Number(a.kind === 'valuation') - Number(b.kind === 'valuation'),
     );
 
-  let currency = currencyId ? await repository.findCurrency(currencyId) : null;
-  if (!currency) {
-    const uses = new Map<string, number>();
-    for (const tx of transactions) uses.set(tx.currencyId, (uses.get(tx.currencyId) ?? 0) + 1);
-    const top = [...uses.entries()].sort((a, b) => b[1] - a[1])[0];
-    currency = top
-      ? await repository.findCurrency(top[0])
-      : await repository.findCurrencyByCode(FALLBACK_CURRENCY);
-  }
+  const currency = await pickDisplayCurrency(
+    currencyId,
+    transactions.map((tx) => tx.currencyId),
+    repository,
+  );
 
   // Os pontos do período
   const now = new Date();

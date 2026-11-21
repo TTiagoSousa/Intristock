@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaCompanyPaymentRepository } from './repositories/prisma/prisma-company-payment-repository';
 import { PrismaCompanyRepository } from 'src/company/repositories/prisma/prisma-company-repository';
 import { PrismaCompanySupplierRepository } from 'src/company-supplier/repositories/prisma/prisma-company-supplier-repository';
@@ -22,9 +22,12 @@ import { PrismaCompanyMemberRepository } from 'src/company-member/repositories/p
 import { CreateCompanyPaymentDto } from './dto/create-company-payment.dto';
 import { FindCompanyPaymentsQueryDto } from './dto/find-company-payments-query.dto';
 import { UpdateCompanyPaymentDto } from './dto/update-company-payment.dto';
+import { CompanyInvitationService } from 'src/company-invitation/company-invitation.service';
 
 @Injectable()
 export class CompanyPaymentService {
+  private readonly logger = new Logger(CompanyPaymentService.name);
+
   constructor(
     private readonly companyPaymentRepository: PrismaCompanyPaymentRepository,
     private readonly companyRepository: PrismaCompanyRepository,
@@ -39,6 +42,7 @@ export class CompanyPaymentService {
     private readonly rateRepository: PrismaCurrencyRateRepository,
     private readonly appSettingService: AppSettingService,
     private readonly memberRepository: PrismaCompanyMemberRepository,
+    private readonly invitations: CompanyInvitationService,
   ) {}
 
   // Para a taxa de um pagamento noutra moeda: a cotação guardada ou, sem ela,
@@ -51,8 +55,14 @@ export class CompanyPaymentService {
     };
   }
 
-  async create(userId: string, companyId: string, dto: CreateCompanyPaymentDto) {
-    return createCompanyPayment(
+  /** `skipMemberHook`: quem chama trata do aviso à pessoa (os pagamentos das horas). */
+  async create(
+    userId: string,
+    companyId: string,
+    dto: CreateCompanyPaymentDto,
+    options: { skipMemberHook?: boolean } = {},
+  ) {
+    const payment = await createCompanyPayment(
       userId,
       companyId,
       dto,
@@ -65,6 +75,32 @@ export class CompanyPaymentService {
       this.stockRepository,
       this.rateLookup,
     );
+    // A um membro com conta: confirma que recebeu (ou, se pagou a si próprio, o ganho entra já)
+    if (dto.partyType === 'member' && !options.skipMemberHook) await this.notifyMemberPaid(payment.id, userId);
+    return payment;
+  }
+
+  /**
+   * O aviso ao membro (ou o ganho, se se pagou a si próprio) não desfaz o pagamento: se falhar,
+   * o pagamento já está gravado e dar erro levava a repeti-lo (e a duplicá-lo). Fica no registo.
+   */
+  private async notifyMemberPaid(paymentId: string, userId: string) {
+    try {
+      await this.invitations.memberPaid(paymentId, userId);
+    } catch (error) {
+      this.logger.error(`O aviso do pagamento ${paymentId} ao membro falhou: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Apaga um pagamento acabado de criar por outro módulo quando o que vinha a seguir falhou
+   * (uma despesa pessoal que não se gravou). Sem as permissões do apagar normal: quem o criou
+   * pode desfazê-lo. Recusa se ele já tem ativos (a FK não deixa).
+   */
+  async discard(companyId: string, paymentId: string) {
+    const removed = await this.companyPaymentRepository.discard(companyId, paymentId);
+    if (removed) await this.invitations.memberPaymentRemoved(paymentId);
+    return removed;
   }
 
   async findAll(userId: string, companyId: string, query: FindCompanyPaymentsQueryDto) {
@@ -98,7 +134,7 @@ export class CompanyPaymentService {
     paymentId: string,
     dto: UpdateCompanyPaymentDto,
   ) {
-    return updateCompanyPayment(
+    const { payment, becameSettled } = await updateCompanyPayment(
       userId,
       companyId,
       paymentId,
@@ -112,10 +148,16 @@ export class CompanyPaymentService {
       this.assetRepository,
       this.rateLookup,
     );
+    // Um pagamento a um membro que passa a concluído pede-lhe a confirmação, como ao criar
+    if (becameSettled && payment.partyType === 'member') await this.notifyMemberPaid(payment.id, userId);
+    // Deixou de estar concluído: o pedido de confirmação deixa de fazer sentido
+    if (payment.partyType === 'member' && payment.status !== 'completed')
+      await this.invitations.memberPaymentRemoved(payment.id);
+    return payment;
   }
 
   async remove(userId: string, companyId: string, paymentId: string) {
-    return deleteCompanyPayment(
+    const result = await deleteCompanyPayment(
       userId,
       companyId,
       paymentId,
@@ -125,5 +167,8 @@ export class CompanyPaymentService {
       this.assetRepository,
       this.storage,
     );
+    // Se a pessoa ainda não tinha confirmado, o aviso deixa de pedir resposta
+    await this.invitations.memberPaymentRemoved(paymentId);
+    return result;
   }
 }

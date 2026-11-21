@@ -21,13 +21,23 @@ export interface RemoteInstrument {
 const assetKey = (subClass: string, ticker: string) => `${subClass}|${ticker}`;
 const instrumentKey = (type: string, symbol: string) => `${type}|${symbol}`;
 
+// O metadata guardado tem também o que outros escrevem nele (a última volta dos
+// preços, `priceSyncedAt`…): só contam as chaves que vêm da corretora
+const metadataChanged = (current: unknown, remote: Record<string, unknown>) => {
+  const stored = (current ?? {}) as Record<string, unknown>;
+  return Object.entries(remote).some(
+    ([key, value]) =>
+      JSON.stringify(stored[key] ?? null) !== JSON.stringify(value ?? null),
+  );
+};
+
 /**
  * Traz para o catálogo os mercados de uma corretora (`source`: a Binance, spot
  * e futuros USDⓈ-M; a Coinbase, spot), já lidos dela (`remote`).
  *
  * Cada moeda base passa a um Asset partilhado entre corretoras (o BTC é um só)
  * e cada par a um Instrument. Corre no arranque e uma vez por dia: cria o que é
- * novo, atualiza o estado do que mudou e marca como retirado o que a corretora
+ * novo, atualiza o estado e o metadata do que mudou e marca como retirado o que a corretora
  * deixou de listar.
  */
 export async function syncInstruments(
@@ -105,10 +115,18 @@ export async function syncInstruments(
       current.quote !== data.quote ||
       current.assetId !== data.assetId ||
       (current.expiresAt?.getTime() ?? null) !==
-        (data.expiresAt?.getTime() ?? null);
+        (data.expiresAt?.getTime() ?? null) ||
+      // O passo, os mínimos e o tick (stepSize, minQty, minNotional, tickSize)
+      metadataChanged(current.metadata, item.metadata);
 
     if (changed) {
-      await repository.updateInstrument(current.id, data);
+      await repository.updateInstrument(current.id, {
+        ...data,
+        metadata: {
+          ...((current.metadata ?? {}) as Record<string, unknown>),
+          ...item.metadata,
+        },
+      });
       updated++;
     }
   }

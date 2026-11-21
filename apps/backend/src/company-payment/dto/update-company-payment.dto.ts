@@ -55,7 +55,7 @@ export class UpdateCompanyPaymentDto {
   // O valor na moeda da empresa escrito à mão (o do extrato): a taxa passa a
   // ser este ÷ `amount` e fica manual
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
   companyAmount?: number;
 

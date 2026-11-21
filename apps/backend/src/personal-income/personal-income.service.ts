@@ -22,6 +22,7 @@ import { findIncomes } from './helpers/findIncomes';
 import { findExpectedIncomes } from './helpers/findExpectedIncomes';
 import { expectedWindowStart } from './helpers/expectedWindowStart';
 import { summarizeIncomes } from './helpers/summarizeIncomes';
+import { PrismaTimeTrackingRepository } from 'src/time-tracking/repositories/prisma/prisma-time-tracking-repository';
 
 /**
  * Os ganhos de cada pessoa (finanças pessoais): as fontes, os ganhos
@@ -33,6 +34,8 @@ export class PersonalIncomeService {
   constructor(
     private readonly repository: PrismaPersonalIncomeRepository,
     private readonly currencyService: CurrencyService,
+    // As horas por pagar do banco de horas das empresas entram nos esperados
+    private readonly timeTracking: PrismaTimeTrackingRepository,
   ) {}
 
   async findSources(userId: string) {
@@ -79,6 +82,7 @@ export class PersonalIncomeService {
       expectedWindowStart(now),
       until,
       this.repository,
+      this.timeTracking,
     );
   }
 
@@ -102,6 +106,7 @@ export class PersonalIncomeService {
       query,
       this.repository,
       this.currencyService,
+      this.timeTracking,
     );
   }
 }

@@ -194,7 +194,7 @@ const Api_Card = ({
                 </span>
               </div>
               <Simple_Button
-                text={running === target ? t('adminApis.sync.running') : t('adminApis.sync.run')}
+                text={t('adminApis.sync.run')}
                 onClick={() => onSync(target)}
                 disabled={running !== null || health?.status === 'unconfigured'}
                 variant="Ghost"
@@ -217,7 +217,7 @@ const Api_Card = ({
         </span>
         {dirty && <Simple_Button text={t('adminApis.discard')} onClick={onReset} variant="Quiet" small auto />}
         <Simple_Button
-          text={saving ? t('common.saving') : t('common.save')}
+          text={t('common.save')}
           onClick={onSave}
           disabled={saving || !dirty || missingKey}
           small

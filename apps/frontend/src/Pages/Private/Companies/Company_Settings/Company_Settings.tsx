@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyBankAccounts } from '../../../../Hooks/Companies/useCompanyBankAccounts';
@@ -216,7 +216,7 @@ const Company_Settings = () => {
           <div className="Setting_Control">
             {can('settings.edit') && (
               <Simple_Button
-                text={saving ? t('common.saving') : t('common.save')}
+                text={t('common.save')}
                 onClick={handleSave}
                 disabled={!hasChanges || saving || isInactive}
               />

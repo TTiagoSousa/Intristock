@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { modules } from '../Menu_Itins';
 import { useAuth } from '../../../../Contexts/Auth_Context';

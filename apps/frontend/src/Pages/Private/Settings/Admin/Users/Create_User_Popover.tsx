@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAlert } from '../../../../../Contexts/Alert_Context';
 import Global_Input from '../../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../../Components/Buttons/Simple_Button/Simple_Button';
 import type { CreateUserPayload, Managed_User, UpdateUserPayload, UserRole } from '../../../../../Hooks/Admin/useUsers';
+import Popover_Shell from '../../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Create_User_Popover_Props {
   saving: boolean;
@@ -25,15 +26,6 @@ const Create_User_Popover = ({ saving, user, onClose, onCreate, onUpdate }: Crea
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>(user?.role ?? 'USER');
   const [active, setActive] = useState(user?.active ?? true);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,89 +54,87 @@ const Create_User_Popover = ({ saving, user, onClose, onCreate, onUpdate }: Crea
   };
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <form className="Popover_Card Narrow" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{t(isEdit ? 'adminUsers.editTitle' : 'adminUsers.newTitle')}</span>
-            <span className="Popover_Subtitle">{isEdit ? user?.email : t('adminUsers.newSubtitle')}</span>
-          </div>
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
+    <Popover_Shell onClose={onClose} as="form" className="Narrow" onSubmit={handleSubmit}>
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{t(isEdit ? 'adminUsers.editTitle' : 'adminUsers.newTitle')}</span>
+          <span className="Popover_Subtitle">{isEdit ? user?.email : t('adminUsers.newSubtitle')}</span>
+        </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
+
+      <div className="Popover_Body">
+        <div className="Form_Field">
+          <label htmlFor="user-name">{t('adminUsers.name')} *</label>
+          <Global_Input id="user-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </div>
 
-        <div className="Popover_Body">
-          <div className="Form_Field">
-            <label htmlFor="user-name">{t('adminUsers.name')} *</label>
-            <Global_Input id="user-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          </div>
+        <div className="Form_Field">
+          <label htmlFor="user-email">{t('adminUsers.email')} *</label>
+          <Global_Input id="user-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <span className="Field_Hint">{t('adminUsers.emailHint')}</span>
+        </div>
 
-          <div className="Form_Field">
-            <label htmlFor="user-email">{t('adminUsers.email')} *</label>
-            <Global_Input id="user-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <span className="Field_Hint">{t('adminUsers.emailHint')}</span>
-          </div>
+        <div className="Form_Field">
+          <label htmlFor="user-password">
+            {t(isEdit ? 'adminUsers.newPassword' : 'adminUsers.password')}
+            {isEdit ? '' : ' *'}
+          </label>
+          <Global_Input
+            id="user-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <span className="Field_Hint">{t(isEdit ? 'adminUsers.newPasswordHint' : 'adminUsers.passwordHint')}</span>
+        </div>
 
-          <div className="Form_Field">
-            <label htmlFor="user-password">
-              {t(isEdit ? 'adminUsers.newPassword' : 'adminUsers.password')}
-              {isEdit ? '' : ' *'}
-            </label>
-            <Global_Input
-              id="user-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <span className="Field_Hint">{t(isEdit ? 'adminUsers.newPasswordHint' : 'adminUsers.passwordHint')}</span>
-          </div>
+        <div className="Form_Field">
+          <label htmlFor="user-role">{t('adminUsers.role')}</label>
+          <Global_Dropdown
+            id="user-role"
+            value={role}
+            onChange={(value) => setRole(value as UserRole)}
+            options={[
+              { value: 'USER', label: t('adminUsers.roles.USER') },
+              { value: 'ADMIN', label: t('adminUsers.roles.ADMIN') },
+            ]}
+          />
+          <span className="Field_Hint">{t('adminUsers.roleHint')}</span>
+        </div>
 
+        {isEdit && (
           <div className="Form_Field">
-            <label htmlFor="user-role">{t('adminUsers.role')}</label>
+            <label htmlFor="user-status">{t('adminUsers.status')}</label>
             <Global_Dropdown
-              id="user-role"
-              value={role}
-              onChange={(value) => setRole(value as UserRole)}
+              id="user-status"
+              value={active ? 'active' : 'inactive'}
+              onChange={(value) => setActive(value === 'active')}
               options={[
-                { value: 'USER', label: t('adminUsers.roles.USER') },
-                { value: 'ADMIN', label: t('adminUsers.roles.ADMIN') },
+                { value: 'active', label: t('adminUsers.active') },
+                { value: 'inactive', label: t('adminUsers.inactive') },
               ]}
             />
-            <span className="Field_Hint">{t('adminUsers.roleHint')}</span>
+            <span className="Field_Hint">{t('adminUsers.statusHint')}</span>
           </div>
+        )}
+      </div>
 
-          {isEdit && (
-            <div className="Form_Field">
-              <label htmlFor="user-status">{t('adminUsers.status')}</label>
-              <Global_Dropdown
-                id="user-status"
-                value={active ? 'active' : 'inactive'}
-                onChange={(value) => setActive(value === 'active')}
-                options={[
-                  { value: 'active', label: t('adminUsers.active') },
-                  { value: 'inactive', label: t('adminUsers.inactive') },
-                ]}
-              />
-              <span className="Field_Hint">{t('adminUsers.statusHint')}</span>
-            </div>
-          )}
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
         </div>
-
-        <div className="Popover_Footer">
-          <div className="Form_Action">
-            <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
-          </div>
-          <div className="Form_Action">
-            <Simple_Button
-              type="submit"
-              text={saving ? t('common.saving') : t(isEdit ? 'common.save' : 'adminUsers.create')}
-              disabled={saving}
-            />
-          </div>
+        <div className="Form_Action">
+          <Simple_Button
+            type="submit"
+            text={t(isEdit ? 'common.save' : 'adminUsers.create')}
+            disabled={saving}
+          />
         </div>
-      </form>
-    </div>
+      </div>
+    </Popover_Shell>
   );
 };
 

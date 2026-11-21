@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrencyFormat } from '../../../../../Hooks/useCurrencyFormat';
 import Global_Input from '../../../../../Components/Inputs/Global_Input/Global_Input';
@@ -15,6 +15,7 @@ import {
   type Valuation_Report,
 } from '../../../../../Hooks/Finances/usePortfolioGoods';
 import './Goods.scss';
+import { localeOf } from '../../../../../utils/locale';
 
 export interface Goods_Search_Params {
   query: string;
@@ -53,13 +54,14 @@ const Goods_Price_Search = ({
   readOnly = false,
 }: Goods_Price_Search_Props) => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const { formatIn } = useCurrencyFormat();
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'forSale' | 'sold'>('sold');
   const [locations, setLocations] = useState<string[]>([]);
   const [locationFocus, setLocationFocus] = useState(false);
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const money = (value: number | null) => (value === null ? '—' : formatIn(value, report?.currency ?? 'EUR', 0));
 
   // As localidades, um pouco depois de se parar de escrever (não gastam pesquisas)
@@ -143,13 +145,13 @@ const Goods_Price_Search = ({
             )}
           </div>
           <div className="Form_Field Goods_Search_Radius">
-            <label>{t('goods.radius')}</label>
-            <div className="Tabs">
+            <label id={`${groupId}-radius`}>{t('goods.radius')}</label>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-radius`}>
               {RADII.map((radius) => (
                 <button
                   key={radius}
                   type="button"
-                  className={params.radiusKm === radius ? 'Active' : ''}
+                  className={params.radiusKm === radius ? 'Active' : ''} aria-pressed={params.radiusKm === radius}
                   onClick={() => onParams({ ...params, radiusKm: radius })}
                 >
                   {radius} km
@@ -159,7 +161,7 @@ const Goods_Price_Search = ({
           </div>
           <div className="Goods_Search_Action">
             <Simple_Button
-              text={searching ? t('goods.searching') : report ? t('goods.searchAgain') : t('goods.search')}
+              text={report ? t('goods.searchAgain') : t('goods.search')}
               onClick={() => void search()}
               disabled={searching || !params.query.trim() || !params.location.trim()}
               variant={report ? 'Ghost' : 'Primary'}
@@ -227,7 +229,7 @@ const Goods_Price_Search = ({
           <div className="Goods_Listings_Head">
             <div className="Tabs">
               {(['sold', 'forSale'] as const).map((option) => (
-                <button key={option} type="button" className={tab === option ? 'Active' : ''} onClick={() => setTab(option)}>
+                <button key={option} type="button" className={tab === option ? 'Active' : ''} aria-pressed={tab === option} onClick={() => setTab(option)}>
                   {t(`goods.tab_${option}`, { count: report[option].length })}
                 </button>
               ))}

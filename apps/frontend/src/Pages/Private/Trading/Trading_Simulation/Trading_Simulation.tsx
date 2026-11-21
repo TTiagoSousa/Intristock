@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { isActiveStatus, useCreateSimulation, useSimulationRun } from '../../../../Hooks/Trading/useSimulation';
 import type { Simulation_Payload, Simulation_Run } from '../../../../Hooks/Trading/useSimulation';

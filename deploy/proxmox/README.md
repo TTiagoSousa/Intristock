@@ -17,17 +17,20 @@ app precisa. Sem Docker e sem Coolify.
 
 | Peça | Onde |
 |---|---|
-| Código | `/opt/intristock` (clone do repo, utilizador `intristock`) |
+| Código | `/opt/intristock` (clone do repo, dono **root**; a app só o lê) |
+| Builds | `/opt/intristock-builds/<data>-<commit>` (da app: dependências, `dist`, `.venv`), o que corre em `/opt/intristock-builds/current`; fica também o anterior |
 | Configuração do backend | `/etc/intristock/backend.env` |
 | Configuração do frontend | `/etc/intristock/frontend.env` (só conta no build) |
+| Configuração dos backups | `/etc/intristock/backup.env` (cópia externa, dias que se guardam) |
 | Serviços | `intristock.service` (backend), `intristock-downloader`, `intristock-simulator`, `garage.service`, `clickhouse-server`, `nginx`, `postgresql` |
 | Frontend publicado | `/var/www/intristock` |
 | Base de dados | PostgreSQL local, base e utilizador `intristock` |
 | Documentos (faturas) | Garage em `/var/lib/garage`, bucket `intristock` |
 | Velas do simulador | ClickHouse local (repositório apt da ClickHouse, canal LTS), base e utilizador `intristock` |
-| Apps Python | `apps/downloader` e `apps/simulator`, cada uma com o seu `.venv` |
-| Backups da base de dados | `/var/backups/intristock`, todos os dias às 03:30, 14 dias |
-| Credenciais geradas | `/root/intristock-credentials.txt` |
+| Apps Python | `apps/downloader` e `apps/simulator` de cada build, cada uma com o seu `.venv` |
+| Atualizações | pedido da app em `/var/lib/intristock/updates/request`; estado, log e lock em `/var/lib/intristock-state` (root) |
+| Backups | `/var/backups/intristock`: base de dados, configuração e documentos, todos os dias às 03:30 (ver §6) |
+| Credenciais geradas | `/root/intristock-credentials.txt` (sem a password do admin; guarda uma cópia fora da VM e apaga-o) |
 
 ## 1. Criar e instalar
 
@@ -67,7 +70,8 @@ REPO_URL=https://gitlab.exemplo.pt/eu/intristock.git \
 - **Sem `REPO_URL`**, o instalador experimenta o repositório oficial no GitHub e depois o
   espelho do autor, e usa o primeiro que responder.
 - **Repositório privado**: passa-se o token com `REPO_TOKEN=…`; serve para o
-  clone e para as atualizações. Para descarregar o próprio script, o `curl` também
+  clone e para as atualizações. Na VM fica em `/etc/intristock/git-credentials` (só
+  root), não no `.git/config`. O repositório oficial é público: não precisa de token. Para descarregar o próprio script, o `curl` também
   precisa dele: `curl -fsSL -H "Authorization: token <TOKEN>" <url do vm-create.sh>`.
 
 A origem é confirmada **antes** de a VM ser criada: um endereço errado ou um
@@ -84,7 +88,8 @@ Abre um menu:
   - bridge, **DHCP ou IP fixo**, VLAN opcional, DNS do host ou próprio;
   - arrancar com o host;
   - **endereço da app**: IP da VM ou domínio próprio;
-  - login e password do admin da app (em branco = `admin` / `admin`);
+  - login e password do admin da app (login em branco = `admin`; password em branco = uma
+    aleatória, mostrada **uma vez** no fim e não escrita em lado nenhum — guarda-a);
   - utilizador e password da VM (para a consola) e chave SSH opcional;
   - versão: a última, ou um branch (`main`, `staging`, `develop`) para testes.
 
@@ -111,7 +116,8 @@ NONINTERACTIVE=1 STORAGE=local-lvm NET_MODE=static IP=192.168.0.70/24 GATEWAY=19
 
 ## 2. Primeiro arranque
 
-Abre o endereço da app e entra com **`admin` / `admin`**. Antes de tudo aparece o
+Abre o endereço da app e entra com o login do admin (`admin` por omissão) e a password
+que escolheste ou a que o instalador gerou e mostrou no fim. Antes de tudo aparece o
 assistente: escolhes as APIs e metes as chaves.
 
 | API | Fornecedor | Chave |
@@ -126,7 +132,8 @@ As chaves ficam **cifradas** na base de dados (com a `ENCRYPTION_KEY` do
 França, Alemanha, Itália e Reino Unido; os principais bancos portugueses, corretoras e
 exchanges).
 
-**Muda a password do admin** em Definições → Segurança antes de abrires a app à internet.
+Se escolheste uma password fraca (ou `admin`), **muda-a** em Definições → Segurança antes
+de abrires a app à internet.
 
 ## 3. Domínio e SSL
 
@@ -141,9 +148,10 @@ Se mudares o endereço depois, ajusta o `FRONTEND_URL` com o `intristock-config`
 Dentro da VM:
 
 ```bash
-sudo intristock-config             # menu com o backend e o frontend
+sudo intristock-config             # menu com o backend, o frontend e os backups
 sudo intristock-config backend     # o backend.env inteiro no nano
 sudo intristock-config frontend    # o frontend.env inteiro no nano
+sudo intristock-config backup      # o backup.env inteiro no nano
 ```
 
 No menu, ↑/↓ escolhe, Enter abre a caixa para alterar, **Guardar** aplica: o backend é
@@ -177,20 +185,73 @@ sudo intristock-update develop    # um branch (testes)
 sudo FORCE=1 intristock-update    # recompilar mesmo sem nada novo
 ```
 
-Passos: versão → **programas da VM** → compilar → base de dados → publicar → serviços
-→ reiniciar. **Se um passo falhar, volta sozinho à versão anterior** e a app continua a
-funcionar.
+Passos: versão (e a assinatura da tag) → **programas da VM** → compilar → **backup da
+base de dados** → migrações → publicar → serviços → reiniciar.
+
+- **Compila-se ao lado.** A versão nova vai para um diretório novo em
+  `/opt/intristock-builds` enquanto a anterior continua a correr; só no passo dos serviços
+  o link `current` passa para ela. Ficam sempre o build atual e o anterior.
+- **Backup antes das migrações.** Logo antes de migrar faz-se um dump
+  (`/var/backups/intristock/intristock-pre-vX.Y.Z-<data>.sql.gz`, mais a configuração).
+- **Se um passo falhar** — ou o script parar a meio por qualquer motivo — **volta sozinho
+  à versão anterior**: o código, o link para o build anterior (sem compilar outra vez), o
+  frontend e, se as migrações já tinham começado, a base de dados desse dump. A app
+  continua na versão que tinha. O que se escrever na app entre o dump e a falha perde-se
+  na reposição; as tabelas do ClickHouse (das apps Python) não voltam atrás.
+- **Saúde.** Depois de reiniciar, o backend tem de responder ao `GET /health` (que vai à
+  base de dados) e o downloader e o simulador têm de ficar a correr sem reinícios.
 
 O passo **programas da VM** é o que trata de "programas novos": volta a garantir a lista
-`SYSTEM_PACKAGES` do `lib.sh`, a versão do Node e a do Garage, o ClickHouse, e corre
-`deploy/proxmox/upgrades/<versão>.sh` se essa versão trouxer um. As atualizações de
-segurança do Debian correm sozinhas todos os dias (`unattended-upgrades`) — não esperam
-por uma versão nova do IntriStock.
+`SYSTEM_PACKAGES` do `lib.sh`, a versão do Node e a do Garage (as duas fixadas, com o
+SHA-256 de cada ficheiro), o ClickHouse, e corre `deploy/proxmox/upgrades/<versão>.sh` se
+essa versão trouxer um. As atualizações de segurança do Debian correm sozinhas todos os
+dias (`unattended-upgrades`) — não esperam por uma versão nova do IntriStock.
 
 Como o botão funciona: o backend corre sem privilégios e só escreve
 `/var/lib/intristock/updates/request`; a unit `intristock-updater.path` (root) vê o
 ficheiro e corre `update.sh --from-request`, que escreve o progresso em `status.json` e
-o output em `update.log`. Logs: `journalctl -u intristock-updater`.
+o output em `update.log`, em `/var/lib/intristock-state` (do root; a app lê-os pelos
+links em `updates/`). Logs: `journalctl -u intristock-updater`.
+
+As versões novas chegam à VM pelo `intristock-fetch.timer` (de hora a hora, como root:
+o `.git` é do root, e a app já não o pode mudar) e em cada atualização.
+
+### Quem é dono de quê
+
+O utilizador da app (`intristock`) nunca escreve em nada que o root corra: o
+repositório (`/opt/intristock`, com os scripts de deploy, o `lib.sh` e os `upgrades/`) é
+do root; a app só é dona dos builds (`/opt/intristock-builds/<build>`), da pasta dela
+(`/var/lib/intristock`) e do pedido de atualização. O estado das atualizações vive num
+diretório do root.
+
+Uma VM instalada antes disto passa a este esquema sozinha na primeira atualização: o
+repositório passa a ser do root, os hooks do git saem, o token do repositório (se houver)
+sai do `.git/config`, o log e o estado mudam de sítio, os serviços passam para o build
+novo e as dependências antigas de dentro do repo são apagadas no fim. Essa primeira vez
+ainda corre a etapa 1 do `update.sh` antigo.
+
+### Tags assinadas (opcional)
+
+Por omissão o `update.sh` só **avisa** que a tag não foi verificada. Para só aceitar
+releases assinadas, põe na VM a chave pública de quem as assina:
+
+- **SSH** — `/etc/intristock/release-signers`, no formato `allowed_signers` do git:
+  ```
+  tiago@exemplo.pt namespaces="git" ssh-ed25519 AAAA…
+  ```
+- **GPG** — `/etc/intristock/release-key.asc`, a chave pública em ASCII
+  (`gpg --armor --export <id>`).
+
+Com um destes ficheiros, uma tag sem assinatura válida é **recusada** antes do checkout
+(nada muda na VM). Os branches (testes) não são verificados.
+
+Do lado de quem faz a release, o `npm run release -- --push` assina a tag (`git tag -s`)
+quando o git tem `user.signingkey` (e, para SSH, `gpg.format ssh`); sem chave cria a tag
+anotada como antes e avisa.
+
+O `git fetch` das versões é **sem `--force`**: uma tag que a VM já tem não muda em
+silêncio. Se mudar na origem, a atualização falha com "Uma tag que esta VM já tinha
+mudou na origem" — confirma no repositório oficial antes de fazer seja o que for.
 
 ## 6. Manutenção
 
@@ -199,16 +260,60 @@ journalctl -u intristock -f                         # logs do backend
 journalctl -u intristock-downloader -u intristock-simulator -f   # velas e simulações
 systemctl status intristock intristock-downloader intristock-simulator garage clickhouse-server nginx postgresql
 sudo /opt/intristock/deploy/proxmox/backup.sh       # backup agora
-gunzip -c /var/backups/intristock/<ficheiro>.sql.gz | sudo runuser -u postgres -- psql -d intristock   # repor
+cat /var/lib/intristock-state/backup.json           # como correu o último
+journalctl -t intristock-backup                     # as falhas
 ```
 
-O backup do Proxmox (vzdump) apanha a VM inteira, incluindo os documentos do Garage;
-o dump diário é o que garante a base de dados consistente. As velas do ClickHouse não
-entram no dump: voltam a descarregar-se da Binance quando uma simulação precisa delas.
+### Backups
+
+Todos os dias às 03:30 (`/etc/cron.d/intristock-backup`, log em
+`/var/log/intristock-backup.log`), em `/var/backups/intristock` (só root):
+
+| Ficheiro | O que tem | Guarda-se |
+|---|---|---|
+| `intristock-<data>.sql.gz` | a base de dados (`pg_dump`) | 14 dias |
+| `intristock-config-<data>.tar.gz` | `/etc/intristock` e `/etc/garage.toml`: a `ENCRYPTION_KEY`, os segredos JWT, as chaves do S3 — sem eles o dump não chega | 14 dias |
+| `intristock-garage-<data>.tar` | os documentos: um snapshot dos metadados do Garage e os blocos | 3 dias |
+
+**Cópia para fora da VM:** no `intristock-config` (secção backup, ou
+`intristock-config backup`), `BACKUP_COPY_DIR` = uma pasta já montada (NFS, SMB, um
+disco), ex. `/mnt/backups`. Cada backup diário é copiado para lá com a mesma retenção. Se
+a pasta não existir (o disco não montou) o backup **falha** — para se ver.
+
+**Quando falha:** sai com erro, fica no log do cron, no journal
+(`journalctl -t intristock-backup`) e em `/var/lib/intristock-state/backup.json`
+(`"state":"failed"` e a mensagem). O backend lê esse ficheiro de hora a hora e avisa os
+admins no sino (`backup_failed`, uma vez por falha).
+
+Repor (com a app parada: `systemctl stop intristock intristock-downloader intristock-simulator`):
+
+```bash
+gunzip -c /var/backups/intristock/<ficheiro>.sql.gz | sudo runuser -u postgres -- psql -d intristock
+sudo tar -xzf /var/backups/intristock/intristock-config-<data>.tar.gz -C /
+# documentos, com o Garage parado (systemctl stop garage):
+sudo tar -xf /var/backups/intristock/intristock-garage-<data>.tar -C /var/lib/garage
+#   o snapshot dos metadados fica em meta/snapshots/<data>: copia-o por cima de
+#   meta/db.sqlite e depois chown -R garage:garage /var/lib/garage
+```
+
+O backup do Proxmox (vzdump) apanha a VM inteira; o dump diário é o que garante a base de
+dados consistente. As velas do ClickHouse não entram: voltam a descarregar-se da Binance
+quando uma simulação precisa delas.
+
+### Memória
 
 O simulador corre `núcleos − 1` simulações ao mesmo tempo (`SIMULATOR_PROCESSES` no
 `backend.env` muda isso) e o ClickHouse fica com até 40 % da memória: com o simulador,
-4 GB de RAM é o mínimo confortável.
+4 GB de RAM é o mínimo confortável. O serviço do simulador tem um teto (`MemoryHigh=45%`,
+`MemoryMax=55%` da RAM) e é o primeiro que o OOM killer escolhe (`OOMScoreAdjust=500`); o
+Postgres é o último (`OOMScoreAdjust=-500`, num drop-in do `postgresql@.service`).
+
+### nginx
+
+O site vai com gzip (JS, CSS, JSON, SVG) e com os cabeçalhos de segurança
+(`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, uma
+CSP e, só quando se entra por https, HSTS), em `/etc/nginx/snippets/intristock-headers.conf`.
+A CSP deixa ligar à própria origem e, se o `VITE_API_URL` for um endereço completo, a esse.
 
 ## Reinstalar por cima
 

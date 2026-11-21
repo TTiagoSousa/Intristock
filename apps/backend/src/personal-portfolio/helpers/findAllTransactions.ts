@@ -1,3 +1,4 @@
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { PortfolioTransactionFilters } from '../repositories/personal-portfolio-repository';
@@ -5,7 +6,6 @@ import { PortfolioTransactionsQueryDto } from '../dto/personal-portfolio.dto';
 import { CASH_SIGN } from './portfolioLedger';
 
 const DEFAULT_TAKE = 20;
-const FALLBACK_CURRENCY = 'EUR';
 const round = (value: number) => Math.round(value * 100) / 100;
 
 /**
@@ -43,9 +43,7 @@ export async function findAllTransactions(
     repository.countTransactionList(userId, filters),
     repository.findTransactionListAmounts(userId, filters),
     repository.findUserAssets(userId),
-    query.currencyId
-      ? repository.findCurrency(query.currencyId)
-      : repository.findCurrencyByCode(FALLBACK_CURRENCY),
+    pickDisplayCurrency(query.currencyId, [], repository),
   ]);
 
   // O dinheiro: o que entrou menos o que saiu (as compras e vendas de ações não contam,

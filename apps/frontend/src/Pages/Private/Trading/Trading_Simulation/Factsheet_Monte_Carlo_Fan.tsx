@@ -7,6 +7,7 @@ import { useTheme } from '../../../../Contexts/ThemeContext';
 import type { Monte_Carlo_Fan } from '../../../../Hooks/Trading/useSimulation';
 import Factsheet_Panel from './Factsheet_Panel';
 import { resolveColor, resolveToken, useFactsheetFormat } from './factsheetFormat';
+import { localeOf } from '../../../../utils/locale';
 
 interface Factsheet_Monte_Carlo_Fan_Props {
   fan: Monte_Carlo_Fan;
@@ -61,8 +62,8 @@ const Factsheet_Monte_Carlo_Fan = ({ fan }: Factsheet_Monte_Carlo_Fan_Props) => 
         tooltipBorder: token('chart-tooltip-border'),
         font: getComputedStyle(document.body).fontFamily,
       };
-      const month = new Intl.DateTimeFormat(i18n.language, { month: 'short', year: '2-digit', timeZone: 'UTC' });
-      const day = new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+      const month = new Intl.DateTimeFormat(localeOf(i18n.language), { month: 'short', year: '2-digit', timeZone: 'UTC' });
+      const day = new Intl.DateTimeFormat(localeOf(i18n.language), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
       const points = (values: number[]) => values.map((y, i) => ({ x: series.x[i], y }));
       const pathColor = token('chart-buy-hold');
       const fill = resolveColor(root, 'var(--factsheet-chart-buy-hold)');

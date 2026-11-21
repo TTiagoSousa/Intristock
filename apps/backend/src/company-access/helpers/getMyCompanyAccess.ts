@@ -30,7 +30,7 @@ export async function getMyCompanyAccess(
   }
 
   const member = await companyRepository.findMember(companyId, userId);
-  if (!member) throw new NotFoundException('Empresa não encontrada');
+  if (!member || member.status !== 'active') throw new NotFoundException('Empresa não encontrada');
 
   return { owner: false, roleName: member.role?.name ?? null, permissions: resolveMemberPermissions(member) };
 }

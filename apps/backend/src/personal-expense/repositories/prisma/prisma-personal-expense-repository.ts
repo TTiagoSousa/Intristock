@@ -1,7 +1,8 @@
-import { latestRateHour } from 'src/currency/helpers/latestRateHour';
+import { rateHourForDate } from 'src/currency/helpers/rateHourForDate';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
+  Prisma,
   PersonalExpense,
   PersonalExpenseCategory,
   PersonalItemCategory,
@@ -151,6 +152,47 @@ export class PrismaPersonalExpenseRepository implements PersonalExpenseRepositor
     });
   }
 
+  /**
+   * O nome é único na pessoa sem contar maiúsculas, mas a base não o garante (um índice em
+   * `lower(name)` não se escreve no schema do Prisma). Dois pedidos ao mesmo tempo com o mesmo
+   * nome criavam dois itens; com este trinco (por pessoa e nome, até ao fim da transação) o
+   * segundo espera e já encontra o do primeiro.
+   */
+  private lockProductName(tx: Prisma.TransactionClient, userId: string, name: string) {
+    return tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('personal-product'), hashtext(${userId}::text || ':' || lower(${name}::text)))`;
+  }
+
+  /** O item com este nome (sem contar maiúsculas), ou um novo com ele. */
+  findOrCreateProduct(userId: string, name: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProductName(tx, userId, name);
+      const same = await tx.personalProduct.findFirst({
+        where: { userId, name: { equals: name, mode: 'insensitive' } },
+      });
+      return same ?? tx.personalProduct.create({ data: { userId, name } });
+    });
+  }
+
+  /**
+   * Cria (sem `productId`) ou muda um item com o trinco do nome: `null` se outro item da
+   * pessoa já tem esse nome.
+   */
+  saveProductWithUniqueName(userId: string, productId: string | null, data: ProductData) {
+    return this.prisma.$transaction(async (tx) => {
+      const name = data.name?.trim();
+      if (name) {
+        await this.lockProductName(tx, userId, name);
+        const same = await tx.personalProduct.findFirst({
+          where: { userId, name: { equals: name, mode: 'insensitive' } },
+        });
+        if (same && same.id !== productId) return null;
+      }
+      return productId
+        ? tx.personalProduct.update({ where: { id: productId }, data })
+        : tx.personalProduct.create({ data: { userId, ...data, name: name ?? '' } });
+    });
+  }
+
   updateProduct(productId: string, data: ProductData) {
     return this.prisma.personalProduct.update({
       where: { id: productId },
@@ -222,8 +264,8 @@ export class PrismaPersonalExpenseRepository implements PersonalExpenseRepositor
         amount: data.amount ?? 0,
         currencyId: data.currencyId ?? '',
         ...data,
-        // A hora das cotações com que se converte (a mais recente guardada)
-        rateHour: await latestRateHour(this.prisma),
+        // A hora das cotações com que se converte: a mais recente, só numa despesa de hoje
+        rateHour: await rateHourForDate(this.prisma, data.date ?? new Date()),
         items: { create: items },
       },
     });
@@ -234,6 +276,9 @@ export class PrismaPersonalExpenseRepository implements PersonalExpenseRepositor
     data: ExpenseData,
     items: ExpenseItemData[] | null,
   ) {
+    // Com outra data, a hora das cotações volta a decidir-se por ela
+    const rateHour =
+      data.date !== undefined ? await rateHourForDate(this.prisma, data.date) : undefined;
     return this.prisma.$transaction(async (tx) => {
       if (items) {
         await tx.personalExpenseItem.deleteMany({ where: { expenseId } });
@@ -241,7 +286,10 @@ export class PrismaPersonalExpenseRepository implements PersonalExpenseRepositor
           data: items.map((item) => ({ ...item, expenseId })),
         });
       }
-      return tx.personalExpense.update({ where: { id: expenseId }, data });
+      return tx.personalExpense.update({
+        where: { id: expenseId },
+        data: rateHour !== undefined ? { ...data, rateHour } : data,
+      });
     });
   }
 

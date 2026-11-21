@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useSavedSimulations, type SavedSimulation } from '../../../../Hooks/Calculators/useSavedSimulations';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
 import { CALCULATOR_KINDS } from './calculatorKinds';
 import * as Icon from '../../../../Imports/icons';
 import './Minhas_Simulacoes.scss';
+import { localeOf } from '../../../../utils/locale';
 
 /**
  * As simulações guardadas de todas as calculadoras, numa lista: a calculadora,
@@ -19,7 +20,7 @@ const Minhas_Simulacoes = () => {
   const { formatAmount } = useCurrencyFormat();
   const [filter, setFilter] = useState<string>('all');
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString(locale, { dateStyle: 'medium' });
   const formatTime = (iso: string) => new Date(iso).toLocaleTimeString(locale, { timeStyle: 'short' });
 
@@ -48,7 +49,7 @@ const Minhas_Simulacoes = () => {
           {calculators.length > 1 && (
             <div className="Card_Header_Action">
               <div className="Tabs">
-                <button type="button" className={filter === 'all' ? 'Active' : ''} onClick={() => setFilter('all')}>
+                <button type="button" className={filter === 'all' ? 'Active' : ''} aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
                   {t('calculators.mySimulationsAll', { count: simulations.length })}
                 </button>
                 {calculators.map((abbreviation) => {
@@ -57,7 +58,7 @@ const Minhas_Simulacoes = () => {
                     <button
                       key={abbreviation}
                       type="button"
-                      className={filter === abbreviation ? 'Active' : ''}
+                      className={filter === abbreviation ? 'Active' : ''} aria-pressed={filter === abbreviation}
                       onClick={() => setFilter(abbreviation)}
                     >
                       {titleOf(abbreviation, sample.calculator.name)}

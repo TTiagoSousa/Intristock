@@ -1,0 +1,11 @@
+// A caixa vem do .Empty_State (Styles/Primitives.scss); aqui só a largura e o botão
+.Page_Notice{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+
+  .Page_Notice_Action{
+    margin-top: 12px;
+  }
+}

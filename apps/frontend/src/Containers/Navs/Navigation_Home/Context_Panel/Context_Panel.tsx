@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   activeCompanyArea,
   activeModule,
+  companyAreaEntry,
   companyAreas,
   companySlugFromPath,
   type Menu_Action,
@@ -123,7 +124,7 @@ export const Context_Panel = ({ onNavigate }: Context_Panel_Props) => {
               <button
                 type="button"
                 className={`Panel_Item Has_Icon ${isActive && sections.length === 0 ? 'Active' : ''}`}
-                onClick={() => goTo(item.path(slug))}
+                onClick={() => goTo(companyAreaEntry(item, slug, can))}
               >
                 <span className="Panel_Item_Icon"><item.icon /></span>
                 <span className="Panel_Item_Label">{t(item.labelKey)}</span>

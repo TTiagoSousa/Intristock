@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaUserRepository } from 'src/user/repositories/prisma/prisma-user-repository';
-import { comparePasswords } from 'src/utils/password/compare.passwords';
+import { comparePasswords, DUMMY_PASSWORD_HASH } from 'src/utils/password/compare.passwords';
 
 export async function validateUser(
   email: string,
@@ -11,16 +11,14 @@ export async function validateUser(
   // "admin", sem domínio
   const user = await userRepository.findByEmail(email.trim().toLowerCase());
 
-  if (!user) {
-    throw new BadRequestException('Credenciais inválidas');
-  }
-
+  // Corre sempre o bcrypt, também sem conta (com um hash fixo), para o tempo de
+  // resposta ser o mesmo e não denunciar que contas existem
   const isMatch = await comparePasswords({
     password,
-    hash: user.hashedPassword,
+    hash: user?.hashedPassword ?? DUMMY_PASSWORD_HASH,
   });
 
-  if (!isMatch) {
+  if (!user || !isMatch) {
     throw new BadRequestException('Credenciais inválidas');
   }
 

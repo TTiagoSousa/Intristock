@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { COMPARE_MAX, canCancelRun, useSimulations, SIMULATIONS_PAGE_SIZE } from '../../../../Hooks/Trading/useSimulations';
 import { isActiveStatus } from '../../../../Hooks/Trading/useSimulation';
@@ -13,6 +13,7 @@ import { useNow } from '../../../../Hooks/useNow';
 import { formatDuration, runProgressOf } from '../Trading_Simulator/runProgress';
 import { formatDay, formatNumber, formatPct, toneOf } from '../Trading_Simulator/format';
 import './Trading_Simulations.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 /**
  * As simulações do utilizador, das mais recentes para as mais antigas. Cada
@@ -140,7 +141,7 @@ const Trading_Simulations = () => {
                     <tr
                       key={run.id}
                       className="Simulation_Row"
-                      onClick={() => navigate(`/Trading/simulacoes/${run.id}`)}
+                      onClick={() => navigate(`/Trading/simulacoes/${run.id}`)} tabIndex={0} onKeyDown={activateOnKey}
                     >
                       <td className="Simulation_Pick" onClick={(event) => event.stopPropagation()}>
                         <input

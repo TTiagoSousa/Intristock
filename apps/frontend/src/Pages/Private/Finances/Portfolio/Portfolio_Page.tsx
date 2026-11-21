@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -20,6 +20,7 @@ import Goods_Popover from './Goods/Goods_Popover';
 import { Transaction_Amount, Transaction_Asset } from './Transaction_Amount';
 import '../Earnings/Earnings.scss';
 import './Portfolio.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 const day = (tx: Portfolio_Transaction) => tx.date.slice(0, 10);
 const signed = (tx: Portfolio_Transaction) => (KIND_SIGN[tx.kind] ?? 0) * Number(tx.amount);
@@ -226,7 +227,7 @@ const Portfolio_Page = () => {
                       <tr
                         key={position.symbol ?? position.asset.id}
                         className={[position.quantity ? '' : 'Portfolio_Closed', position.goods ? 'Clickable' : ''].join(' ').trim()}
-                        onClick={position.goods ? () => setGoodsId(position.asset.id) : undefined}
+                        onClick={position.goods ? () => setGoodsId(position.asset.id) : undefined} tabIndex={position.goods ? 0 : undefined} onKeyDown={activateOnKey}
                       >
                         <td>
                           <span className="Earnings_Strong">{position.asset.name}</span>
@@ -354,7 +355,7 @@ const Portfolio_Page = () => {
                       <tr
                         key={tx.id}
                         className={tx.asset.subClass === 'vehicle' ? 'Clickable' : undefined}
-                        onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined}
+                        onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined} tabIndex={tx.asset.subClass === 'vehicle' ? 0 : undefined} onKeyDown={activateOnKey}
                       >
                         <td className="Num">{formatDay(day(tx), locale)}</td>
                         <td>{t(`portfolio.kind_${tx.kind}`)}</td>

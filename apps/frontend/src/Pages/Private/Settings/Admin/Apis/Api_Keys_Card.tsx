@@ -2,8 +2,9 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import Global_Input from '../../../../../Components/Inputs/Global_Input/Global_Input';
 import Simple_Button from '../../../../../Components/Buttons/Simple_Button/Simple_Button';
-import Confirm_Popover from '../../../Companies/Company_Members/Confirm_Popover';
+import Confirm_Popover from '../../../../../Components/Confirm_Popover/Confirm_Popover';
 import { useApiKeys, type Api_Key, type Api_Key_Kind } from '../../../../../Hooks/Admin/useApiKeys';
+import { localeOf } from '../../../../../utils/locale';
 
 interface Api_Keys_Card_Props {
   kind: Api_Key_Kind;
@@ -22,7 +23,7 @@ const Api_Keys_Card = ({ kind, icon }: Api_Keys_Card_Props) => {
   const [key, setKey] = useState('');
   const [label, setLabel] = useState('');
   const [deleting, setDeleting] = useState<Api_Key | null>(null);
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const date = (value: string | null) => (value ? new Date(value).toLocaleDateString(locale) : '—');
   const now = Date.now();
 
@@ -171,7 +172,7 @@ const Api_Keys_Card = ({ kind, icon }: Api_Keys_Card_Props) => {
           <div className="Api_Key_Add">
             <Simple_Button
               type="submit"
-              text={busy === 'add' ? t('apiKeys.checking') : t('apiKeys.add')}
+              text={t('apiKeys.add')}
               disabled={!key.trim() || busy !== null}
               small
               auto
@@ -183,7 +184,7 @@ const Api_Keys_Card = ({ kind, icon }: Api_Keys_Card_Props) => {
       <footer className="Api_Card_Foot">
         <span className={`Api_Card_Foot_Hint ${error ? 'Dirty' : ''}`}>{error ?? t('apiKeys.footHint')}</span>
         <Simple_Button
-          text={busy === 'refresh' ? t('adminApis.testing') : t('apiKeys.refresh')}
+          text={t('apiKeys.refresh')}
           onClick={() => void refresh()}
           disabled={busy !== null || keys.length === 0}
           variant="Ghost"
@@ -198,7 +199,7 @@ const Api_Keys_Card = ({ kind, icon }: Api_Keys_Card_Props) => {
           subtitle={`${deleting.label ?? t('apiKeys.unnamed')} · …${deleting.keyHint}`}
           message={t('apiKeys.deleteConfirm')}
           confirmText={t('common.delete')}
-          saving={busy === deleting.id}
+          busy={busy === deleting.id}
           onClose={() => setDeleting(null)}
           onConfirm={async () => {
             if (await remove(deleting.id)) setDeleting(null);

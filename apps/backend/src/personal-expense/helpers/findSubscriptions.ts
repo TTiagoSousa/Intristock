@@ -1,3 +1,4 @@
+import { pickDisplayCurrency } from 'src/currency/helpers/pickDisplayCurrency';
 import { CurrencyService } from 'src/currency/currency.service';
 import { expectedWindowStart } from 'src/personal-income/helpers/expectedWindowStart';
 import { PrismaPersonalExpenseRepository } from '../repositories/prisma/prisma-personal-expense-repository';
@@ -8,7 +9,6 @@ import {
 import { SubscriptionPeriodsQueryDto } from '../dto/subscription.dto';
 import { listSubscriptionPeriods } from './listSubscriptionPeriods';
 
-const FALLBACK_CURRENCY = 'EUR';
 const DEFAULT_MONTHS = 12;
 
 const round = (value: number) => Math.round(value * 100) / 100;
@@ -31,13 +31,11 @@ export async function findSubscriptions(
     repository.findSubscriptionPayments(userId),
   ]);
 
-  let target: ExpenseCurrency | null = query.currencyId
-    ? await repository.findCurrency(query.currencyId)
-    : null;
-  if (!target)
-    target = subscriptions[0]
-      ? subscriptions[0].currency
-      : await repository.findCurrencyByCode(FALLBACK_CURRENCY);
+  const target: ExpenseCurrency | null = await pickDisplayCurrency(
+    query.currencyId,
+    subscriptions.map((subscription) => subscription.currencyId),
+    repository,
+  );
   const converter = await currencyService.converter(
     target,
     subscriptions.map((subscription) => ({ currency: subscription.currency })),

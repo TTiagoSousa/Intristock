@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompany } from '../../../../Contexts/Company_Context';
 import { useBreadcrumbSegmentLabel } from '../../../../Contexts/Breadcrumb_Context';
 import { useCompanyAccessAdmin, type Company_Role } from '../../../../Hooks/Companies/useCompanyAccessAdmin';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import Role_Popover from './Role_Popover';
-import Confirm_Popover from './Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import * as Icon from '../../../../Imports/icons';
 import './Company_Members.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 /**
  * Os cargos da empresa: cada um com as permissões que dá. Quem tem "gerir
@@ -76,7 +77,7 @@ const Company_Roles = () => {
               </thead>
               <tbody>
                 {roles.map((role) => (
-                  <tr key={role.id} className="Clickable" onClick={() => setEditing(role)}>
+                  <tr key={role.id} className="Clickable" onClick={() => setEditing(role)} tabIndex={0} onKeyDown={activateOnKey}>
                     <td>
                       <span className="Member_Name">{role.name}</span>
                       {role.description && <div className="Member_Sub">{role.description}</div>}
@@ -144,7 +145,7 @@ const Company_Roles = () => {
           subtitle={toDelete.name}
           message={t('companyRoles.deleteConfirm', { name: toDelete.name })}
           confirmText={t('common.delete')}
-          saving={saving}
+          busy={saving}
           onClose={() => setToDelete(null)}
           onConfirm={async () => {
             if (await deleteRole(toDelete.id)) setToDelete(null);

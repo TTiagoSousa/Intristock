@@ -1,4 +1,4 @@
-import { latestRateHour } from 'src/currency/helpers/latestRateHour';
+import { rateHourForDate } from 'src/currency/helpers/rateHourForDate';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -114,8 +114,8 @@ export class PrismaPersonalDebtRepository implements PersonalDebtRepository {
         date: data.date ?? new Date(),
         amount: data.amount ?? 0,
         ...data,
-        // A hora das cotações com que se converte (a mais recente guardada)
-        rateHour: await latestRateHour(this.prisma),
+        // A hora das cotações com que se converte: a mais recente, só num movimento de hoje
+        rateHour: await rateHourForDate(this.prisma, data.date ?? new Date()),
 
       },
     });
@@ -127,7 +127,11 @@ export class PrismaPersonalDebtRepository implements PersonalDebtRepository {
   ): Promise<PersonalDebtMovement> {
     return this.prisma.personalDebtMovement.update({
       where: { id: movementId },
-      data,
+      // Com outra data, a hora das cotações volta a decidir-se por ela
+      data:
+        data.date !== undefined
+          ? { ...data, rateHour: await rateHourForDate(this.prisma, data.date) }
+          : data,
     });
   }
 

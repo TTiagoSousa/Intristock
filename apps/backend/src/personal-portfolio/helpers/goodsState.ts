@@ -1,7 +1,7 @@
+import { isoDay } from 'src/utils/dates';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { applyToPosition, compareLedger, emptyPosition } from './portfolioLedger';
 
-const isoDay = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * As transações de um bem e o que dizem: onde está, se ainda se tem, o que custou e o que

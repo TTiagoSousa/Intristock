@@ -67,6 +67,9 @@ export interface CompanyPaymentChange {
   clearEffects: boolean;
   effects: { stockMovements: CompanyStockMovementInput[]; assets: CompanyAssetInput[] } | null;
   currencyId: string;
+  // Passa a concluído um pagamento de um período de salário: confirma-se, com o trinco do
+  // período, que nenhum outro o pagou (senão a alteração não se faz e devolve `null`)
+  memberPeriod?: { memberPayId: string; period: string };
 }
 
 export interface CompanyPaymentRepository {
@@ -90,16 +93,19 @@ export interface CompanyPaymentRepository {
     status?: string;
     taxes: CompanyPaymentTaxInput[];
     items: CompanyPaymentItemInput[];
-  }): Promise<CompanyPaymentWithLines>;
+    // `null` quando o período do salário (`memberPayId` + `memberPayPeriod`) já está pago
+  }): Promise<CompanyPaymentWithLines | null>;
   findMember(companyId: string, memberId: string): Promise<CompanyMember | null>;
   findMemberPay(memberId: string, memberPayId: string): Promise<CompanyMemberPay | null>;
-  // Um pagamento não cancelado que já pagou esse período desse salário
+  // Um pagamento concluído que já pagou esse período desse salário
   findPaidMemberPeriod(memberPayId: string, period: string): Promise<CompanyPayment | null>;
+  // Apaga um pagamento acabado de criar quando o que vinha a seguir falhou
+  discard(companyId: string, id: string): Promise<boolean>;
   findById(id: string): Promise<CompanyPayment | null>;
   // As linhas vêm junto: é delas que se re-derivam o stock e os ativos quando
   // um rascunho passa a concluído
   findByIdWithItems(id: string): Promise<(CompanyPayment & { items: CompanyPaymentItem[] }) | null>;
-  updateWithEffects(id: string, change: CompanyPaymentChange): Promise<CompanyPaymentWithLines>;
+  updateWithEffects(id: string, change: CompanyPaymentChange): Promise<CompanyPaymentWithLines | null>;
   findAllByCompanyId(
     companyId: string,
     pagination: { skip: number; take: number },

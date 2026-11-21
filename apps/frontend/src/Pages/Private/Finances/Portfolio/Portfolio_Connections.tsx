@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   SYNC_INTERVAL_HOURS,
@@ -10,7 +10,7 @@ import {
 import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Input';
 import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Global_Dropdown';
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
-import Confirm_Popover from '../../Companies/Company_Members/Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import { localeOf } from '../Earnings/earningsLabels';
 import { isFullDate } from '../../../../Hooks/Finances/portfolioInput';
 import Broker_Connection_Popover from './Broker_Connection_Popover';
@@ -153,7 +153,7 @@ const Portfolio_Connections = () => {
                           </span>
                         </div>
                         <Simple_Button
-                          text={connection.syncing ? t('portfolio.syncing') : t('portfolio.syncNow')}
+                          text={t('portfolio.syncNow')}
                           onClick={() => void state.sync(connection.id)}
                           disabled={busy}
                           auto
@@ -179,7 +179,7 @@ const Portfolio_Connections = () => {
                     <div className="Portfolio_Connection_Row">
                       <div className="Portfolio_Connection_Settings">
                         <div className="Earnings_Filter">
-                          <span className="Eyebrow">{t('portfolio.fromDate')}</span>
+                          <label className="Eyebrow" htmlFor={`broker-from-${connection.id}`}>{t('portfolio.fromDate')}</label>
                           <From_Date_Input
                             id={`broker-from-${connection.id}`}
                             value={connection.fromDate?.slice(0, 10) ?? ''}
@@ -187,11 +187,11 @@ const Portfolio_Connections = () => {
                           />
                         </div>
                         <div className="Earnings_Filter">
-                          <span className="Eyebrow">{t('portfolio.syncInterval')}</span>
+                          <label className="Eyebrow" htmlFor={`broker-interval-${connection.id}`}>{t('portfolio.syncInterval')}</label>
                           <Global_Dropdown
                             id={`broker-interval-${connection.id}`}
                             value={connection.syncEveryHours}
-                            disabled={state.busy === connection.id || paused}
+                            disabled={paused}
                             onChange={(value) =>
                               void state.update(connection.id, { syncEveryHours: Number(value) as Sync_Interval_Hours })
                             }
@@ -255,7 +255,7 @@ const Portfolio_Connections = () => {
           subtitle={`${deleting.platform.name} · ${deleting.externalAccountId}`}
           message={t('portfolio.disconnectConfirm')}
           confirmText={t('portfolio.disconnect')}
-          saving={state.busy === deleting.id}
+          busy={state.busy === deleting.id}
           onClose={close}
           onConfirm={async () => {
             if (await state.remove(deleting.id)) close();

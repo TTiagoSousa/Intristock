@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { usePublicReleases } from '../../../Hooks/System/usePublicReleases';
 import { useAuth } from '../../../Contexts/Auth_Context';
@@ -9,6 +9,7 @@ import * as Icon from '../../../Imports/icons';
 import '../Settings/Admin/Admin.scss';
 import '../Settings/Admin/Versions/Versions.scss';
 import './Versions_News.scss';
+import { localeOf } from '../../../utils/locale';
 
 /**
  * As versões do IntriStock e o que cada uma trouxe, para todos os utilizadores.
@@ -27,7 +28,7 @@ const Versions_News = () => {
   const focus = searchParams.get('v') ?? list?.current ?? null;
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString(i18n.language === 'pt' ? 'pt-PT' : 'en-GB', {
+    new Date(iso).toLocaleDateString(localeOf(i18n.language), {
       day: '2-digit',
       month: 'long',
       year: 'numeric',

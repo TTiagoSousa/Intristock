@@ -8,6 +8,7 @@ import Block_User_Popover from './Block_User_Popover';
 import Delete_User_Popover from './Delete_User_Popover';
 import * as Icon from '../../../../../Imports/icons';
 import '../Admin.scss';
+import { localeOf } from '../../../../../utils/locale';
 
 const Users = () => {
   const { t, i18n } = useTranslation();
@@ -18,7 +19,7 @@ const Users = () => {
   const [toBlock, setToBlock] = useState<Managed_User | null>(null);
   const [toDelete, setToDelete] = useState<Managed_User | null>(null);
 
-  const locale = i18n.language === 'pt' ? 'pt-PT' : 'en-GB';
+  const locale = localeOf(i18n.language);
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString(locale);
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });

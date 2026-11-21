@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSystemUpdate } from '../../Hooks/System/useSystemUpdate';
 import Simple_Button from '../Buttons/Simple_Button/Simple_Button';
+import Popover_Shell from '../Popover_Shell/Popover_Shell';
 import './Update_Popover.scss';
 
 // Os passos do deploy/proxmox/update.sh, pela ordem em que ele os escreve
@@ -56,8 +57,8 @@ const Update_Popover = ({ version, from, resume = false, onClose }: Update_Popov
   if (failed) headline = t('versions.update.failed');
 
   return (
-    <div className="Popover_Backdrop">
-      <div className="Popover_Card Narrow Update_Popover">
+    // A meio da atualização não se fecha: nem o fundo nem o Esc
+    <Popover_Shell onClose={onClose} className="Narrow Update_Popover" closeOnBackdrop={false} closeOnEscape={!running && !done}>
         <div className="Popover_Header">
           <div className="Popover_Header_Text">
             <span className="Popover_Title">{t('versions.update.title')}</span>
@@ -100,7 +101,7 @@ const Update_Popover = ({ version, from, resume = false, onClose }: Update_Popov
               <Simple_Button text={t('versions.update.reloadNow')} onClick={() => window.location.reload()} />
             ) : (
               <Simple_Button
-                text={running ? t('versions.update.updating') : t('common.close')}
+                text={t('common.close')}
                 onClick={onClose}
                 disabled={running}
                 variant="Ghost"
@@ -108,8 +109,7 @@ const Update_Popover = ({ version, from, resume = false, onClose }: Update_Popov
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Popover_Shell>
   );
 };
 

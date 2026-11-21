@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -16,6 +16,8 @@ import Global_Dropdown from '../../../../Components/Inputs/Global_Dropdown/Globa
 import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_Button';
 import * as Icon from '../../../../Imports/icons';
 import { categoryOptions, categoryPath } from './expensesShared';
+import { localToday } from '../../../../utils/dates';
+import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
 
 interface Expense_Popover_Props {
   expense: Personal_Expense | null;
@@ -40,7 +42,8 @@ interface Line {
 
 const NONE = '';
 const number = (value: string) => Number(value.replace(',', '.'));
-const today = () => new Date().toISOString().slice(0, 10);
+// O dia de hoje no browser (o toISOString dava o de UTC: depois da meia-noite no verão, a véspera)
+const today = localToday;
 const emptyLine = (): Line => ({ key: crypto.randomUUID(), productId: '', name: '', quantity: '1', unitPrice: '' });
 
 /**
@@ -62,6 +65,7 @@ const Expense_Popover = ({
   onSave,
 }: Expense_Popover_Props) => {
   const { t } = useTranslation();
+  const groupId = useId();
   const { currencies, selectedCurrency } = useCurrency();
   const { formatIn } = useCurrencyFormat();
   const [kind, setKind] = useState<Expense_Kind>(expense?.kind ?? 'purchase');
@@ -93,14 +97,6 @@ const Expense_Popover = ({
   );
   const { bankAccounts: companyAccounts } = useCompanyBankAccounts(kind === 'company' && companyId ? companyId : undefined);
   const lockedCompany = Boolean(expense?.companyPaymentId);
-
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
 
   const code = currencies.find((currency) => currency.id === currencyId)?.shortCode ?? selectedCurrency;
   const filledLines = kind === 'purchase' ? lines.filter((line) => line.name.trim()) : [];
@@ -179,206 +175,204 @@ const Expense_Popover = ({
   };
 
   return (
-    <div className="Popover_Backdrop" onClick={onClose}>
-      <form className="Popover_Card Wide" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <div className="Popover_Header">
-          <div className="Popover_Header_Text">
-            <span className="Popover_Title">{t(expense ? 'expenses.editTitle' : 'expenses.addTitle')}</span>
-            <span className="Popover_Subtitle">{t(`expenses.kind_${kind}Hint`)}</span>
-          </div>
-          <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
-            ×
-          </button>
+    <Popover_Shell onClose={onClose} as="form" className="Wide" onSubmit={submit}>
+      <div className="Popover_Header">
+        <div className="Popover_Header_Text">
+          <span className="Popover_Title">{t(expense ? 'expenses.editTitle' : 'expenses.addTitle')}</span>
+          <span className="Popover_Subtitle">{t(`expenses.kind_${kind}Hint`)}</span>
         </div>
+        <button type="button" className="Popover_Close" onClick={onClose} aria-label={t('common.cancel')}>
+          ×
+        </button>
+      </div>
 
-        <div className="Popover_Body Expense_Body">
-          {!expense && (
-            <div className="Form_Field Expense_Full">
-              <div className="Tabs">
-                {EXPENSE_KINDS.map((option) => (
-                  <button key={option} type="button" className={kind === option ? 'Active' : ''} onClick={() => setKind(option)}>
-                    {t(`expenses.kind_${option}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {lockedCompany && <span className="Field_Hint Expense_Full">{t('expenses.companyLocked')}</span>}
-
-          <div className="Form_Field">
-            <label htmlFor="expense-date">{t('expenses.date')} *</label>
-            <Global_Input id="expense-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={lockedCompany} />
-          </div>
-          <div className="Form_Field">
-            <label htmlFor="expense-currency">{t('expenses.currency')} *</label>
-            <Global_Dropdown
-              id="expense-currency"
-              value={currencyId}
-              onChange={(value) => {
-                setCurrencyId(String(value));
-                setBankAccountId(NONE);
-              }}
-              options={currencies.map((currency) => ({ value: currency.id, label: `${currency.shortCode} · ${currency.name}` }))}
-            />
-          </div>
-
-          {kind === 'company' ? (
-            <>
-              <div className="Form_Field">
-                <label htmlFor="expense-company">{t('expenses.company')} *</label>
-                {expense ? (
-                  <Global_Input id="expense-company" value={expense.company?.name ?? ''} disabled />
-                ) : (
-                  <Global_Dropdown
-                    id="expense-company"
-                    value={companyId}
-                    onChange={(value) => {
-                      setCompanyId(String(value));
-                      setCompanyAccountId(NONE);
-                    }}
-                    placeholder={t('expenses.chooseCompany')}
-                    options={companies.map((company) => ({ value: company.id, label: company.name }))}
-                  />
-                )}
-              </div>
-              {!expense && (
-                <div className="Form_Field">
-                  <label htmlFor="expense-company-account">{t('expenses.companyAccount')} *</label>
-                  <Global_Dropdown
-                    id="expense-company-account"
-                    value={companyAccountId}
-                    onChange={(value) => setCompanyAccountId(String(value))}
-                    placeholder={t('expenses.chooseCompanyAccount')}
-                    options={companyAccounts
-                      .filter((account) => account.status === 'active')
-                      .map((account) => ({ value: account.id, label: account.name }))}
-                  />
-                  <span className="Field_Hint">{t('expenses.companyAccountHint')}</span>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="Form_Field">
-              <label htmlFor="expense-merchant">{t('expenses.merchant')}</label>
-              <Global_Input id="expense-merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} />
-            </div>
-          )}
-
-          <div className="Form_Field">
-            <label htmlFor="expense-category">{t('expenses.category')}</label>
-            <Global_Dropdown id="expense-category" value={categoryId} onChange={(value) => setCategoryId(String(value))} options={options} />
-          </div>
-
-          <div className="Form_Field">
-            <label htmlFor="expense-description">{t('expenses.description')}</label>
-            <Global_Input id="expense-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          {(kind !== 'purchase' || filledLines.length === 0) && (
-            <div className="Form_Field">
-              <label htmlFor="expense-amount">{t('expenses.amount', { currency: code })} *</label>
-              <Global_Input
-                id="expense-amount"
-                value={filledLines.length > 0 ? String(linesTotal) : amount}
-                onChange={(e) => setAmount(e.target.value)}
-                disabled={lockedCompany}
-              />
-              {kind === 'purchase' && <span className="Field_Hint">{t('expenses.amountHint')}</span>}
-            </div>
-          )}
-
-          {kind === 'purchase' && !lockedCompany && (
-            <div className="Expense_Full Expense_Lines">
-              <div className="Expense_Line Expense_Line_Head">
-                <span>{t('expenses.product')}</span>
-                <span>{t('expenses.quantity')}</span>
-                <span>{t('expenses.unitPrice')}</span>
-                <span>{t('expenses.itemCategory')}</span>
-                <span className="Right">{t('expenses.lineTotal')}</span>
-                <span />
-              </div>
-              {lines.map((line) => (
-                <div key={line.key} className="Expense_Line">
-                  <Global_Input
-                    id={`line-name-${line.key}`}
-                    list="expense-products"
-                    value={line.name}
-                    onChange={(e) => setLineName(line.key, e.target.value)}
-                    placeholder={t('expenses.productPlaceholder')}
-                  />
-                  <Global_Input id={`line-qty-${line.key}`} value={line.quantity} onChange={(e) => setLine(line.key, { quantity: e.target.value })} />
-                  <Global_Input id={`line-price-${line.key}`} value={line.unitPrice} onChange={(e) => setLine(line.key, { unitPrice: e.target.value })} />
-                  <span className="Expense_Line_Category">{lineCategory(line)}</span>
-                  <span className="Right Num">
-                    {formatIn(number(line.quantity || '0') * number(line.unitPrice || '0'), code)}
-                  </span>
-                  <button
-                    type="button"
-                    className="Icon_Button Tiny"
-                    aria-label={t('common.delete')}
-                    onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
-                  >
-                    <Icon.Trash />
-                  </button>
-                </div>
-              ))}
-              <datalist id="expense-products">
-                {products.map((product) => (
-                  <option key={product.id} value={product.name} />
-                ))}
-              </datalist>
-              <div className="Expense_Lines_Foot">
-                <button type="button" className="Earnings_Link" onClick={() => setLines((current) => [...current, emptyLine()])}>
-                  + {t('expenses.addLine')}
-                </button>
-                {filledLines.length > 0 && (
-                  <span className="Num Expense_Total">{t('expenses.total', { total: formatIn(linesTotal, code) })}</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="Form_Field">
-            <label>{t('expenses.status')}</label>
-            <div className="Tabs">
-              {(['paid', 'pending'] as const).map((option) => (
-                <button key={option} type="button" className={status === option ? 'Active' : ''} onClick={() => setStatus(option)}>
-                  {t(`expenses.status_${option}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="Form_Field">
-            <label htmlFor="expense-account">{t('expenses.account')}</label>
-            <Global_Dropdown
-              id="expense-account"
-              value={bankAccountId}
-              onChange={(value) => setBankAccountId(String(value))}
-              options={[
-                { value: NONE, label: t('expenses.noAccount') },
-                ...accounts.map((account) => ({ value: account.id, label: account.name })),
-              ]}
-            />
-          </div>
+      <div className="Popover_Body Expense_Body">
+        {!expense && (
           <div className="Form_Field Expense_Full">
-            <label htmlFor="expense-notes">{t('expenses.notes')}</label>
-            <Global_Input id="expense-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <div className="Tabs">
+              {EXPENSE_KINDS.map((option) => (
+                <button key={option} type="button" className={kind === option ? 'Active' : ''} aria-pressed={kind === option} onClick={() => setKind(option)}>
+                  {t(`expenses.kind_${option}`)}
+                </button>
+              ))}
+            </div>
           </div>
+        )}
 
-          {error && <span className="Field_Hint Earnings_Error Expense_Full">{error}</span>}
+        {lockedCompany && <span className="Field_Hint Expense_Full">{t('expenses.companyLocked')}</span>}
+
+        <div className="Form_Field">
+          <label htmlFor="expense-date">{t('expenses.date')} *</label>
+          <Global_Input id="expense-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={lockedCompany} />
+        </div>
+        <div className="Form_Field">
+          <label htmlFor="expense-currency">{t('expenses.currency')} *</label>
+          <Global_Dropdown
+            id="expense-currency"
+            value={currencyId}
+            onChange={(value) => {
+              setCurrencyId(String(value));
+              setBankAccountId(NONE);
+            }}
+            options={currencies.map((currency) => ({ value: currency.id, label: `${currency.shortCode} · ${currency.name}` }))}
+          />
         </div>
 
-        <div className="Popover_Footer">
-          <div className="Form_Action">
-            <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
+        {kind === 'company' ? (
+          <>
+            <div className="Form_Field">
+              <label htmlFor="expense-company">{t('expenses.company')} *</label>
+              {expense ? (
+                <Global_Input id="expense-company" value={expense.company?.name ?? ''} disabled />
+              ) : (
+                <Global_Dropdown
+                  id="expense-company"
+                  value={companyId}
+                  onChange={(value) => {
+                    setCompanyId(String(value));
+                    setCompanyAccountId(NONE);
+                  }}
+                  placeholder={t('expenses.chooseCompany')}
+                  options={companies.map((company) => ({ value: company.id, label: company.name }))}
+                />
+              )}
+            </div>
+            {!expense && (
+              <div className="Form_Field">
+                <label htmlFor="expense-company-account">{t('expenses.companyAccount')} *</label>
+                <Global_Dropdown
+                  id="expense-company-account"
+                  value={companyAccountId}
+                  onChange={(value) => setCompanyAccountId(String(value))}
+                  placeholder={t('expenses.chooseCompanyAccount')}
+                  options={companyAccounts
+                    .filter((account) => account.status === 'active')
+                    .map((account) => ({ value: account.id, label: account.name }))}
+                />
+                <span className="Field_Hint">{t('expenses.companyAccountHint')}</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="Form_Field">
+            <label htmlFor="expense-merchant">{t('expenses.merchant')}</label>
+            <Global_Input id="expense-merchant" value={merchant} onChange={(e) => setMerchant(e.target.value)} />
           </div>
-          <div className="Form_Action">
-            <Simple_Button type="submit" text={saving ? t('common.saving') : t('common.save')} disabled={saving || !valid} />
+        )}
+
+        <div className="Form_Field">
+          <label htmlFor="expense-category">{t('expenses.category')}</label>
+          <Global_Dropdown id="expense-category" value={categoryId} onChange={(value) => setCategoryId(String(value))} options={options} />
+        </div>
+
+        <div className="Form_Field">
+          <label htmlFor="expense-description">{t('expenses.description')}</label>
+          <Global_Input id="expense-description" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+
+        {(kind !== 'purchase' || filledLines.length === 0) && (
+          <div className="Form_Field">
+            <label htmlFor="expense-amount">{t('expenses.amount', { currency: code })} *</label>
+            <Global_Input
+              id="expense-amount"
+              value={filledLines.length > 0 ? String(linesTotal) : amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={lockedCompany}
+            />
+            {kind === 'purchase' && <span className="Field_Hint">{t('expenses.amountHint')}</span>}
+          </div>
+        )}
+
+        {kind === 'purchase' && !lockedCompany && (
+          <div className="Expense_Full Expense_Lines">
+            <div className="Expense_Line Expense_Line_Head">
+              <span>{t('expenses.product')}</span>
+              <span>{t('expenses.quantity')}</span>
+              <span>{t('expenses.unitPrice')}</span>
+              <span>{t('expenses.itemCategory')}</span>
+              <span className="Right">{t('expenses.lineTotal')}</span>
+              <span />
+            </div>
+            {lines.map((line) => (
+              <div key={line.key} className="Expense_Line">
+                <Global_Input
+                  id={`line-name-${line.key}`}
+                  list="expense-products"
+                  value={line.name}
+                  onChange={(e) => setLineName(line.key, e.target.value)}
+                  placeholder={t('expenses.productPlaceholder')}
+                />
+                <Global_Input id={`line-qty-${line.key}`} value={line.quantity} onChange={(e) => setLine(line.key, { quantity: e.target.value })} />
+                <Global_Input id={`line-price-${line.key}`} value={line.unitPrice} onChange={(e) => setLine(line.key, { unitPrice: e.target.value })} />
+                <span className="Expense_Line_Category">{lineCategory(line)}</span>
+                <span className="Right Num">
+                  {formatIn(number(line.quantity || '0') * number(line.unitPrice || '0'), code)}
+                </span>
+                <button
+                  type="button"
+                  className="Icon_Button Tiny"
+                  aria-label={t('common.delete')}
+                  onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
+                >
+                  <Icon.Trash />
+                </button>
+              </div>
+            ))}
+            <datalist id="expense-products">
+              {products.map((product) => (
+                <option key={product.id} value={product.name} />
+              ))}
+            </datalist>
+            <div className="Expense_Lines_Foot">
+              <button type="button" className="Earnings_Link" onClick={() => setLines((current) => [...current, emptyLine()])}>
+                + {t('expenses.addLine')}
+              </button>
+              {filledLines.length > 0 && (
+                <span className="Num Expense_Total">{t('expenses.total', { total: formatIn(linesTotal, code) })}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="Form_Field">
+          <label id={`${groupId}-status`}>{t('expenses.status')}</label>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-status`}>
+            {(['paid', 'pending'] as const).map((option) => (
+              <button key={option} type="button" className={status === option ? 'Active' : ''} aria-pressed={status === option} onClick={() => setStatus(option)}>
+                {t(`expenses.status_${option}`)}
+              </button>
+            ))}
           </div>
         </div>
-      </form>
-    </div>
+        <div className="Form_Field">
+          <label htmlFor="expense-account">{t('expenses.account')}</label>
+          <Global_Dropdown
+            id="expense-account"
+            value={bankAccountId}
+            onChange={(value) => setBankAccountId(String(value))}
+            options={[
+              { value: NONE, label: t('expenses.noAccount') },
+              ...accounts.map((account) => ({ value: account.id, label: account.name })),
+            ]}
+          />
+        </div>
+        <div className="Form_Field Expense_Full">
+          <label htmlFor="expense-notes">{t('expenses.notes')}</label>
+          <Global_Input id="expense-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+
+        {error && <span className="Field_Hint Earnings_Error Expense_Full">{error}</span>}
+      </div>
+
+      <div className="Popover_Footer">
+        <div className="Form_Action">
+          <Simple_Button text={t('common.cancel')} onClick={onClose} variant="Ghost" />
+        </div>
+        <div className="Form_Action">
+          <Simple_Button type="submit" text={t('common.save')} disabled={saving || !valid} />
+        </div>
+      </div>
+    </Popover_Shell>
   );
 };
 

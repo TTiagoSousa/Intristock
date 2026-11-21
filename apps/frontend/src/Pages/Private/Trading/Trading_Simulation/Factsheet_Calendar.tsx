@@ -9,6 +9,7 @@ import { Chevron_Left, Chevron_Right } from '../../../../Imports/icons';
 import Segmented from '../Trading_Simulator/Segmented';
 import Factsheet_Panel from './Factsheet_Panel';
 import { resolveColor, resolveToken, useFactsheetFormat } from './factsheetFormat';
+import { localeOf } from '../../../../utils/locale';
 
 interface Factsheet_Calendar_Props {
   daily: Calendar_Daily;
@@ -74,8 +75,8 @@ const Factsheet_Calendar = ({ daily, unit }: Factsheet_Calendar_Props) => {
       const data: CalendarDatum[] = daily.days
         .filter(([date]) => date.startsWith(String(year)))
         .map(([date, pnl, trades, stops]) => ({ date, value: Math.min(scale, Math.max(-scale, pnl)), pnl, trades, stops }));
-      const monthName = new Intl.DateTimeFormat(i18n.language, { month: 'short', timeZone: 'UTC' });
-      const dayName = new Intl.DateTimeFormat(i18n.language, {
+      const monthName = new Intl.DateTimeFormat(localeOf(i18n.language), { month: 'short', timeZone: 'UTC' });
+      const dayName = new Intl.DateTimeFormat(localeOf(i18n.language), {
         weekday: 'long',
         day: '2-digit',
         month: '2-digit',

@@ -78,7 +78,7 @@ const General = () => {
                   <button
                     key={option.value}
                     type="button"
-                    className={preference === option.value ? 'Active' : ''}
+                    className={preference === option.value ? 'Active' : ''} aria-pressed={preference === option.value}
                     onClick={() => setPreference(option.value)}
                   >
                     {option.label}

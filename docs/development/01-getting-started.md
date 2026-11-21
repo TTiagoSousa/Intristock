@@ -13,7 +13,7 @@
 cp apps/backend/.env.example apps/backend/.env
 ```
 
-Fill in `DATABASE_URL`, `JWT_SECRET`, `JWT_USER_SECRET` and `ENCRYPTION_KEY` (used to encrypt the API keys stored in the settings; keep it, or the stored keys can't be read). The Python apps read the same file (`DATABASE_URL` and `CLICKHOUSE_*`).
+Fill in `DATABASE_URL`, `JWT_SECRET`, `JWT_USER_SECRET` and `ENCRYPTION_KEY` (in production the backend refuses to start if `JWT_USER_SECRET` or `ENCRYPTION_KEY` is shorter than 32 characters or an example value) (used to encrypt the API keys stored in the settings; keep it, or the stored keys can't be read). The Python apps read the same file (`DATABASE_URL` and `CLICKHOUSE_*`).
 
 `apps/frontend/.env` has `VITE_API_URL=http://localhost:3333`.
 
@@ -42,4 +42,16 @@ The backend runs at http://localhost:3333 and the frontend at http://localhost:5
 npm run build      # backend (prisma generate + nest build) and frontend (tsc + vite build)
 ```
 
-The CI runs the same builds, applies every migration to an empty database and checks that they match `schema.prisma`, compiles the Python apps and runs shellcheck on the deploy scripts.
+## Tests and checks
+
+```bash
+npm test           # backend unit tests (jest, *.spec.ts) and frontend unit tests (vitest, *.test.ts)
+npm run check      # report blocks match (simulator, backend, schema) and routes match docs/api.md
+```
+
+- One app only: `npm test --prefix apps/backend` or `--prefix apps/frontend`.
+- Python, inside `apps/downloader` or `apps/simulator` with its `.venv`: `python scripts/smoke_check.py` (imports and a short run, no network or databases). In the simulator, `python scripts/golden_check.py` compares the engine with the reference trades and capital in `scripts/golden.json`; after a change that is meant to move the results, check them and run `python scripts/golden_check.py --update`.
+- The Python version is pinned in each app's `.python-version` (3.13, as in the CI and on the VM).
+- `npm run lint` in the backend only reports; `npm run lint:fix` fixes.
+
+The CI runs the same builds and tests, the two `npm run check` scripts (both blocking), applies every migration to an empty database and checks that they match `schema.prisma`, runs the Python smoke and golden checks and `ruff` (pyflakes and syntax errors), and shellcheck on the deploy scripts. ESLint only reports, on the changed lines of a pull request.

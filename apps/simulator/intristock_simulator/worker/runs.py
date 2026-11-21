@@ -255,7 +255,7 @@ def child_init() -> None:
     """Arranque de cada processo filho. Vive aqui e não no __main__: com
     'spawn', o filho só encontra funções de módulos que consegue importar."""
     # O Ctrl+C chega a todos os processos; quem decide parar é o principal,
-    # que deixa as simulações em curso acabar
+    # que para os filhos e devolve as simulações deles à fila
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     setup_logging()
 

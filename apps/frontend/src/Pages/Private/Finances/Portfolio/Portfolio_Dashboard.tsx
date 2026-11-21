@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -15,6 +15,7 @@ import Platform_Badge from './Platform_Badge';
 import Portfolio_Carousel from './Portfolio_Carousel';
 import Portfolio_Allocation from './Portfolio_Allocation';
 import './Portfolio.scss';
+import { localeOf } from '../../../../utils/locale';
 
 // O período escolhido fica no browser
 const RANGE_KEY = 'intristock-portfolio-range';
@@ -77,27 +78,27 @@ const Portfolio_Dashboard = () => {
   const code = data?.currency?.shortCode ?? selectedCurrency;
   const format = (value: number) => formatIn(value, code);
   const compact = (value: number) =>
-    new Intl.NumberFormat(i18n.language, { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+    new Intl.NumberFormat(localeOf(i18n.language), { notation: 'compact', maximumFractionDigits: 1 }).format(value);
   const day = useMemo(
-    () => new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }),
+    () => new Intl.DateTimeFormat(localeOf(i18n.language), { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }),
     [i18n.language],
   );
   const shortDay = useMemo(
-    () => new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short', timeZone: 'UTC' }),
+    () => new Intl.DateTimeFormat(localeOf(i18n.language), { day: 'numeric', month: 'short', timeZone: 'UTC' }),
     [i18n.language],
   );
   // Nos períodos curtos (hora a hora), a hora local
   const dayHour = useMemo(
-    () => new Intl.DateTimeFormat(i18n.language, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+    () => new Intl.DateTimeFormat(localeOf(i18n.language), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
     [i18n.language],
   );
   const shortHour = useMemo(
-    () => new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }),
+    () => new Intl.DateTimeFormat(localeOf(i18n.language), { hour: '2-digit', minute: '2-digit' }),
     [i18n.language],
   );
   const hourly = data?.granularity === 'hour';
   const percent = useMemo(
-    () => new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 2, signDisplay: 'exceptZero' }),
+    () => new Intl.NumberFormat(localeOf(i18n.language), { style: 'percent', maximumFractionDigits: 2, signDisplay: 'exceptZero' }),
     [i18n.language],
   );
   const pct = (value: number) => percent.format(value / 100);

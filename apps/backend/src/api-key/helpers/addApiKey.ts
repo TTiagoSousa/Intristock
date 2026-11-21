@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { encryptSecret } from 'src/utils/crypto/secret-box';
+import { encryptSecret, secretContext } from 'src/utils/crypto/secret-box';
 import { PrismaApiKeyRepository } from '../repositories/prisma/prisma-api-key-repository';
 import { CreateApiKeyDto } from '../dto/api-key.dto';
 import { API_KEY_PROVIDERS, ApiKeyUnusableError } from './apiKeyProviders';
@@ -23,7 +23,7 @@ export async function addApiKey(dto: CreateApiKeyDto, repository: PrismaApiKeyRe
   const created = await repository.create({
     kind: dto.kind,
     label: dto.label?.trim() || plan,
-    key: encryptSecret(key),
+    key: encryptSecret(key, secretContext('api_key', dto.kind, 'key')),
     keyHint: key.slice(-4),
     ...usage,
     checkedAt: new Date(),

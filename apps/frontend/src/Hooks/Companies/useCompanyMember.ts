@@ -29,6 +29,9 @@ export interface Member_Detail extends Member_Profile {
   user: { id: string; email: string; fullName: string } | null;
   role: { id: string; name: string } | null;
   currency: { id: string; shortCode: string; symbol: string } | null;
+  // Sem `salaries.view` nem `members.manage` (e não sendo a própria pessoa) os dados
+  // pessoais vêm a nulo: NIF, Segurança Social, CC, nascimento, morada e IBAN
+  personalDataHidden?: boolean;
 }
 
 export type Member_Pay_Kind = 'salary' | 'freelance';
@@ -45,6 +48,9 @@ export interface Member_Pay {
   endDate: string | null;
   dueDate: string | null;
   withholdingPct: string | null;
+  // A um membro com conta vai como proposta: só conta depois de ele aceitar
+  status: 'proposed' | 'accepted' | 'declined' | 'cancelled';
+  responseNote: string | null;
   // Os pagamentos já registados dele
   _count: { payments: number };
 }
@@ -143,12 +149,21 @@ export const useCompanyMember = (
   }, [companyId, memberId, withSalaries]);
 
   // Grava, volta a ler e avisa; devolve se correu bem
-  const mutate = async (request: () => Promise<unknown>, reload: () => Promise<unknown>, successKey: string) => {
+  // O aviso pode depender da resposta (um salário para quem tem conta é uma proposta)
+  const mutate = async (
+    request: () => Promise<unknown>,
+    reload: () => Promise<unknown>,
+    successKey: string | ((response: unknown) => string),
+  ) => {
     setSaving(true);
     try {
-      await request();
+      const response = await request();
       await reload();
-      setAlert({ open: true, message: t(successKey), type: 'success' });
+      setAlert({
+        open: true,
+        message: t(typeof successKey === 'function' ? successKey(response) : successKey),
+        type: 'success',
+      });
       return true;
     } catch (error) {
       fail(error);
@@ -211,7 +226,11 @@ export const useCompanyMember = (
             ? http.patch(End_Points.Company_Member_Pay_Endpoint(company, id, payId), input)
             : http.post(End_Points.Company_Member_Pays_Endpoint(company, id), input),
         loadSalaries,
-        'memberPays.saved',
+        // Ficou à espera de que a pessoa aceite: diz-se que é uma proposta
+        (response) =>
+          (response as { data?: { status?: string } } | undefined)?.data?.status === 'proposed'
+            ? 'memberPays.proposalSent'
+            : 'memberPays.saved',
       ),
     deletePay: (payId: string) =>
       mutate(() => http.delete(End_Points.Company_Member_Pay_Endpoint(company, id, payId)), loadSalaries, 'memberPays.deleted'),

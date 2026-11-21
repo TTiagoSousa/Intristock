@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaCompanyPaymentRepository } from '../repositories/prisma/prisma-company-payment-repository';
 import { PrismaCompanyRepository } from 'src/company/repositories/prisma/prisma-company-repository';
 import { PrismaCompanySupplierRepository } from 'src/company-supplier/repositories/prisma/prisma-company-supplier-repository';
@@ -58,6 +58,13 @@ export async function updateCompanyPayment(
 
     if (!account || account.companyId !== companyId) {
       throw new BadRequestException(`A conta bancária de ${field} não pertence a esta empresa`);
+    }
+
+    // Como ao criar: na moeda do pagamento ou na da empresa, senão o saldo dela não se sabe
+    if (account.currencyId !== payment.currencyId && account.currencyId !== company.currencyId) {
+      throw new BadRequestException(
+        `A conta bancária de ${field} não está na moeda do pagamento nem na da empresa`,
+      );
     }
   };
 
@@ -155,7 +162,23 @@ export async function updateCompanyPayment(
         )
       : null;
 
-  return companyPaymentRepository.updateWithEffects(paymentId, {
+  // Passar a concluído (de rascunho ou de cancelado) um período de salário: tem de continuar
+  // por pagar, e o repositório confirma-o com o trinco do período
+  const becameSettled = !wasSettled && willBeSettled;
+  if (becameSettled && payment.memberId && payment.memberPayId) {
+    const pay = await companyPaymentRepository.findMemberPay(payment.memberId, payment.memberPayId);
+    if (!pay || pay.status !== 'accepted') {
+      throw new BadRequestException('Este salário não está aceite pelo membro: não se pode pagar');
+    }
+  }
+
+  const memberPeriod =
+    becameSettled && payment.memberPayId && payment.memberPayPeriod
+      ? { memberPayId: payment.memberPayId, period: payment.memberPayPeriod }
+      : undefined;
+
+  const updated = await companyPaymentRepository.updateWithEffects(paymentId, {
+    memberPeriod,
     data: {
       description: dto.description,
       reference: dto.reference,
@@ -183,4 +206,10 @@ export async function updateCompanyPayment(
     // Os ativos contam-se na moeda da empresa
     currencyId: company.currencyId,
   });
+
+  if (!updated) {
+    throw new ConflictException('Esse período já está pago noutro pagamento');
+  }
+
+  return { payment: updated, becameSettled };
 }

@@ -66,7 +66,6 @@ export interface CompanyRepository {
   findBySlug(slug: string): Promise<Company | null>;
   findAllByCreatedById(createdById: string): Promise<Company[]>;
   findAllAccessibleByUserId(userId: string): Promise<CompanyWithAccessRole[]>;
-  findBankAccountByIban(iban: string): Promise<BankAccount | null>;
   addMember(data: {
     companyId: string;
     userId: string;

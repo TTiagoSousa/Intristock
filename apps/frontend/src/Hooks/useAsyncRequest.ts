@@ -1,8 +1,16 @@
 import { useState } from 'react';
+import i18n from '../i18n/i18n';
 import { useAlert } from '../Contexts/Alert_Context';
 
-export const getErrorMessage = (error: any) =>
-  error.response?.data?.message || error.message || 'Something went wrong';
+// A mensagem do backend (também a do limite de pedidos, 429, e a do CSRF, 403/415);
+// a validação dá uma lista, que se junta. Sem nenhuma, um texto na língua da app.
+export const getErrorMessage = (error: any): string => {
+  const message = error?.response?.data?.message;
+  if (Array.isArray(message) && message.length) return message.join('; ');
+  if (typeof message === 'string' && message) return message;
+  if (error?.response?.status === 429) return i18n.t('errors.tooManyRequests');
+  return error?.message || i18n.t('errors.generic');
+};
 
 export const useAsyncRequest = (initialLoading = false) => {
   const [loading, setLoading] = useState(initialLoading);

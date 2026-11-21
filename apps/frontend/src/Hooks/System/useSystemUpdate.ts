@@ -20,6 +20,8 @@ export const useSystemUpdate = () => {
   const target = useRef<string | null>(null);
   // O estado que ficou da atualização anterior não pode passar por esta
   const previousRun = useRef<string | null>(null);
+  // Depois de sair da página, uma resposta que chegue já não volta a agendar
+  const alive = useRef(true);
 
   const stop = () => {
     if (timer.current) window.clearTimeout(timer.current);
@@ -27,6 +29,7 @@ export const useSystemUpdate = () => {
   };
 
   const poll = async () => {
+    if (!alive.current) return;
     try {
       const response = await http.get<UpdateStatus>(End_Points.System_Update_Status_Endpoint());
       let next = response.data;
@@ -51,6 +54,7 @@ export const useSystemUpdate = () => {
     } catch {
       setRestarting(true);
     }
+    if (!alive.current) return;
     timer.current = window.setTimeout(poll, POLL_MS);
   };
 
@@ -63,7 +67,7 @@ export const useSystemUpdate = () => {
       previousRun.current = before.data.startedAt;
       const response = await http.post<UpdateStatus>(End_Points.System_Update_Endpoint(), { version });
       setStatus(response.data);
-      timer.current = window.setTimeout(poll, POLL_MS);
+      if (alive.current) timer.current = window.setTimeout(poll, POLL_MS);
       return true;
     } catch (requestError) {
       setError(getErrorMessage(requestError));
@@ -79,7 +83,13 @@ export const useSystemUpdate = () => {
     poll();
   };
 
-  useEffect(() => stop, []);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      stop();
+    };
+  }, []);
 
   return { status, restarting, done, error, start, follow };
 };

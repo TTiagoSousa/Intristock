@@ -26,20 +26,15 @@ export async function saveProduct(
   )
     throw new NotFoundException('Categoria não encontrada');
 
-  const name = dto.name?.trim();
-  if (name) {
-    const same = await repository.findProductByName(userId, name);
-    if (same && same.id !== productId)
-      throw new ConflictException('Já tens um item com este nome');
-  }
-
   const data = {
-    name,
+    name: dto.name?.trim(),
     brand: clean(dto.brand),
     unit: clean(dto.unit),
     categoryId: dto.categoryId,
   };
-  return productId
-    ? repository.updateProduct(productId, data)
-    : repository.createProduct(userId, data);
+  // A procura do nome e a gravação vão juntas, com um trinco por nome: dois pedidos ao
+  // mesmo tempo não criam dois itens iguais
+  const product = await repository.saveProductWithUniqueName(userId, productId, data);
+  if (!product) throw new ConflictException('Já tens um item com este nome');
+  return product;
 }

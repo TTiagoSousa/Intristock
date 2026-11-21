@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
@@ -9,6 +9,7 @@ import Global_Input from '../../../../Components/Inputs/Global_Input/Global_Inpu
 import Month_Chart from '../../../../Components/Charts/Month_Chart/Month_Chart';
 import { expectedPartLabel, formatDay, localeOf } from './earningsLabels';
 import './Earnings.scss';
+import { localMonth } from '../../../../utils/dates';
 
 // Os períodos (meses para trás) e os meses à frente que se escolhem
 const PERIODS = [6, 12, 24] as const;
@@ -43,6 +44,7 @@ interface Point {
  */
 const Earnings_Dashboard = () => {
   const { t, i18n } = useTranslation();
+  const groupId = useId();
   const navigate = useNavigate();
   const { currencies, selectedCurrency } = useCurrency();
   const { formatIn } = useCurrencyFormat();
@@ -61,8 +63,8 @@ const Earnings_Dashboard = () => {
   // Abre as datas com o período que estava à vista
   const openCustom = () => {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + future, 1));
+    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth() - (months - 1), 1));
+    const end = new Date(Date.UTC(now.getFullYear(), now.getMonth() + future, 1));
     setRange((current) => ({
       from: current.from || start.toISOString().slice(0, 7),
       to: current.to || end.toISOString().slice(0, 7),
@@ -89,7 +91,8 @@ const Earnings_Dashboard = () => {
     short: `${monthDate(entry.month).toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' }).replace('.', '')} ${entry.month.slice(2, 4)}`,
     label: monthDate(entry.month).toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }),
   }));
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  // O mês de hoje no browser (não em UTC)
+  const currentMonth = localMonth();
   // A linha do «Hoje» só quando há meses à frente à vista
   const todayPosition = points.findIndex((point) => point.month === currentMonth);
   const todayIndex = todayPosition >= 0 && todayPosition < points.length - 1 ? todayPosition : undefined;
@@ -151,13 +154,13 @@ const Earnings_Dashboard = () => {
       {/* Os filtros do gráfico e o registo, num cartão esticado por cima dele */}
       <div className="Card Earnings_Toolbar">
         <div className="Earnings_Filter Inline">
-          <span className="Eyebrow">{t('purchasesDashboard.filterPeriod')}</span>
-          <div className="Tabs">
+          <span className="Eyebrow" id={`${groupId}-filterPeriod`}>{t('purchasesDashboard.filterPeriod')}</span>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterPeriod`}>
             {PERIODS.map((period) => (
               <button
                 key={period}
                 type="button"
-                className={!custom && months === period ? 'Active' : ''}
+                className={!custom && months === period ? 'Active' : ''} aria-pressed={!custom && months === period}
                 onClick={() => {
                   setCustom(false);
                   setMonths(period);
@@ -166,14 +169,14 @@ const Earnings_Dashboard = () => {
                 {t('purchasesDashboard.months', { count: period })}
               </button>
             ))}
-            <button type="button" className={custom ? 'Active' : ''} onClick={openCustom}>
+            <button type="button" className={custom ? 'Active' : ''} aria-pressed={custom} onClick={openCustom}>
               {t('purchasesDashboard.customDates')}
             </button>
           </div>
         </div>
         {custom ? (
           <div className="Earnings_Filter Inline">
-            <span className="Eyebrow">{t('purchasesDashboard.filterRange')}</span>
+            <label className="Eyebrow" htmlFor="earnings-chart-from">{t('purchasesDashboard.filterRange')}</label>
             <div className="Earnings_Range">
               <Global_Input
                 id="earnings-chart-from"
@@ -192,13 +195,13 @@ const Earnings_Dashboard = () => {
           </div>
         ) : (
           <div className="Earnings_Filter Inline">
-            <span className="Eyebrow">{t('purchasesDashboard.filterFuture')}</span>
-            <div className="Tabs">
+            <span className="Eyebrow" id={`${groupId}-filterFuture`}>{t('purchasesDashboard.filterFuture')}</span>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-filterFuture`}>
               {FUTURES.map((option) => (
                 <button
                   key={option}
                   type="button"
-                  className={future === option ? 'Active' : ''}
+                  className={future === option ? 'Active' : ''} aria-pressed={future === option}
                   onClick={() => setFuture(option)}
                 >
                   {option === 0 ? t('purchasesDashboard.noFuture') : t('purchasesDashboard.months', { count: option })}
@@ -227,7 +230,7 @@ const Earnings_Dashboard = () => {
                 <button
                   key={option}
                   type="button"
-                  className={kind === option ? 'Active' : ''}
+                  className={kind === option ? 'Active' : ''} aria-pressed={kind === option}
                   onClick={() => chooseKind(option)}
                 >
                   {t(`purchasesDashboard.${option}`)}
@@ -341,7 +344,7 @@ const Earnings_Dashboard = () => {
             ) : (
               <div className="Earnings_Upcoming">
                 {data.upcoming.map((item) => (
-                  <div key={`${item.origin}|${item.id ?? item.name}|${item.period}|${item.date}`} className="Earnings_Upcoming_Row">
+                  <div key={`${item.origin}|${item.part ?? ''}|${item.id ?? item.name}|${item.period}|${item.date}`} className="Earnings_Upcoming_Row">
                     <div className="Earnings_Upcoming_Text">
                       <span className="Earnings_Strong">{item.name ?? t(`earnings.kind_${item.kind}`)}</span>
                       <span className="Earnings_Sub">
@@ -352,6 +355,7 @@ const Earnings_Dashboard = () => {
                     <div className="Earnings_Upcoming_Value">
                       <span className="Num">{formatIn(item.amount, item.currency.shortCode)}</span>
                       {item.overdue && <span className="Pill Bad">{t('earnings.overdue')}</span>}
+                      {item.companyPaid && <span className="Pill Info">{t('earnings.toConfirm')}</span>}
                     </div>
                   </div>
                 ))}

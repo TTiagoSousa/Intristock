@@ -1,3 +1,4 @@
+import { pipeline } from 'stream/promises';
 import {
   BadRequestException,
   Body,
@@ -221,7 +222,9 @@ export class CompanyMemberController {
       `attachment; filename*=UTF-8''${encodeURIComponent(document.fileName)}`,
     );
     res.setHeader('Cache-Control', 'private, no-store');
-    stream.pipe(res);
+    // O pipeline fecha os dois lados num erro (o S3 cai a meio, o browser desliga) em
+    // vez de deixar um erro sem dono deitar o processo abaixo
+    await pipeline(stream, res).catch(() => undefined);
   }
 
   @Delete('members/:memberId/documents/:documentId')

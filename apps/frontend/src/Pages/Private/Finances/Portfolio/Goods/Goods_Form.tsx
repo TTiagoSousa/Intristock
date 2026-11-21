@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../../../../../Contexts/Currency_Context';
 import { useCurrencyFormat } from '../../../../../Hooks/useCurrencyFormat';
@@ -47,6 +47,7 @@ type Value_Mode = 'none' | 'manual' | 'search';
  */
 const Goods_Form = ({ portfolio, portfolios, header, errorLine, saving, onBack, onSubmit }: Goods_Form_Props) => {
   const { t } = useTranslation();
+  const groupId = useId();
   const { currencies, selectedCurrency } = useCurrency();
   const { formatIn } = useCurrencyFormat();
   const pricesAvailable = usePricesAvailable();
@@ -170,10 +171,10 @@ const Goods_Form = ({ portfolio, portfolios, header, errorLine, saving, onBack, 
 
         <span className="Goods_Section_Title">{t('goods.sectionEntry')}</span>
         <div className="Form_Field">
-          <label>{t('goods.acquisition')}</label>
-          <div className="Tabs">
+          <label id={`${groupId}-acquisition`}>{t('goods.acquisition')}</label>
+          <div className="Tabs" role="group" aria-labelledby={`${groupId}-acquisition`}>
             {ACQUISITIONS.map((option) => (
-              <button key={option} type="button" className={acquisition === option ? 'Active' : ''} onClick={() => setAcquisition(option)}>
+              <button key={option} type="button" className={acquisition === option ? 'Active' : ''} aria-pressed={acquisition === option} onClick={() => setAcquisition(option)}>
                 {t(`goods.acquisition_${option}`)}
               </button>
             ))}
@@ -214,7 +215,7 @@ const Goods_Form = ({ portfolio, portfolios, header, errorLine, saving, onBack, 
         <div className="Form_Field">
           <div className="Tabs">
             {(['none', 'manual', ...(pricesAvailable ? ['search'] : [])] as Value_Mode[]).map((option) => (
-              <button key={option} type="button" className={valueMode === option ? 'Active' : ''} onClick={() => setValueMode(option)}>
+              <button key={option} type="button" className={valueMode === option ? 'Active' : ''} aria-pressed={valueMode === option} onClick={() => setValueMode(option)}>
                 {t(`goods.valueMode_${option}`)}
               </button>
             ))}
@@ -243,10 +244,10 @@ const Goods_Form = ({ portfolio, portfolios, header, errorLine, saving, onBack, 
 
         {pricesAvailable && (
           <div className="Form_Field">
-            <label>{t('goods.autoUpdate')}</label>
-            <div className="Tabs">
+            <label id={`${groupId}-autoUpdate`}>{t('goods.autoUpdate')}</label>
+            <div className="Tabs" role="group" aria-labelledby={`${groupId}-autoUpdate`}>
               {VALUATION_INTERVALS.map((days) => (
-                <button key={days} type="button" className={every === days ? 'Active' : ''} onClick={() => setEvery(days)}>
+                <button key={days} type="button" className={every === days ? 'Active' : ''} aria-pressed={every === days} onClick={() => setEvery(days)}>
                   {t(`goods.every_${days}`)}
                 </button>
               ))}
@@ -275,7 +276,7 @@ const Goods_Form = ({ portfolio, portfolios, header, errorLine, saving, onBack, 
           <Simple_Button text={t('portfolio.back')} onClick={onBack} variant="Ghost" />
         </div>
         <div className="Form_Action">
-          <Simple_Button type="submit" text={saving ? t('common.saving') : t('common.save')} disabled={saving || !valid} />
+          <Simple_Button type="submit" text={t('common.save')} disabled={saving || !valid} />
         </div>
       </div>
     </form>

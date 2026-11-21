@@ -16,6 +16,8 @@ import { CreateMarketDataDownloadDto } from './dto/create-market-data-download.d
 import { FindCandlesDto } from './dto/find-candles.dto';
 import { JwtUserAuthGuard } from 'src/auth-user/guards/jwt-user-auth.guard';
 import { JwtUserPayload } from 'src/auth-user/jwt-payload.interface';
+import { UserThrottle } from 'src/common/throttle/user-throttle.decorator';
+import { CANDLES_LIMIT, DOWNLOADS_LIMIT } from 'src/common/throttle/throttle.constants';
 
 @Controller('market')
 @UseGuards(JwtUserAuthGuard)
@@ -35,11 +37,13 @@ export class MarketDataController {
   // Um bloco de velas para o gráfico ([tempo, abertura, máxima, mínima, fecho,
   // volume]), as mais recentes antes de `to`
   @Get('candles')
+  @UserThrottle(CANDLES_LIMIT)
   findCandles(@Query() query: FindCandlesDto) {
     return this.marketDataService.findCandles(query);
   }
 
   @Post('downloads')
+  @UserThrottle(DOWNLOADS_LIMIT)
   createDownload(
     @Req() req: Request & { user: JwtUserPayload },
     @Body() dto: CreateMarketDataDownloadDto,

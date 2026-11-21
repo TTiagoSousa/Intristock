@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCompanies } from '../../../../Hooks/Companies/useCompanies';
 import { useCompanyStock } from '../../../../Hooks/Companies/useCompanyStock';
@@ -7,13 +7,15 @@ import { useBreadcrumbSegmentLabel } from '../../../../Contexts/Breadcrumb_Conte
 import { useCurrencyFormat } from '../../../../Hooks/useCurrencyFormat';
 import Global_Pagination from '../../../../Components/Pagination/Global_Pagination/Global_Pagination';
 import './Company_Stock_Balance.scss';
+import { localeOf } from '../../../../utils/locale';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 // Quanto há de cada item e quanto vale. O porquê de cada quantidade está nos
 // movimentos — daí cada linha levar lá, já filtrada.
 const Company_Stock_Balance = () => {
   const { slug } = useParams();
   const { companies } = useCompanies();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { formatIn } = useCurrencyFormat();
   const navigate = useNavigate();
 
@@ -83,7 +85,7 @@ const Company_Stock_Balance = () => {
                     className="Stock_Row"
                     onClick={() =>
                       navigate(`/Companies/${slug}/stock/movimentos?item=${row.itemId}`)
-                    }
+                    } tabIndex={0} onKeyDown={activateOnKey}
                   >
                     <td className="Stock_Item_Name">{row.itemName}</td>
                     <td className={`Amount ${row.quantity < 0 ? 'Stock_Negative' : ''}`}>
@@ -93,7 +95,7 @@ const Company_Stock_Balance = () => {
                     <td className="Amount Stock_Value">{money(row.totalValue)}</td>
                     <td className="Amount">{row.movements}</td>
                     <td className="Numeric Left">
-                      {row.lastMovementAt ? new Date(row.lastMovementAt).toLocaleDateString() : '—'}
+                      {row.lastMovementAt ? new Date(row.lastMovementAt).toLocaleDateString(localeOf(i18n.language)) : '—'}
                     </td>
                     <td className="Right">
                       <span className="Stock_Expand">{t('stock.showItem')}</span>

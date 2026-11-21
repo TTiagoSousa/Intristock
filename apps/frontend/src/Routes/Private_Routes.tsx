@@ -1,9 +1,18 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
 import * as Private_Page from '../Imports/privatePages';
 import Admin_Only from '../Authentication/Admin_Only';
+import Company_Permission_Gate from '../Authentication/Company_Permission_Gate';
+import Page_Notice from '../Components/Page_Notice/Page_Notice';
 
 const Private_Routes = () => {
+  const { t } = useTranslation();
+
+  // As páginas carregam-se por área (Imports/privatePages): enquanto chega a
+  // primeira de uma área, o espaço fica vazio, sem spinner
   return (
+    <Suspense fallback={null}>
     <Routes>
       <Route index element={ <Private_Page.Dashboard /> } />
       <Route path='Dashboard' element={ <Private_Page.Dashboard /> } />
@@ -48,33 +57,54 @@ const Private_Routes = () => {
       {/* As versões passaram para o seu módulo: o endereço antigo leva ao novo */}
       <Route path='Settings/Admin/Versions' element={ <Navigate to='/Versoes/atualizar' replace /> } />
       <Route path='Versoes' element={ <Private_Page.Versions_News /> } />
+      <Route path='Convites' element={ <Private_Page.Invitations /> } />
       <Route path='Versoes/atualizar' element={ <Admin_Only><Private_Page.Admin_Versions /></Admin_Only> } />
       <Route path='Companies' element={ <Private_Page.Companies /> } />
-      <Route path='Companies/:slug' element={ <Private_Page.Company_Dashboard /> } />
-      <Route path='Companies/:slug/compras' element={ <Private_Page.Company_Purchases /> } />
-      <Route path='Companies/:slug/compras/configuracao' element={ <Private_Page.Company_Purchases_Setup /> } />
-      <Route path='Companies/:slug/compras/fornecedores' element={ <Private_Page.Company_Suppliers /> } />
-      <Route path='Companies/:slug/compras/fornecedores/new-supplier' element={ <Private_Page.Company_Supplier /> } />
-      <Route path='Companies/:slug/compras/fornecedores/:supplierSlug' element={ <Private_Page.Company_Supplier /> } />
-      <Route path='Companies/:slug/compras/grupos-fornecedores' element={ <Private_Page.Company_Supplier_Groups /> } />
-      <Route path='Companies/:slug/compras/itens' element={ <Private_Page.Company_Items /> } />
-      <Route path='Companies/:slug/compras/itens/new-item' element={ <Private_Page.Company_Item /> } />
-      <Route path='Companies/:slug/compras/itens/:itemSlug' element={ <Private_Page.Company_Item /> } />
-      <Route path='Companies/:slug/compras/pagamentos' element={ <Private_Page.Company_Payments /> } />
-      <Route path='Companies/:slug/compras/proximos-pagamentos' element={ <Private_Page.Company_Upcoming_Payments /> } />
-      <Route path='Companies/:slug/stock' element={ <Private_Page.Company_Stock /> } />
-      <Route path='Companies/:slug/stock/existencias' element={ <Private_Page.Company_Stock_Balance /> } />
-      <Route path='Companies/:slug/stock/movimentos' element={ <Private_Page.Company_Stock_Movements /> } />
-      <Route path='Companies/:slug/ativos' element={ <Private_Page.Company_Assets /> } />
-      <Route path='Companies/:slug/ativos/registo' element={ <Private_Page.Company_Assets_Register /> } />
-      <Route path='Companies/:slug/trading' element={ <Private_Page.Company_Trading /> } />
-      <Route path='Companies/:slug/membros' element={ <Private_Page.Company_Members /> } />
-      <Route path='Companies/:slug/membros/cargos' element={ <Private_Page.Company_Roles /> } />
-      <Route path='Companies/:slug/membros/pessoa/:memberId' element={ <Private_Page.Company_Member /> } />
-      <Route path='Companies/:slug/modulos' element={ <Private_Page.Company_Modules /> } />
-      <Route path='Companies/:slug/modulos/:moduleName' element={ <Private_Page.Company_Module_Settings /> } />
-      <Route path='Companies/:slug/definicoes' element={ <Private_Page.Company_Settings /> } />
+      {/* As páginas de uma empresa pedem a permissão da área do menu */}
+      <Route path='Companies/:slug' element={ <Company_Permission_Gate><Outlet /></Company_Permission_Gate> }>
+        <Route index element={ <Private_Page.Company_Dashboard /> } />
+        <Route path='compras' element={ <Private_Page.Company_Purchases /> } />
+        <Route path='compras/configuracao' element={ <Private_Page.Company_Purchases_Setup /> } />
+        <Route path='compras/fornecedores' element={ <Private_Page.Company_Suppliers /> } />
+        <Route path='compras/fornecedores/new-supplier' element={ <Private_Page.Company_Supplier /> } />
+        <Route path='compras/fornecedores/:supplierSlug' element={ <Private_Page.Company_Supplier /> } />
+        <Route path='compras/grupos-fornecedores' element={ <Private_Page.Company_Supplier_Groups /> } />
+        <Route path='compras/itens' element={ <Private_Page.Company_Items /> } />
+        <Route path='compras/itens/new-item' element={ <Private_Page.Company_Item /> } />
+        <Route path='compras/itens/:itemSlug' element={ <Private_Page.Company_Item /> } />
+        <Route path='compras/pagamentos' element={ <Private_Page.Company_Payments /> } />
+        <Route path='compras/proximos-pagamentos' element={ <Private_Page.Company_Upcoming_Payments /> } />
+        <Route path='stock' element={ <Private_Page.Company_Stock /> } />
+        <Route path='stock/existencias' element={ <Private_Page.Company_Stock_Balance /> } />
+        <Route path='stock/movimentos' element={ <Private_Page.Company_Stock_Movements /> } />
+        <Route path='ativos' element={ <Private_Page.Company_Assets /> } />
+        <Route path='ativos/registo' element={ <Private_Page.Company_Assets_Register /> } />
+        <Route path='trading' element={ <Private_Page.Company_Trading /> } />
+        <Route path='horas' element={ <Private_Page.Time_Tracking_Overview /> } />
+        <Route path='horas/registo' element={ <Private_Page.Time_Tracking_Hours /> } />
+        <Route path='horas/clientes' element={ <Private_Page.Time_Tracking_Clients /> } />
+        <Route path='definicoes/apps' element={ <Private_Page.Time_Tracking_Connections /> } />
+        <Route path='membros' element={ <Private_Page.Company_Members /> } />
+        <Route path='membros/cargos' element={ <Private_Page.Company_Roles /> } />
+        <Route path='membros/pessoa/:memberId' element={ <Private_Page.Company_Member /> } />
+        <Route path='modulos' element={ <Private_Page.Company_Modules /> } />
+        <Route path='modulos/:moduleName' element={ <Private_Page.Company_Module_Settings /> } />
+        <Route path='definicoes' element={ <Private_Page.Company_Settings /> } />
+      </Route>
+      {/* Um endereço que não existe */}
+      <Route
+        path='*'
+        element={
+          <Page_Notice
+            title={t('notFound.title')}
+            text={t('notFound.text')}
+            actionText={t('notFound.back')}
+            actionPath='/Dashboard'
+          />
+        }
+      />
     </Routes>
+    </Suspense>
   );
 };
 

@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { End_Points } from "../../Service/endPoints";
 import http from "../../Service/httpService";
 import { useAlert } from "../../Contexts/Alert_Context";
+import { safeNextPath } from "../../utils/nextPath";
+import { localeOf } from "../../utils/locale";
 
 export const useSignin = () => {
   const [signInEmail, setSignInEmail] = useState('');
@@ -38,8 +40,11 @@ export const useSignin = () => {
         type: 'success',
       });
 
+      // Volta à página que pediu o login (?next=), ou ao Dashboard. O botão
+      // fica desativado até sair da página.
+      const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
       setTimeout(() => {
-        window.location.href = '/Dashboard';
+        window.location.href = next;
       }, 300);
 
     } catch (error: any) {
@@ -48,7 +53,7 @@ export const useSignin = () => {
       // Conta bloqueada: a data na hora de quem tenta entrar, e o motivo se houver
       const msg = data?.blockedUntil
         ? t(data.blockedReason ? 'auth.blockedWithReason' : 'auth.blocked', {
-            date: new Date(data.blockedUntil).toLocaleString(i18n.language === 'pt' ? 'pt-PT' : 'en-GB', {
+            date: new Date(data.blockedUntil).toLocaleString(localeOf(i18n.language), {
               dateStyle: 'short',
               timeStyle: 'short',
             }),
@@ -61,7 +66,6 @@ export const useSignin = () => {
         message: msg,
         type: 'error',
       });
-    } finally {
       setLoading(false);
     }
   };

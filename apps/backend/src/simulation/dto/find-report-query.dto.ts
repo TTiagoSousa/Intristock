@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsArray, IsIn, IsOptional } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsOptional } from 'class-validator';
 
 // Os blocos do relatório de uma simulação: cada um é uma coluna JSONB da
 // SimulationRun, que o simulador grava já calculada (o número é a secção no ecrã).
@@ -131,6 +131,7 @@ export class FindReportQueryDto {
       : value,
   )
   @IsArray()
+  @ArrayMaxSize(REPORT_BLOCKS.length)
   @IsIn(REPORT_BLOCKS, { each: true })
   blocks?: ReportBlock[];
 }

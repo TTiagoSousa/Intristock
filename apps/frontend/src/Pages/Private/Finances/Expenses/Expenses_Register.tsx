@@ -16,12 +16,13 @@ import Simple_Button from '../../../../Components/Buttons/Simple_Button/Simple_B
 import Global_Pagination from '../../../../Components/Pagination/Global_Pagination/Global_Pagination';
 import { usePagedList } from '../../../../Hooks/usePagedList';
 import * as Icon from '../../../../Imports/icons';
-import Confirm_Popover from '../../Companies/Company_Members/Confirm_Popover';
+import Confirm_Popover from '../../../../Components/Confirm_Popover/Confirm_Popover';
 import { formatDay, localeOf } from '../Earnings/earningsLabels';
 import Expense_Popover from './Expense_Popover';
 import { categoryLabel, categoryOptions, categoryPath } from './expensesShared';
 import '../Earnings/Earnings.scss';
 import './Expenses.scss';
+import { activateOnKey } from '../../../../utils/rowKeyboard';
 
 const EMPTY_FILTERS: Expense_Filters = { from: '', to: '', kind: '', categoryId: '', q: '' };
 
@@ -66,19 +67,19 @@ const Expenses_Register = () => {
       <div className="Card Earnings_Filter_Card">
         <div className="Earnings_Filters">
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('expenses.search')}</span>
+            <label className="Eyebrow" htmlFor="expense-filter-q">{t('expenses.search')}</label>
             <Global_Input id="expense-filter-q" value={filters.q} onChange={(e) => setFilter('q', e.target.value)} icon={Icon.Search} />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterFrom')}</span>
+            <label className="Eyebrow" htmlFor="expense-filter-from">{t('earnings.filterFrom')}</label>
             <Global_Input id="expense-filter-from" type="date" value={filters.from} onChange={(e) => setFilter('from', e.target.value)} />
           </div>
           <div className="Earnings_Filter">
-            <span className="Eyebrow">{t('earnings.filterTo')}</span>
+            <label className="Eyebrow" htmlFor="expense-filter-to">{t('earnings.filterTo')}</label>
             <Global_Input id="expense-filter-to" type="date" value={filters.to} onChange={(e) => setFilter('to', e.target.value)} />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('expenses.category')}</span>
+            <label className="Eyebrow" htmlFor="expense-filter-category">{t('expenses.category')}</label>
             <Global_Dropdown
               id="expense-filter-category"
               value={filters.categoryId}
@@ -87,7 +88,7 @@ const Expenses_Register = () => {
             />
           </div>
           <div className="Earnings_Filter Wide">
-            <span className="Eyebrow">{t('earnings.filterKind')}</span>
+            <label className="Eyebrow" htmlFor="expense-filter-kind">{t('earnings.filterKind')}</label>
             <Global_Dropdown
               id="expense-filter-kind"
               value={filters.kind}
@@ -153,7 +154,7 @@ const Expenses_Register = () => {
                       <Fragment key={expense.id}>
                         <tr
                           className={expense.items.length > 0 ? 'Expense_Row_Open' : ''}
-                          onClick={() => expense.items.length > 0 && setOpen(open === expense.id ? null : expense.id)}
+                          onClick={() => expense.items.length > 0 && setOpen(open === expense.id ? null : expense.id)} tabIndex={expense.items.length > 0 ? 0 : undefined} onKeyDown={activateOnKey} aria-expanded={expense.items.length > 0 ? open === expense.id : undefined}
                         >
                           <td className="Num">{formatDay(expense.date, locale)}</td>
                           <td>
@@ -263,7 +264,7 @@ const Expenses_Register = () => {
           subtitle={`${formatDay(deleting.date, locale)} · ${formatIn(deleting.amount, deleting.currency.shortCode)}`}
           message={t(deleting.companyPaymentId ? 'expenses.deleteCompanyConfirm' : 'expenses.deleteConfirm')}
           confirmText={t('common.delete')}
-          saving={state.saving}
+          busy={state.saving}
           onClose={close}
           onConfirm={async () => {
             if (await state.deleteExpense(deleting.id)) close();

@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { CompanyPaymentService } from 'src/company-payment/company-payment.service';
 import { PrismaPersonalExpenseRepository } from '../repositories/prisma/prisma-personal-expense-repository';
 import {
@@ -12,6 +12,7 @@ import {
 } from '../dto/personal-expense.dto';
 
 const round = (value: number) => Math.round(value * 100) / 100;
+const logger = new Logger('saveExpense');
 
 /**
  * As linhas de uma compra: cada uma com o produto do catálogo (o indicado, ou o
@@ -25,10 +26,10 @@ async function buildItems(
   const built: ExpenseItemData[] = [];
   for (const [position, item] of items.entries()) {
     const name = item.name.trim();
+    // Pelo nome, o do catálogo ou um novo, com um trinco por nome (não nascem dois iguais)
     const product = item.productId
       ? await repository.findProduct(userId, item.productId)
-      : ((await repository.findProductByName(userId, name)) ??
-        (await repository.createProduct(userId, { name })));
+      : await repository.findOrCreateProduct(userId, name);
     if (!product) throw new NotFoundException('Produto não encontrado');
     built.push({
       productId: product.id,
@@ -132,6 +133,17 @@ export async function saveExpense(
     } as Parameters<CompanyPaymentService['create']>[2]);
     data.companyId = create.companyId;
     data.companyPaymentId = payment.id;
+
+    // Se a despesa não se grava, o recebimento na empresa sai também: senão ficava lá uma
+    // entrada do sócio sem a despesa que a explica (e repetir duplicava-a)
+    try {
+      return await repository.createExpense(userId, { ...data, kind: create.kind }, []);
+    } catch (error) {
+      await paymentService
+        .discard(create.companyId, payment.id)
+        .catch((undo) => logger.error(`Não consegui desfazer o pagamento ${payment.id}: ${String(undo)}`));
+      throw error;
+    }
   }
 
   return repository.createExpense(
