@@ -65,6 +65,9 @@ def synthetic_minutes(days: int = 30, seed: int = 7, gaps: bool = False):
     spread = np.abs(rng.normal(0, 0.0008, count)) * close
     high = np.maximum(open_, close) + spread
     low = np.minimum(open_, close) - spread
+    # Aos cêntimos, como num mercado: os últimos dígitos do exp mudam entre sistemas (Windows/Linux) e um preço
+    # mesmo em cima de um nível mudava um trade; arredondados, as velas são as mesmas em todo o lado
+    open_, high, low, close = (np.round(a, 2) for a in (open_, high, low, close))
     volume = rng.gamma(2.0, 5.0, count)
     times = ORIGIN_MS + np.arange(count, dtype=np.int64) * MINUTE_MS
     if gaps:

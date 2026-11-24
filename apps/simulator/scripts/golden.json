@@ -8,7 +8,7 @@
     "wins": 14
   },
   "cross+gaps": {
-    "finalCapital": 9643.18,
+    "finalCapital": 9643.19,
     "longs": 37,
     "path": "ff74e2bfde054b40",
     "shorts": 0,
@@ -48,20 +48,20 @@
     "wins": 4
   },
   "levels": {
-    "finalCapital": 7029.01,
-    "longs": 163,
-    "path": "b3e42841b84bd941",
+    "finalCapital": 6852.42,
+    "longs": 165,
+    "path": "ca46f89bf619ccdb",
     "shorts": 108,
-    "trades": 271,
+    "trades": 273,
     "wins": 96
   },
   "levels+gaps": {
-    "finalCapital": 6910.77,
+    "finalCapital": 6868.66,
     "longs": 166,
-    "path": "b69eac2735a818d8",
+    "path": "faeeb1634a01879f",
     "shorts": 108,
     "trades": 274,
-    "wins": 97
+    "wins": 98
   },
   "rules": {
     "finalCapital": 10080.95,
