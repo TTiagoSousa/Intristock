@@ -124,6 +124,14 @@ export class PrismaPersonalIncomeRepository implements PersonalIncomeRepository 
     });
   }
 
+  /** O pagamento que a empresa registou deste salário e período (concluído e ainda sem ganho ligado). */
+  findCompanyPaymentOf(memberPayId: string, period: string) {
+    return this.prisma.companyPayment.findFirst({
+      where: { memberPayId, memberPayPeriod: period, status: 'completed', confirmedIncome: { is: null } },
+      select: { id: true },
+    });
+  }
+
   async createIncome(
     userId: string,
     data: IncomeData,

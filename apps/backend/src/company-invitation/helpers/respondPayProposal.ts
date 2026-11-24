@@ -25,12 +25,16 @@ export async function respondPayProposal(
   if (pay.status !== 'proposed') throw new BadRequestException('Esta proposta já foi respondida');
 
   const closeAt = accept && pay.replaces && pay.startDate ? new Date(pay.startDate.getTime() - DAY_MS) : null;
+  // A nova começa quando o antigo começava (nada dele estava pago): o antigo sai todo, fica cancelado
+  const replacedWhole = Boolean(closeAt && pay.replaces?.startDate && closeAt < pay.replaces.startDate);
   const answered = await repository.answerPay(
     pay.id,
     { status: accept ? 'accepted' : 'declined', respondedAt: new Date(), responseNote: note?.trim() || null },
-    closeAt && pay.replaces && (!pay.replaces.endDate || pay.replaces.endDate > closeAt)
-      ? { id: pay.replaces.id, endDate: closeAt }
-      : null,
+    replacedWhole && pay.replaces
+      ? { id: pay.replaces.id, cancel: true }
+      : closeAt && pay.replaces && (!pay.replaces.endDate || pay.replaces.endDate > closeAt)
+        ? { id: pay.replaces.id, endDate: closeAt }
+        : null,
   );
   if (!answered) throw new ConflictException('Esta proposta já foi respondida');
 

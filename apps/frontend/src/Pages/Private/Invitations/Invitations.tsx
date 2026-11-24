@@ -12,7 +12,7 @@ import './Invitations.scss';
 import { localeOf } from '../../../utils/locale';
 import { memberPeriodLabel } from '../Finances/Earnings/earningsLabels';
 
-const CHECK_TONE: Record<Payment_Check, string> = { awaiting: 'Info', confirmed: 'Ok', different: 'Bad' };
+const CHECK_TONE: Record<Payment_Check, string> = { awaiting: 'Info', confirmed: 'Ok', different: 'Bad', declined: 'Warn' };
 
 /**
  * O que as empresas pedem a esta pessoa: os convites para entrar, as propostas de salário ou

@@ -49,7 +49,12 @@ export async function confirmMemberPayment(
     link = `/Companies/${company.slug}/compras/pagamentos`;
 
     const exists = await repository.findIncomeOfPayment(payment);
-    if (received && exists) throw new ConflictException('Este pagamento já está nos teus ganhos');
+    if (exists) {
+      // Já está nos ganhos (marcado como recebido nos Ganhos): «Recebi» só fecha o aviso; «Não recebi» não faz sentido
+      if (!received) throw new ConflictException('Este pagamento já está nos teus ganhos: apaga-o lá primeiro');
+      await notifications.closeActions('member_paid', key, id, 'done');
+      return { id, received, incomeId: exists.id };
+    }
     await claim();
     if (received) {
       try {

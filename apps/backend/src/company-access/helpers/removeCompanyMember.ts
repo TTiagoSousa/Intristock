@@ -30,6 +30,8 @@ export async function removeCompanyMember(
   const hasHistory = history.pays + history.contracts + history.documents + history.payments > 0;
 
   if (member.userId && hasHistory) {
+    // Sem conta ninguém responde às propostas abertas: cancelam-se
+    await accessRepository.cancelOpenProposals(memberId);
     await accessRepository.updateMember(memberId, {
       userId: null,
       roleId: null,

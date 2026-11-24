@@ -75,6 +75,9 @@ export async function saveIncome(
     data.memberPayId = pay.id;
     data.period = create.period;
     data.kind = pay.kind === 'freelance' ? 'freelance' : 'salary';
+    // Se a empresa já registou que pagou este período, o ganho fica ligado ao pagamento (como ao confirmar no sino)
+    const payment = await repository.findCompanyPaymentOf(pay.id, create.period);
+    if (payment) data.companyPaymentId = payment.id;
   } else if (create.sourceId) {
     const source = await repository.findSource(userId, create.sourceId);
     if (!source) throw new NotFoundException('Fonte de ganhos não encontrada');

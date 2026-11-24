@@ -6,7 +6,8 @@ import { getErrorMessage } from '../useAsyncRequest';
 type Company_Ref = { id: string; name: string; slug: string };
 
 /** O cruzamento de um pagamento da empresa com os ganhos da pessoa. */
-export type Payment_Check = 'awaiting' | 'confirmed' | 'different';
+/// `declined`: a pessoa respondeu «Não recebi» (já não está por responder)
+export type Payment_Check = 'awaiting' | 'confirmed' | 'different' | 'declined';
 export type Payment_Source = 'company_payment' | 'time_tracking';
 
 export interface Invitations {

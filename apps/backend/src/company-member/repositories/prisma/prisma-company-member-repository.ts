@@ -83,6 +83,29 @@ export class PrismaCompanyMemberRepository implements CompanyMemberRepository {
     return this.prisma.personalIncome.count({ where: { memberPayId: payId } });
   }
 
+  /**
+   * O último mês já pago de um salário (YYYY-MM): pelos pagamentos da empresa (os rascunhos contam, para não se
+   * pagar outra vez) e pelos ganhos que o membro marcou como recebidos. Sem nenhum, nulo.
+   */
+  async findLastPaidPeriod(payId: string): Promise<string | null> {
+    const [payments, incomes] = await Promise.all([
+      this.prisma.companyPayment.findMany({
+        where: { memberPayId: payId, status: { not: 'cancelled' }, memberPayPeriod: { not: null } },
+        select: { memberPayPeriod: true },
+      }),
+      this.prisma.personalIncome.findMany({ where: { memberPayId: payId, period: { not: null } }, select: { period: true } }),
+    ]);
+    const months = [...payments.map((p) => p.memberPayPeriod), ...incomes.map((i) => i.period)]
+      .filter((p): p is string => Boolean(p) && /^\d{4}-\d{2}/.test(p!))
+      .map((p) => p.slice(0, 7));
+    return months.length ? months.sort().at(-1)! : null;
+  }
+
+  /** A proposta por responder que muda este salário (feita ao editá-lo depois de aceite). */
+  findPendingReplacement(payId: string): Promise<CompanyMemberPay | null> {
+    return this.prisma.companyMemberPay.findFirst({ where: { replacesId: payId, status: 'proposed' } });
+  }
+
   async updatePay(
     payId: string,
     data: MemberPayData,

@@ -91,7 +91,8 @@ export class PrismaCompanyInvitationRepository {
       where: {
         status: 'proposed',
         OR: [
-          { member: { userId, company: { status: { not: 'deleted' } } } },
+          // Só de quem já aceitou o convite (um convidado responde primeiro ao convite)
+          { member: { userId, status: 'active', company: { status: { not: 'deleted' } } } },
           { member: { company: { createdById: userId, status: { not: 'deleted' } } }, proposedById: { not: null } },
         ],
       },
@@ -150,13 +151,16 @@ export class PrismaCompanyInvitationRepository {
   answerPay(
     payId: string,
     data: Prisma.CompanyMemberPayUncheckedUpdateInput,
-    closeReplaced: { id: string; endDate: Date } | null,
+    closeReplaced: { id: string; endDate: Date } | { id: string; cancel: true } | null,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const { count } = await tx.companyMemberPay.updateMany({ where: { id: payId, status: 'proposed' }, data });
       if (count === 0) return false;
       if (closeReplaced) {
-        await tx.companyMemberPay.update({ where: { id: closeReplaced.id }, data: { endDate: closeReplaced.endDate } });
+        await tx.companyMemberPay.update({
+          where: { id: closeReplaced.id },
+          data: 'cancel' in closeReplaced ? { status: 'cancelled' } : { endDate: closeReplaced.endDate },
+        });
       }
       return true;
     });
@@ -171,6 +175,8 @@ export class PrismaCompanyInvitationRepository {
         paymentDate: { gte: since },
         member: { userId, status: 'active' },
         company: { status: { not: 'deleted' } },
+        // As horas pagas (o payout) confirmam-se pelo payout, não pelo pagamento na empresa
+        timeTrackingPayout: { is: null },
       },
       include: {
         company: COMPANY,
@@ -213,6 +219,16 @@ export class PrismaCompanyInvitationRepository {
       where: { id: payoutId },
       include: { company: COMPANY, currency: CURRENCY, personalIncome: { select: { id: true, amount: true } } },
     });
+  }
+
+  /** Os pagamentos a que esta pessoa respondeu «Não recebi» (o aviso fechou como `declined`). */
+  async findDeclinedPaymentIds(userId: string, paymentIds: string[]) {
+    if (!paymentIds.length) return new Set<string>();
+    const rows = await this.prisma.notification.findMany({
+      where: { userId, kind: 'member_paid', actionStatus: 'declined', OR: paymentIds.map((id) => ({ data: { path: ['paymentId'], equals: id } })) },
+      select: { data: true },
+    });
+    return new Set(rows.map((row) => String((row.data as { paymentId?: string }).paymentId ?? '')));
   }
 
   findPayoutsToUser(userId: string, since: Date) {

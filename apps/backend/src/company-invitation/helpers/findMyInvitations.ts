@@ -6,14 +6,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const PAYMENTS_DAYS = 180;
 const CENT = 0.005;
 
-type Check = 'awaiting' | 'confirmed' | 'different';
-const check = (amount: number, income: { amount: unknown } | null): Check =>
-  !income ? 'awaiting' : Math.abs(Number(income.amount) - amount) < CENT ? 'confirmed' : 'different';
+type Check = 'awaiting' | 'confirmed' | 'different' | 'declined';
+// Sem ganho: por confirmar, ou «não recebido» se a pessoa já respondeu que não (sai dos por responder)
+const check = (amount: number, income: { amount: unknown } | null, declined = false): Check =>
+  !income ? (declined ? 'declined' : 'awaiting') : Math.abs(Number(income.amount) - amount) < CENT ? 'confirmed' : 'different';
 
 /**
  * O que a pessoa tem para responder (os convites e as propostas por aceitar) e os pagamentos que
  * as empresas lhe registaram nos últimos meses, cada um cruzado com os ganhos dela: por confirmar
- * (`awaiting`), confirmado ou com valores diferentes.
+ * (`awaiting`), confirmado, com valores diferentes ou não recebido (`declined`, a pessoa respondeu que não).
  */
 export async function findMyInvitations(userId: string, repository: PrismaCompanyInvitationRepository) {
   const since = new Date(Date.now() - PAYMENTS_DAYS * DAY_MS);
@@ -23,6 +24,10 @@ export async function findMyInvitations(userId: string, repository: PrismaCompan
     repository.findPaymentsToUser(userId, since),
     repository.findPayoutsToUser(userId, since),
   ]);
+  const declined = await repository.findDeclinedPaymentIds(
+    userId,
+    payments.filter(({ income }) => !income).map(({ payment }) => payment.id),
+  );
 
   return {
     invites: invites.map((member) => ({
@@ -61,7 +66,7 @@ export async function findMyInvitations(userId: string, repository: PrismaCompan
         amount: Number(payment.amount),
         currency: payment.currency.shortCode,
         incomeAmount: income ? Number(income.amount) : null,
-        check: check(Number(payment.amount), income),
+        check: check(Number(payment.amount), income, declined.has(payment.id)),
       })),
       // As horas que a empresa pagou a esta pessoa (nunca os clientes da empresa)
       ...payouts.map((payout) => ({
@@ -76,7 +81,7 @@ export async function findMyInvitations(userId: string, repository: PrismaCompan
         amount: Number(payout.netAmount),
         currency: payout.currency.shortCode,
         incomeAmount: payout.personalIncome ? Number(payout.personalIncome.amount) : null,
-        check: check(Number(payout.netAmount), payout.personalIncome),
+        check: check(Number(payout.netAmount), payout.personalIncome, payout.confirmation === 'declined'),
       })),
     ].sort((a, b) => b.date.localeCompare(a.date)),
   };

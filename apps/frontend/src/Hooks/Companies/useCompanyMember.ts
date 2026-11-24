@@ -50,6 +50,8 @@ export interface Member_Pay {
   withholdingPct: string | null;
   // A um membro com conta vai como proposta: só conta depois de ele aceitar
   status: 'proposed' | 'accepted' | 'declined' | 'cancelled';
+  /// A mudança de um salário já aceite: o que ela substitui (continua a valer até esta ser aceite)
+  replacesId?: string | null;
   responseNote: string | null;
   // Os pagamentos já registados dele
   _count: { payments: number };

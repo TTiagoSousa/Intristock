@@ -64,6 +64,7 @@ export interface CompanyAccessRepository {
   findMemberDetail(companyId: string, memberId: string): Promise<CompanyMemberDetail | null>;
   createRecordMember(companyId: string, data: CompanyMemberProfile): Promise<CompanyMember>;
   updateMember(memberId: string, data: CompanyMemberUpdate): Promise<CompanyMember>;
+  cancelOpenProposals(memberId: string): Promise<number>;
   countMemberHistory(memberId: string): Promise<CompanyMemberHistory>;
   findCompanyBankAccount(companyId: string, bankAccountId: string): Promise<BankAccount | null>;
   deleteMember(memberId: string): Promise<void>;

@@ -70,6 +70,23 @@ export class PrismaCompanyAccessRepository implements CompanyAccessRepository {
     return this.prisma.companyMember.create({ data: { companyId, ...data } });
   }
 
+  /**
+   * As propostas de salário por responder de um membro que fica sem conta: ninguém as podia responder. Ficam
+   * canceladas e os avisos delas fecham. Devolve quantas.
+   */
+  async cancelOpenProposals(memberId: string): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const open = await tx.companyMemberPay.findMany({ where: { memberId, status: 'proposed' }, select: { id: true } });
+      if (!open.length) return 0;
+      await tx.companyMemberPay.updateMany({ where: { id: { in: open.map((p) => p.id) } }, data: { status: 'cancelled' } });
+      await tx.notification.updateMany({
+        where: { kind: 'member_pay_proposed', actionStatus: 'pending', OR: open.map((p) => ({ data: { path: ['payId'], equals: p.id } })) },
+        data: { actionStatus: 'cancelled' },
+      });
+      return open.length;
+    });
+  }
+
   async updateMember(memberId: string, data: CompanyMemberUpdate): Promise<CompanyMember> {
     return this.prisma.companyMember.update({ where: { id: memberId }, data });
   }

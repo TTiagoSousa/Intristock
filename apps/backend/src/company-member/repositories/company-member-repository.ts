@@ -73,6 +73,8 @@ export interface CompanyMemberRepository {
     closeReplaced: { id: string; endDate: Date } | null,
   ): Promise<CompanyMemberPay>;
   countPayIncomes(payId: string): Promise<number>;
+  findLastPaidPeriod(payId: string): Promise<string | null>;
+  findPendingReplacement(payId: string): Promise<CompanyMemberPay | null>;
   updatePay(payId: string, data: MemberPayData): Promise<CompanyMemberPay>;
   deletePay(payId: string): Promise<void>;
 

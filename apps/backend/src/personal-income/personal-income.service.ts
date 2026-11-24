@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationService } from 'src/notification/notification.service';
 import { CurrencyService } from 'src/currency/currency.service';
 import { PrismaPersonalIncomeRepository } from './repositories/prisma/prisma-personal-income-repository';
 import {
@@ -36,6 +37,7 @@ export class PersonalIncomeService {
     private readonly currencyService: CurrencyService,
     // As horas por pagar do banco de horas das empresas entram nos esperados
     private readonly timeTracking: PrismaTimeTrackingRepository,
+    private readonly notifications: NotificationService,
   ) {}
 
   async findSources(userId: string) {
@@ -86,12 +88,17 @@ export class PersonalIncomeService {
     );
   }
 
-  saveIncome(
+  async saveIncome(
     userId: string,
     incomeId: string | null,
     dto: CreatePersonalIncomeDto | UpdatePersonalIncomeDto,
   ) {
-    return saveIncome(userId, incomeId, dto, this.repository);
+    const income = await saveIncome(userId, incomeId, dto, this.repository);
+    // Recebido nos Ganhos um salário que a empresa já pagou: o aviso «confirma que recebeste» fecha
+    if (!incomeId && income.companyPaymentId) {
+      await this.notifications.closeActions('member_paid', 'paymentId', income.companyPaymentId, 'done').catch(() => undefined);
+    }
+    return income;
   }
 
   async deleteIncome(userId: string, incomeId: string) {

@@ -273,6 +273,7 @@ const Member_Page = ({
                           {t(`memberPays.status_${pay.status}`)}
                         </span>
                       )}
+                      {pay.replacesId && pay.status === 'proposed' && <div className="Member_Sub">{t('memberPays.replacesNote')}</div>}
                       {pay.responseNote && <div className="Member_Sub">{pay.responseNote}</div>}
                     </td>
                     <td className="Right Num">{money(pay.grossAmount)}</td>
