@@ -19,7 +19,7 @@
     "test": "npm test --prefix apps/backend && npm test --prefix apps/frontend",
     "check": "node scripts/check-report-blocks.mjs && node scripts/check-api-docs.mjs"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",

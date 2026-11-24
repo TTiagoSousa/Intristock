@@ -5,6 +5,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-24
+
+### Added
+- **personal-portfolio**: track motorcycles with Marketplace price valuations, rotate API keys, schedule broker syncs and fix portfolio bugs
+- **time-tracking**: add the solidtime time bank, company invites and pay proposals, and fix the security, reliability and accessibility audit findings
+- **call-center**: add the call center workspace with data tables, joined tables, lead boards with automations, call logging, callbacks, a dashboard and the Shopify orders connection
+
+### Fixed
+- **company-member**: propose changes to accepted salaries as replacements, close payment confirmations from Earnings and show declined payments
+
 ## [1.1.0] - 2026-11-17
 
 ### Added
@@ -35,6 +45,7 @@ First public release of IntriStock.
 - **Administration**: users, external APIs, taxes, platforms (banks, brokers, exchanges and prop firms from PropFirmMap) and in-app updates, one version at a time.
 - **Deployment**: a one-line installer for a Proxmox VM (Debian 13, PostgreSQL, Garage, ClickHouse, nginx and the services).
 
-[Unreleased]: https://github.com/TTiagoSousa/Intristock/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/TTiagoSousa/Intristock/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/TTiagoSousa/Intristock/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TTiagoSousa/Intristock/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/TTiagoSousa/Intristock/releases/tag/v1.0.0
