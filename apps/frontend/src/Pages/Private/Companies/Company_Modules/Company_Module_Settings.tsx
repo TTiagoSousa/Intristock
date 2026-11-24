@@ -5,6 +5,7 @@ import { useBreadcrumbSegmentLabel } from '../../../../Contexts/Breadcrumb_Conte
 import { useCompanyModules } from '../../../../Hooks/Companies/useCompanyModules';
 import { MODULE_ICONS, MODULE_PATHS } from './moduleCatalog';
 import * as Icon from '../../../../Imports/icons';
+import { companyAreas } from '../../../../Containers/Navs/Navigation_Home/Menu_Itins';
 import './Company_Modules.scss';
 
 /**
@@ -43,6 +44,8 @@ const Company_Module_Settings = () => {
   const Module_Icon = MODULE_ICONS[module.icon ?? ''] ?? Icon.Company;
   const active = isModuleActive(module.id);
   const areaPath = MODULE_PATHS[module.name];
+  // Um módulo com espaço próprio abre-o noutro separador, como em «Módulos» na barra
+  const workspace = companyAreas.find((area) => area.moduleName === module.name)?.workspace;
 
   return (
     <div className="Company_Modules">
@@ -71,7 +74,12 @@ const Company_Module_Settings = () => {
             <span className="Empty_State_Text">
               {t(active ? 'modules.noSettingsHint' : 'modules.noSettingsOffHint')}
             </span>
-            {active && areaPath && (
+            {active && workspace && (
+              <a className="Module_Settings_Link" href={workspace(company.slug)} target="_blank" rel="noopener">
+                {t('modules.openArea', { name: label })}
+              </a>
+            )}
+            {active && !workspace && areaPath && (
               <Link className="Module_Settings_Link" to={`/Companies/${company.slug}/${areaPath}`}>
                 {t('modules.openArea', { name: label })}
               </Link>

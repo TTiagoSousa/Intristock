@@ -174,7 +174,14 @@ export interface Company_Area {
   moduleName?: string;
   // Só aparece a quem tiver uma destas permissões do cargo (o dono vê tudo)
   permissions?: CompanyPermission[];
+  // Um módulo: na barra fica dentro do grupo «Módulos», não solto
+  inModules?: boolean;
+  // O módulo tem um espaço próprio (`/w/...`), que abre noutro separador
+  workspace?: (slug: string) => string;
 }
+
+/** O espaço do call center (o «site» só dele, noutro separador). */
+export const callCenterBase = (slug: string) => `/w/${slug}/call-center`;
 
 /**
  * Áreas de trabalho de uma empresa.
@@ -236,6 +243,17 @@ export const companyAreas: Company_Area[] = [
     path: (slug) => `/Companies/${slug}/trading`,
     moduleName: 'trading',
     permissions: ['trading.view'],
+    inModules: true,
+  },
+  {
+    id: 'call_center',
+    labelKey: 'callCenter.title',
+    icon: Icon.Phone,
+    path: callCenterBase,
+    moduleName: 'call_center',
+    permissions: ['data.view', 'leads.view'],
+    inModules: true,
+    workspace: callCenterBase,
   },
   {
     id: 'time_tracking',

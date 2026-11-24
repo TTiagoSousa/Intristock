@@ -1,0 +1,1334 @@
+// As Leads do call center: as secções, o quadro com as colunas e os cartões que se arrastam, e a barra da lead.
+
+.Leads_Tabs_Bar{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Leads_Tabs{
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  min-width: 0;
+  flex: 1;
+}
+
+.Leads_Tab{
+  padding: 10px 12px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  white-space: nowrap;
+
+  &:hover{ color: var(--text); }
+
+  &.Active{
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+
+.Leads_Empty{
+  padding: 32px 16px;
+
+  .Empty_State{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+.Leads_Workspace{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.Leads_Main{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.Leads_Board_Head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.Leads_Board_Meta{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.Leads_Filter_Summary{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.Leads_Filter_Pill{
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--leads-badge-text);
+  background-color: var(--leads-badge-background);
+}
+
+.Leads_Columns{
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.Leads_Column{
+  max-height: 100%;
+  min-height: 0;
+  flex: 0 0 272px;
+  width: 272px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: var(--leads-column-background);
+  transition: border-color 150ms ease;
+
+  &.Drop_Target{ border-color: var(--leads-drop-line); }
+}
+
+.Leads_Column_Head{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 4px;
+}
+
+.Leads_Column_Title{
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Leads_Column_Count{
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.Leads_Column_Menu{ margin-left: auto; }
+
+.Leads_Column_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 64px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.Leads_Column_Empty,
+.Leads_Column_Note{
+  padding: 8px 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Leads_Card_Slot{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Leads_Drop_Line{
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--leads-drop-line);
+}
+
+.Leads_Card{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--leads-card-border);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  background-color: var(--leads-card-background);
+  cursor: pointer;
+  transition: border-color 150ms ease, opacity 150ms ease;
+
+  &[draggable='true']{ cursor: grab; }
+
+  &:hover{ border-color: var(--leads-card-hover-border); }
+
+  &.Selected{ border-color: var(--leads-card-selected); }
+
+  &.Dragging{ opacity: 0.4; }
+
+  &.Faded{ opacity: 0.7; }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.Leads_Card_Title{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.Leads_Card_Phone{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+
+  svg{ width: 12px; height: 12px; }
+
+  &.Masked{ color: var(--call-center-masked); }
+}
+
+.Leads_Card_Fields{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.Leads_Card_Field{
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+
+  > span:last-child{
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .Masked{ color: var(--call-center-masked); }
+}
+
+.Leads_Card_Label{
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+
+.Leads_Card_Foot{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Leads_Badge{
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--leads-badge-text);
+  background-color: var(--leads-badge-background);
+}
+
+.Leads_Add_Column{
+  flex: 0 0 240px;
+  padding: 8px 0;
+}
+
+.Leads_Stage_Form{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Leads_Stage_Form_Actions{
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.Leads_Stage_Menu{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 260px;
+  padding: 12px;
+}
+
+.Leads_Stage_Moves{
+  display: flex;
+  gap: 8px;
+}
+
+.Leads_Danger{ color: var(--leads-danger); }
+
+.Leads_Phone{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.Leads_Phone_Icon{
+  display: inline-flex;
+  color: var(--text-3);
+
+  svg{ width: 16px; height: 16px; }
+}
+
+.Leads_Phone_Link{
+  font-weight: 500;
+  color: var(--accent);
+
+  &:hover{ text-decoration: underline; }
+}
+
+.Leads_Section{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Leads_Section_Title{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Leads_Field_Label{
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Leads_Count{
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--leads-badge-text);
+  background-color: var(--leads-badge-background);
+}
+
+.Leads_Visually_Hidden{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.Leads_Empty_Note{
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+// Escrever: uma caixa só, o campo sem moldura própria e o botão no rodapé dela
+.Leads_Composer{
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+  transition: border-color 150ms ease;
+
+  &:focus-within{ border-color: var(--accent); }
+}
+
+.Leads_Composer_Input{
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 56px;
+  padding: 10px 12px 4px;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  background: transparent;
+  resize: vertical;
+
+  &:focus{ outline: none; }
+}
+
+.Leads_Composer_Foot{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 8px 12px;
+}
+
+// A conversa: o círculo à esquerda, o nome e o tempo, o texto por baixo
+.Leads_Comments{
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.Leads_Comment{
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius-sm);
+  transition: background-color 150ms ease;
+
+  &:hover,
+  &:focus-within{ background-color: var(--leads-comment-hover); }
+
+  // A linha que liga os círculos da conversa
+  & + &::before{
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 21px;
+    width: 1px;
+    height: 20px;
+    background-color: var(--line);
+  }
+}
+
+.Leads_Avatar{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--leads-avatar-text);
+  background-color: var(--leads-avatar-background);
+
+  .Mine &{
+    color: var(--leads-avatar-mine-text);
+    background-color: var(--leads-avatar-mine-background);
+  }
+}
+
+.Leads_Comment_Main{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.Leads_Comment_Head{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.Leads_Comment_Author{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Leads_Comment_Time{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+// Editar e apagar só aparecem ao passar (e com o teclado, ao entrar no comentário)
+.Leads_Comment_Tools{
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 150ms ease;
+
+  .Leads_Comment:hover &,
+  .Leads_Comment:focus-within &{ opacity: 1; }
+}
+
+.Leads_Comment_Tool{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+
+  svg{ width: 14px; height: 14px; }
+
+  &:hover{
+    color: var(--text);
+    background-color: var(--leads-badge-background);
+  }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.Leads_Comment_Body{
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.Leads_Comment_Edit{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Leads_Comment_Confirm{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.Leads_Textarea{
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--surface);
+  resize: vertical;
+
+  &:focus{
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+// O histórico: uma linha do tempo pequena, com um ponto por passo
+.Leads_History{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+
+  li{
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+}
+
+.Leads_History_Dot{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.Leads_History_Text{ overflow-wrap: anywhere; }
+
+// As automações de uma secção
+.Leads_Badge.Rule{
+  color: var(--leads-rule-text);
+  background-color: var(--leads-rule-background);
+}
+
+.Leads_Rules{ gap: 16px; }
+
+.Leads_Rules_Empty{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.Leads_Rules_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.Leads_Rule{
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+
+  &.Off .Leads_Rule_Text{ opacity: 0.55; }
+}
+
+.Leads_Rule_Toggle{
+  display: inline-flex;
+  padding-top: 2px;
+
+  input{ accent-color: var(--accent); }
+}
+
+.Leads_Rule_Text{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.Leads_Rule_Name{
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Leads_Rule_Summary{
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.Leads_Rule_Word{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Leads_Rule_Tools{
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.Leads_Rule_Up svg{ transform: rotate(180deg); }
+
+.Leads_Rule_Form{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.Leads_Rule_Step{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.Leads_Rule_Step_Title{
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Leads_Rule_Stage_List{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 4px;
+}
+
+.Leads_Rule_Form_Actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// As definições de uma secção
+.Leads_Settings{
+  gap: 16px;
+
+  .Call_Center_Grid_Tools{ margin-top: 4px; }
+}
+
+.Leads_Settings_Pair{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.Leads_Card_Columns{
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.Leads_Card_Columns_List{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.Leads_Settings_Delete{ margin-right: auto; }
+
+@media (max-width: 640px){
+  .Leads_Settings_Pair,
+  .Leads_Card_Columns_List{ grid-template-columns: minmax(0, 1fr); }
+}
+
+// A lead aberta: uma gaveta que sai da direita do ecrã, a altura toda, até meio dele
+.Leads_Drawer_Backdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 880;
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--leads-drawer-backdrop);
+  animation: Leads_Fade 200ms ease-out;
+}
+
+.Leads_Drawer{
+  display: flex;
+  flex-direction: column;
+  width: min(100vw, max(520px, 50vw));
+  height: 100%;
+  border-left: 1px solid var(--leads-sidebar-border);
+  background-color: var(--leads-sidebar-background);
+  box-shadow: var(--leads-drawer-shadow);
+  outline: none;
+  container-type: inline-size;
+  animation: Leads_Slide_In 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.Leads_Drawer_Head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Leads_Drawer_Title{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  h2{
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+}
+
+.Leads_Drawer_Sub{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.Leads_Drawer_Close{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  background-color: var(--surface);
+  transition: color 150ms ease, border-color 150ms ease;
+
+  svg{ width: 16px; height: 16px; }
+
+  &:hover{
+    color: var(--text);
+    border-color: var(--line-strong);
+  }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// O telefone e o que se faz à lead, fixos por cima do scroll
+.Leads_Drawer_Bar{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Leads_Drawer_Actions{
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+
+  .Form_Field{ width: 220px; }
+
+  label{
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+  }
+}
+
+.Leads_Drawer_Error{ padding: 8px 24px 0; }
+
+// Por baixo da barra: um painel (estreita) ou dois lado a lado (larga), cada um com o seu scroll
+.Leads_Drawer_Body{
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+
+  &.Wide{ grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+.Leads_Pane{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.Leads_Pane_Data{
+  border-left: 1px solid var(--line);
+  background-color: var(--leads-data-background);
+}
+
+.Leads_Pane_Head{
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+}
+
+.Leads_Tab_Count{
+  margin-left: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.Leads_Pane_Panel{
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.Leads_Pane_Scroll{
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 24px 24px;
+  scrollbar-gutter: stable;
+}
+
+.Leads_Pane_Note{ padding: 16px 24px; }
+
+// A caixa de escrever fica sempre em baixo, por fora do scroll da conversa
+.Leads_Pane_Foot{
+  padding: 12px 24px 16px;
+  border-top: 1px solid var(--line);
+  background-color: var(--leads-sidebar-background);
+}
+
+// Os dias na conversa: o dia ao centro, numa linha fina
+.Leads_Day{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+  font-size: 12px;
+  color: var(--text-3);
+
+  &:first-child{ margin-top: 0; }
+
+  &::before,
+  &::after{
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--line);
+  }
+
+  span::first-letter{ text-transform: uppercase; }
+}
+
+.Leads_Pane_Tools{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Leads_Search{
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--surface);
+
+  &::placeholder{ color: var(--text-3); }
+
+  &:focus{
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+.Leads_Props_Scroll{ padding-top: 0; }
+
+.Leads_Props_Group + .Leads_Props_Group{ margin-top: 16px; }
+
+// O lado da tabela unida fica preso em cima enquanto se descem os campos dele
+.Leads_Props_Side{
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--call-center-side);
+  background-color: var(--leads-data-background);
+  border-bottom: 1px solid var(--line);
+}
+
+.Leads_Props{
+  margin: 0;
+  padding-top: 4px;
+}
+
+.Leads_Prop{
+  display: grid;
+  grid-template-columns: minmax(96px, 2fr) minmax(0, 3fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--leads-prop-line);
+
+  &:last-child{ border-bottom: 0; }
+
+  dt{
+    font-size: 12px;
+    color: var(--text-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  dd{
+    margin: 0;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    overflow-wrap: anywhere;
+
+    &.Empty,
+    &.Masked{ color: var(--call-center-masked); }
+  }
+}
+
+@keyframes Leads_Slide_In{
+  from{ transform: translateX(100%); }
+  to{ transform: translateX(0); }
+}
+
+@keyframes Leads_Fade{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .Leads_Comment,
+  .Leads_Comment_Tools,
+  .Leads_Composer,
+  .Leads_Card,
+  .Leads_Column,
+  .Leads_Drawer_Close{ transition: none; }
+
+  .Leads_Drawer,
+  .Leads_Drawer_Backdrop{ animation: none; }
+}
+
+// A pesquisa, os filtros rápidos e o «Escolher», por cima das colunas
+.Leads_Toolbar{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.Leads_Board_Search{
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(100%, 260px);
+
+  input{
+    width: 100%;
+    height: 32px;
+    padding: 0 10px 0 32px;
+    box-sizing: border-box;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background-color: var(--surface);
+
+    &::placeholder{ color: var(--text-3); }
+
+    &:focus{
+      outline: none;
+      border-color: var(--accent);
+    }
+  }
+}
+
+.Leads_Board_Search_Icon{
+  position: absolute;
+  left: 10px;
+  display: inline-flex;
+  color: var(--text-3);
+  pointer-events: none;
+
+  svg{ width: 14px; height: 14px; }
+}
+
+.Leads_Quick{ flex-wrap: wrap; }
+
+.Leads_Stale{ width: 140px; }
+
+.Leads_Pick_Toggle.On{
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+// Escolher várias: a barra com o que se faz a todas
+.Leads_Bulk{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--leads-bulk-background);
+}
+
+.Leads_Bulk_Actions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.Leads_Bulk_Field{ width: 180px; }
+
+// O cartão: o título com quem a tem, o voltar a ligar e o rodapé
+.Leads_Card{
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
+
+  &.Overdue{ border-color: var(--leads-card-late-border); }
+
+  &.Picked{
+    border-color: var(--leads-card-selected);
+    background-color: var(--leads-card-picked-background);
+  }
+}
+
+.Leads_Card_Top{
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  .Leads_Card_Title{ flex: 1; min-width: 0; }
+}
+
+.Leads_Card_Check{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border: 1px solid var(--leads-check-border);
+  border-radius: 4px;
+
+  svg{ width: 12px; height: 12px; }
+
+  &.On{
+    border-color: var(--leads-check-on);
+    color: var(--leads-check-on-text);
+    background-color: var(--leads-check-on);
+  }
+}
+
+.Leads_Avatar.Small{
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.Leads_Callback{
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--leads-callback-text);
+
+  svg{ width: 13px; height: 13px; }
+
+  &.today{ color: var(--leads-callback-today-text); }
+
+  &.overdue{
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--leads-callback-late-text);
+    background-color: var(--leads-callback-late-background);
+  }
+}
+
+.Leads_Callback_Note{
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+.Leads_Card_Foot:empty{ display: none; }
+
+.Leads_Card_Days{ font-variant-numeric: tabular-nums; }
+
+.Leads_More{
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-2);
+
+  &:hover{
+    color: var(--text);
+    background-color: var(--leads-comment-hover);
+  }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+// Na gaveta: a linha do telefone e do que se faz, os resultados da chamada e o voltar a ligar
+.Leads_Drawer_Bar{
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.Leads_Drawer_Row{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+
+  .Leads_Drawer_Actions{ flex-wrap: wrap; }
+
+  .Leads_Drawer_Actions .Form_Field{ width: 180px; }
+}
+
+.Leads_Outcomes{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.Leads_Outcomes_Label{
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.Leads_Outcome{
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--leads-outcome-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--surface);
+  transition: border-color 150ms ease, transform 120ms ease;
+
+  &:hover{ border-color: var(--line-strong); }
+
+  &:active{ transform: scale(0.97); }
+
+  &.Answered{ border-left: 3px solid var(--leads-outcome-answered); }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  &:disabled{ opacity: 0.5; }
+}
+
+.Leads_Call_Form{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.Leads_Callback_Fields{
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr);
+  gap: 8px;
+}
+
+.Leads_Call_Info{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+
+  &:empty{ display: none; }
+}
+
+.Leads_Call_Info_Tools{
+  display: inline-flex;
+  gap: 12px;
+}
+
+// As condições sobre a lead numa automação
+.Leads_Cond_List{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Leads_Cond_Row{
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 88px 24px;
+  align-items: center;
+  gap: 8px;
+}
+
+.Leads_Rule_Order{
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+@media (max-width: 640px){
+  .Leads_Callback_Fields,
+  .Leads_Cond_Row{ grid-template-columns: minmax(0, 1fr); }
+
+  .Leads_Bulk_Actions{ margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .Leads_Outcome{ transition: none; }
+}

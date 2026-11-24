@@ -72,4 +72,5 @@ export interface CompanyRepository {
   }): Promise<CompanyMember>;
   findMember(companyId: string, userId: string): Promise<CompanyMemberWithRole | null>;
   findMembersByCompanyId(companyId: string): Promise<CompanyMemberWithUser[]>;
+  isModuleActive(companyId: string, moduleName: string): Promise<boolean>;
 }

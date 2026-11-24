@@ -1,10 +1,17 @@
 import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { Navigate, Outlet, Route, Routes, useParams } from 'react-router';
+import { callCenterBase } from '../Containers/Navs/Navigation_Home/Menu_Itins';
 import * as Private_Page from '../Imports/privatePages';
 import Admin_Only from '../Authentication/Admin_Only';
 import Company_Permission_Gate from '../Authentication/Company_Permission_Gate';
 import Page_Notice from '../Components/Page_Notice/Page_Notice';
+
+// /Companies/:slug/call-center/... → /w/:slug/call-center/... (o resto do caminho mantém-se)
+const To_Call_Center_Workspace = () => {
+  const { slug = '', '*': rest = '' } = useParams();
+  return <Navigate to={rest ? `${callCenterBase(slug)}/${rest}` : callCenterBase(slug)} replace />;
+};
 
 const Private_Routes = () => {
   const { t } = useTranslation();
@@ -80,6 +87,8 @@ const Private_Routes = () => {
         <Route path='ativos' element={ <Private_Page.Company_Assets /> } />
         <Route path='ativos/registo' element={ <Private_Page.Company_Assets_Register /> } />
         <Route path='trading' element={ <Private_Page.Company_Trading /> } />
+        {/* O call center vive no espaço dele (/w/:slug/call-center): os endereços antigos vão para lá */}
+        <Route path='call-center/*' element={ <To_Call_Center_Workspace /> } />
         <Route path='horas' element={ <Private_Page.Time_Tracking_Overview /> } />
         <Route path='horas/registo' element={ <Private_Page.Time_Tracking_Hours /> } />
         <Route path='horas/clientes' element={ <Private_Page.Time_Tracking_Clients /> } />

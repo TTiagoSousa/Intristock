@@ -149,6 +149,15 @@ export class PrismaCompanyRepository implements CompanyRepository {
     });
   }
 
+  // Ligado na empresa e no catálogo (o admin pode desligar um módulo para todas)
+  async isModuleActive(companyId: string, moduleName: string): Promise<boolean> {
+    const found = await this.prisma.companyModule.findFirst({
+      where: { companyId, isActive: true, module: { name: moduleName, isActive: true } },
+      select: { id: true },
+    });
+    return found !== null;
+  }
+
   async findMembersByCompanyId(
     companyId: string,
   ): Promise<CompanyMemberWithUser[]> {

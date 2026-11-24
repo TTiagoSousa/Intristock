@@ -1,0 +1,160 @@
+@use '../../../Styles/Fonts.scss' as Font;
+
+// O espaço de um módulo: uma barra só dele à esquerda e o conteúdo, sem as barras da app
+.Workspace{
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100svh;
+  background-color: var(--bg);
+}
+
+.Workspace_Side{
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 12px;
+  background-color: var(--navbar-vertical-card-bg-color);
+  border-right: 1px solid var(--line);
+}
+
+.Workspace_Brand{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-2);
+}
+
+.Workspace_Brand_Icon{
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--company-mark-background);
+  color: var(--company-mark-text);
+}
+
+.Workspace_Brand_Text{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.Workspace_Brand_Name{
+  font-family: Font.$font_family_sans;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Workspace_Brand_Company{
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Workspace_Nav{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.Workspace_Nav_Item{
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--navbar-vertical-default-link-color);
+  text-decoration: none;
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  &:hover{
+    background-color: var(--navbar-vertical-item-hover-background);
+    color: var(--navbar-vertical-card-link-hover-color);
+  }
+
+  &.Active{
+    background-color: var(--navbar-vertical-item-active-background);
+    color: var(--navbar-vertical-card-link-active-color);
+    font-weight: 500;
+  }
+}
+
+.Workspace_Back{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-decoration: none;
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+
+  svg{ width: 14px; height: 14px; }
+
+  &:hover{
+    background-color: var(--navbar-vertical-item-hover-background);
+    color: var(--text);
+  }
+}
+
+.Workspace_Main{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+// Como o Shell_View da app
+.Workspace_View{
+  width: 100%;
+  padding: 16px 16px 32px;
+}
+
+.Workspace_Notice{
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background-color: var(--bg);
+}
+
+// Num ecrã estreito a barra passa para cima, com a navegação em linha
+@media (max-width: 760px){
+  .Workspace{
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .Workspace_Side{
+    position: static;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .Workspace_Brand{ flex: 1 1 100%; }
+
+  .Workspace_Nav{ flex-direction: row; }
+
+  .Workspace_Back{ margin: 0 0 0 auto; }
+
+  .Workspace_View{ padding: 12px; }
+}

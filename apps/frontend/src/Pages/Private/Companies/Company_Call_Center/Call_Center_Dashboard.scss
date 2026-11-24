@@ -1,0 +1,111 @@
+// O dashboard do call center: os números em cima, o gráfico por dia e as tabelas
+.Cc_Dash_Head{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.Cc_Dash_Board{ width: 240px; }
+
+.Cc_Dash_Stats{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.Cc_Dash_Stat{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+
+  &.warn .Cc_Dash_Stat_Note{ color: var(--cc-dash-warn); }
+}
+
+.Cc_Dash_Stat_Label{
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.Cc_Dash_Stat_Value{
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.Cc_Dash_Stat_Note{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Cc_Dash_Chart{
+  padding: 0;
+  overflow: hidden;
+}
+
+.Cc_Dash_Chart_Body{
+  height: 300px;
+  padding: 0 16px 16px;
+
+  > div{ height: 100%; }
+}
+
+.Cc_Dash_Grid{
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 12px;
+}
+
+// Os resultados: uma lista com uma barra fina em cada linha
+.Cc_Dash_Bars{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 4px 20px 20px;
+  list-style: none;
+
+  li{
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) 48px;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+}
+
+.Cc_Dash_Bars_Name{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.Cc_Dash_Bars_Track{
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--cc-dash-track);
+  overflow: hidden;
+}
+
+.Cc_Dash_Bars_Fill{
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background-color: var(--cc-dash-answered);
+}
+
+.Cc_Dash_Bars_Value{
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+@media (max-width: 900px){
+  .Cc_Dash_Stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .Cc_Dash_Grid{ grid-template-columns: minmax(0, 1fr); }
+}

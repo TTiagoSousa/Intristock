@@ -151,6 +151,71 @@ The module folder is `src/calculator-catalog` (the catalogue of calculators); th
 | GET | `/company/:companyId/members/:memberId/documents/:documentId/download` | downloadDocument | user |
 | DELETE | `/company/:companyId/members/:memberId/documents/:documentId` | deleteDocument | user |
 
+### company-data
+
+Os Dados do módulo call center (`call_center` tem de estar ligado na empresa). Ler pede `data.view`, gravar
+`data.manage`; as colunas marcadas como pessoais chegam como `•••` a quem não tem `data.personal`.
+
+| Method | Path | Handler | Access |
+|---|---|---|---|
+| POST | `/company/:companyId/data/preview` | preview (multipart: `file`, .xlsx ou .csv até 10 MB) | data.manage |
+| GET | `/company/:companyId/data/tables` | tables | data.view |
+| POST | `/company/:companyId/data/tables` | createTable | data.manage |
+| GET | `/company/:companyId/data/tables/:id` | table | data.view |
+| PATCH | `/company/:companyId/data/tables/:id` | updateTable | data.manage |
+| DELETE | `/company/:companyId/data/tables/:id` | deleteTable (409 se uma tabela unida ou uma secção das Leads a usa) | data.manage |
+| POST | `/company/:companyId/data/tables/:id/import` | importFile (multipart: `file`, `mapping` JSON, `skipTotals`) | data.manage |
+| GET | `/company/:companyId/data/tables/:id/imports` | imports | data.view |
+| GET | `/company/:companyId/data/tables/:id/rows` | rows (`?page&take&search&filters`; `filters` = JSON `[{column, op, value}]`, `op` contains/equals/not/empty/notEmpty/gt/gte/lt/lte ou `in` com `values` [nas de texto; "" = vazio], todos com E) | data.view |
+| GET | `/company/:companyId/data/tables/:id/values` | columnValues (`?column&q&search&filters`: os valores de uma coluna de texto e quantas linhas tem cada um, até 200, nas linhas da pesquisa e dos outros filtros; `truncated`) | data.view |
+| POST | `/company/:companyId/data/tables/:id/rows` | createRow | data.manage |
+| PATCH | `/company/:companyId/data/tables/:id/rows/:rowId` | updateRow | data.manage |
+| DELETE | `/company/:companyId/data/tables/:id/rows/:rowId` | deleteRow | data.manage |
+| GET | `/company/:companyId/data/views` | views | data.view |
+| POST | `/company/:companyId/data/views/preview` | previewView (as contas e as primeiras 50) | data.manage |
+| POST | `/company/:companyId/data/views` | createView | data.manage |
+| GET | `/company/:companyId/data/views/:id` | view | data.view |
+| PATCH | `/company/:companyId/data/views/:id` | updateView | data.manage |
+| DELETE | `/company/:companyId/data/views/:id` | deleteView (409 se uma secção das Leads a usa) | data.manage |
+| GET | `/company/:companyId/data/views/:id/rows` | viewRows (`?page&take&search&filters&only=all\|matched\|leftOnly\|rightOnly\|duplicates`) | data.view |
+| GET | `/company/:companyId/data/views/:id/values` | viewColumnValues (`?column&q&search&filters&only`, como o das tabelas) | data.view |
+| GET | `/company/:companyId/leads/boards` | boards (as secções das Leads, com o nome da origem) | leads.view |
+| POST | `/company/:companyId/leads/boards` | createBoard (`name`, `sourceType` table|view, `sourceId`, `filters`, `search`, `only`, `phoneColumn`, `titleColumn`, `cardColumns` até 6; entra com as 6 colunas por omissão) | leads.manage |
+| GET | `/company/:companyId/leads/boards/:boardId` | board (guarda a lead de cada linha que entra e corre as automações; `?archived=true` com as arquivadas, `?left=true` com as que saíram do filtro: as colunas com as contas, os cartões — as linhas que passam os filtros, até 500, e as mexidas que já não passam, `outOfFilter` —, as colunas da origem; `error` se a origem já não serve) | leads.view |
+| PATCH | `/company/:companyId/leads/boards/:boardId` | updateBoard (o nome, a origem, as definições, `position`, `archived`) | leads.manage |
+| DELETE | `/company/:companyId/leads/boards/:boardId` | deleteBoard (com as leads, os comentários e o histórico) | leads.manage |
+| POST | `/company/:companyId/leads/boards/:boardId/stages` | createStage (`name`; até 12) | leads.manage |
+| PATCH | `/company/:companyId/leads/boards/:boardId/stages/:stageId` | updateStage (`name`, `position` = o lugar no quadro, `cardLimit` 1–500 ou nulo: os cartões à vista, o resto num «Ver mais») | leads.manage |
+| DELETE | `/company/:companyId/leads/boards/:boardId/stages/:stageId` | deleteStage (409 com leads; a de entrada não se apaga) | leads.manage |
+| GET | `/company/:companyId/leads/boards/:boardId/rules` | rules (as automações da secção, pela ordem) | leads.view |
+| POST | `/company/:companyId/leads/boards/:boardId/rules` | createRule (`name`, `conditions` como os filtros, `leadConditions` sobre a lead — `attempts`, `daysInStage`, `assigned`, `callbackDue` —, `fromStageIds`, `action` move|archive|assign, `stageId`, `assigneeIds` (à vez, só às que não têm ninguém), `enabled`; até 20; pelo menos uma condição de um dos lados) | leads.manage |
+| PATCH | `/company/:companyId/leads/boards/:boardId/rules/:ruleId` | updateRule (o que vem; `position` = o lugar na lista) | leads.manage |
+| DELETE | `/company/:companyId/leads/boards/:boardId/rules/:ruleId` | deleteRule | leads.manage |
+| GET | `/company/:companyId/leads/boards/:boardId/lead` | lead (`?row=<chave da linha>`: a linha toda, o responsável, o voltar a ligar, as tentativas, os comentários e o histórico com as chamadas) | leads.view |
+| POST | `/company/:companyId/leads/boards/:boardId/move` | move (`rowKey`, `stageId`, `position`, `from`; regista a passagem) | leads.work |
+| POST | `/company/:companyId/leads/boards/:boardId/archive` | archive (`rowKey`, `archived`) | leads.work |
+| POST | `/company/:companyId/leads/boards/:boardId/comments` | addComment (`rowKey`, `body` até 4000) | leads.work |
+| PATCH | `/company/:companyId/leads/boards/:boardId/comments/:commentId` | editComment (só o próprio) | leads.work |
+| DELETE | `/company/:companyId/leads/boards/:boardId/comments/:commentId` | deleteComment (só o próprio) | leads.work |
+| POST | `/company/:companyId/leads/boards/:boardId/assign` | assign (`rowKey`, `assignedToId` ou nulo: o dono ou quem tem `leads.work`) | leads.work |
+| POST | `/company/:companyId/leads/boards/:boardId/callback` | callback (`rowKey`, `callbackAt` ISO ou nulo, `note` até 300; quem tem a lead recebe o aviso `lead_callback_due` na hora) | leads.work |
+| POST | `/company/:companyId/leads/boards/:boardId/calls` | logCall (`rowKey`, `outcomeId`, `comment`, `callbackAt`, `callbackNote`: grava a chamada, conta a tentativa, passa a lead para a coluna do resultado e limpa ou marca o voltar a ligar, numa transação) | leads.work |
+| POST | `/company/:companyId/leads/boards/:boardId/bulk` | bulk (`rows` até 200, `action` move|archive|restore|assign, `stageId`, `assignedToId`; tudo ou nada) | leads.work |
+| GET | `/company/:companyId/leads/boards/:boardId/outcomes` | outcomes (os botões de resultado da secção, pela ordem) | leads.view |
+| POST | `/company/:companyId/leads/boards/:boardId/outcomes` | createOutcome (`name`, `stageId`, `answered`, `countsAsAttempt`, `asksCallback`; até 10) | leads.manage |
+| PATCH | `/company/:companyId/leads/boards/:boardId/outcomes/:outcomeId` | updateOutcome (o que vem; `position` = o lugar na lista) | leads.manage |
+| DELETE | `/company/:companyId/leads/boards/:boardId/outcomes/:outcomeId` | deleteOutcome (as chamadas ficam com o nome) | leads.manage |
+| GET | `/company/:companyId/leads/dashboard` | dashboard (`?from&to` ISO, até 366 dias — sem eles, os últimos 30 —, `boardId`, `tz`: os cartões, as chamadas por dia, por operador e por resultado, e cada coluna — agora, há quanto tempo, entraram, até sair) | leads.view |
+| GET | `/company/:companyId/leads/row-comments/counts` | rowCommentCounts (`?sourceType&sourceId`: os comentários de cada linha, somando as secções que a usam) | leads.view |
+| GET | `/company/:companyId/leads/row-comments` | rowComments (`?sourceType&sourceId&row`: os comentários de uma linha, com a secção) | leads.view |
+| GET | `/company/:companyId/data/connections` | list (as ligações às APIs, sem a chave) | data.view |
+| GET | `/company/:companyId/data/connections/fields` | fields (os campos de cada API para ligar às colunas: as encomendas da Shopify) | sessão |
+| POST | `/company/:companyId/data/connections/check` | check (`provider` shopify, `shop` a-loja.myshopify.com, `token`: o nome e a moeda da loja) | data.manage |
+| POST | `/company/:companyId/data/connections` | create (`provider`, `shop`, `token` cifrada, e `tableId` + `mapping` campo → coluna — a chave tem de vir — ou `newTableName` + `fields`; `syncEveryHours` 1, 24 ou 168; a primeira volta corre já, em fundo) | data.manage |
+| PATCH | `/company/:companyId/data/connections/:id` | update (`status` active|paused, `syncEveryHours`, `mapping`, `token`) | data.manage |
+| DELETE | `/company/:companyId/data/connections/:id` | remove (a tabela e as linhas ficam) | data.manage |
+| POST | `/company/:companyId/data/connections/:id/sync` | sync (já: as encomendas mexidas desde o cursor, juntadas pela chave como uma importação) | data.manage |
+
 ### company-module
 
 | Method | Path | Handler | Access |

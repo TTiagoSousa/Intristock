@@ -58,6 +58,8 @@ const Notifications_Menu = () => {
         typeof data.amount === 'number' ? formatIn(data.amount, String(data.currency ?? 'EUR')) : data.amount,
       grossAmount:
         typeof data.grossAmount === 'number' ? formatIn(data.grossAmount, String(data.currency ?? 'EUR')) : data.grossAmount,
+      // Uma lead do call center: o título dela (os avisos antigos só têm a chave; numa unida, «A|B»)
+      title: data.title ?? (typeof data.rowKey === 'string' ? data.rowKey.split('|')[0] : undefined),
     };
   };
 

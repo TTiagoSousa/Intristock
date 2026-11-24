@@ -21,6 +21,10 @@ export const COMPANY_PERMISSION_AREAS = {
   trading: ['view', 'create', 'edit', 'delete'],
   // O banco de horas: ver as horas e os pagamentos; gerir as ligações, os clientes, as pessoas e marcar pagos
   timesheet: ['view', 'manage'],
+  // Os Dados do call center: ver as tabelas; criá-las, importar e editar; ver as colunas pessoais sem •••
+  data: ['view', 'manage', 'personal'],
+  // As Leads do call center: ver os quadros; mover e comentar as leads; criar as secções, as colunas e as definições
+  leads: ['view', 'work', 'manage'],
 } as const;
 
 type Areas = typeof COMPANY_PERMISSION_AREAS;
@@ -37,8 +41,12 @@ const VALID = new Set<string>(COMPANY_PERMISSIONS);
 
 export const isCompanyPermission = (value: string): value is CompanyPermission => VALID.has(value);
 
+// Permissões que também só leem (mais do que o ver da área)
+const READ_PERMISSIONS = new Set<string>(['data.personal']);
+
 /** Ver é ler; tudo o resto grava (e uma empresa desativada não aceita). */
-export const isWritePermission = (permission: CompanyPermission) => !permission.endsWith('.view');
+export const isWritePermission = (permission: CompanyPermission) =>
+  !permission.endsWith('.view') && !READ_PERMISSIONS.has(permission);
 
 /**
  * As permissões de um membro: as do cargo, mais as que lhe deram a mais, menos

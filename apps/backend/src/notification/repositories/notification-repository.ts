@@ -13,7 +13,9 @@ export type NotificationKind =
   | 'member_pay_answered'
   // A empresa registou que pagou (um salário, um recibo, horas): a pessoa confirma que recebeu
   | 'member_paid'
-  | 'member_payment_confirmed';
+  | 'member_payment_confirmed'
+  // Uma lead do call center chegou à hora de voltar a ligar (a quem a tem atribuída)
+  | 'lead_callback_due';
 
 /** O estado de um aviso que pede uma resposta (os outros ficam nulos). */
 export type NotificationActionStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'done';

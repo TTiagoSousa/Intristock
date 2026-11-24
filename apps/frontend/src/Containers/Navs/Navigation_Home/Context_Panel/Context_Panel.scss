@@ -203,3 +203,36 @@
     white-space: nowrap;
   }
 }
+
+// O grupo «Módulos»: a seta que abre a lista e o sinal de que um módulo abre noutro separador
+.Context_Panel{
+  .Panel_Item_Chevron,
+  .Panel_Item_External{
+    display: flex;
+    flex: none;
+    margin-left: auto;
+    color: var(--text-3);
+  }
+
+  .Panel_Item_Chevron{
+    width: 14px;
+    height: 14px;
+    transition: transform var(--dur-fast);
+
+    &.Open{ transform: rotate(180deg); }
+  }
+
+  .Panel_Item_External{
+    width: 12px;
+    height: 12px;
+  }
+
+  .Panel_Module_Link{
+    text-decoration: none;
+
+    &:hover .Panel_Item_External{ color: var(--text); }
+  }
+
+  .Panel_Module_Manage .Panel_Item_Label{ color: var(--text-3); }
+  .Panel_Module_Manage.Active .Panel_Item_Label{ color: inherit; }
+}

@@ -1,0 +1,701 @@
+// O módulo call center: os dados (tabelas, importações e tabelas unidas). A casca dos cartões,
+// as tabelas, os separadores e os cartões de números vêm do Styles/.
+.Call_Center{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+
+  .Page_Head{
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    // Sem título (o caminho no topo já diz onde se está): só os botões, à direita
+    &:empty{ display: none; }
+  }
+}
+
+.Call_Center_Head_Actions{
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.Call_Center_Card{
+  padding: 0;
+  overflow: hidden;
+}
+
+.Call_Center_Body{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.Call_Center_Toolbar{
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+
+  .Form_Field{ min-width: 220px; }
+}
+
+.Call_Center_Message{
+  display: block;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--text-2);
+
+  &.Bad{ color: var(--loss); }
+
+  &.Good{ color: var(--gain); }
+}
+
+.Call_Center_Strong{
+  font-weight: 500;
+  color: var(--text);
+}
+
+.Call_Center_Sub{
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Call_Center_Link{
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+
+  &:hover{ color: var(--accent); }
+}
+
+.Call_Center_Action{
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background-color: var(--surface);
+
+  &:hover{
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+  }
+
+  &.Danger{ color: var(--loss); }
+
+  &:disabled{
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.Call_Center_Row_Actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+// O valor escondido de um dado pessoal: o mesmo cinzento das notas, sem chamar a atenção
+.Call_Center_Masked{
+  color: var(--call-center-masked);
+  letter-spacing: 1px;
+}
+
+.Call_Center_File{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.Call_Center_File_Input{ display: none; }
+
+// As colunas de uma tabela (nova ou a editar): uma linha por coluna, com os campos lado a lado
+.Call_Center_Columns{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Call_Center_Column{
+  display: grid;
+  grid-template-columns: 24px minmax(160px, 1.4fr) minmax(130px, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+
+  &.Off{ opacity: 0.55; }
+
+  .Call_Center_Column_Meta{
+    grid-column: 2 / -1;
+    font-size: 12px;
+    color: var(--text-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 760px){
+    grid-template-columns: 24px 1fr;
+
+    > :nth-child(n + 3){ grid-column: 2; }
+  }
+}
+
+.Call_Center_Check{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+  cursor: pointer;
+
+  input{ margin: 0; }
+}
+
+// Os pares de colunas de uma tabela unida (coluna de A = coluna de B) e a limpeza de cada um
+.Call_Center_Pair{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+}
+
+.Call_Center_Pair_Fields{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px 12px;
+
+  .Call_Center_Equals{
+    padding-bottom: 10px;
+    color: var(--text-3);
+  }
+
+  @media (max-width: 640px){
+    grid-template-columns: 1fr;
+
+    .Call_Center_Equals{ display: none; }
+  }
+}
+
+.Call_Center_Pair_Normalize{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.Call_Center_Two{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px 16px;
+}
+
+// As colunas escolhidas de uma tabela unida, pela ordem em que aparecem
+.Call_Center_Picked{
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(160px, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+}
+
+.Call_Center_Side{
+  min-width: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--call-center-side);
+}
+
+.Call_Center_Available{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+// Os números da junção (com par, só em A…): botões que filtram as linhas
+.Call_Center_Stats{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.Call_Center_Stat{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  text-align: left;
+
+  .Call_Center_Stat_Value{
+    font-size: 22px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  &.Clickable:hover{ border-color: var(--accent); }
+
+  &.Active{
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+  }
+}
+
+.Call_Center_Results{
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-2);
+
+  strong{
+    font-weight: 500;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.Call_Center_Errors{
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--loss);
+}
+
+.Call_Center_Mapping td{ vertical-align: middle; }
+
+.Call_Center_Mapping_Pick{ min-width: 220px; }
+
+.Call_Center_Scroll{
+  max-height: 420px;
+  overflow: auto;
+}
+
+.Call_Center_Pill{ margin-left: 8px; }
+
+// O dashboard do espaço: cada tabela unida com as contas dela
+.Call_Center_Dash_Views{
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 20px 20px;
+}
+
+.Call_Center_Dash_View{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .Call_Center_Stats{ margin-top: 8px; }
+}
+
+// Os botões pequenos de ícone (o «Info» de uma linha)
+.Call_Center_Icon_Button{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  background-color: var(--surface);
+
+  &:hover,
+  &.Active{
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// Um painel por cima da página preso a um botão (o «Info», as colunas, um filtro)
+.Call_Center_Panel{
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(440px, calc(100vh - 24px));
+  padding: 12px 16px;
+  overflow: auto;
+  border: 1px solid var(--call-center-panel-border);
+  border-radius: var(--radius);
+  background-color: var(--call-center-panel-background);
+  box-shadow: var(--call-center-panel-shadow);
+  color: var(--text);
+  font-size: 13px;
+
+  &.Call_Center_Info{ width: min(380px, calc(100vw - 24px)); }
+  &.Call_Center_Picker{ width: min(300px, calc(100vw - 24px)); }
+  &.Call_Center_Filter_Panel{
+    width: min(320px, calc(100vw - 24px));
+    // Cresce com a lista dos valores; as listas dos campos abrem por fora dele
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+.Call_Center_Panel_Head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.Call_Center_Panel_Title{
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.Call_Center_Info_List{
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.Call_Center_Info_Item{
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+
+  dt{ color: var(--text-3); overflow-wrap: anywhere; }
+
+  dd{
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// O «é um de»: os valores de uma coluna com quantas linhas tem cada um
+.Call_Center_Values{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.Call_Center_Values_Head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Call_Center_Values_Actions{
+  display: inline-flex;
+  gap: 12px;
+}
+
+.Call_Center_Values_List{
+  display: flex;
+  flex-direction: column;
+  // A altura fica fixa enquanto a lista chega ou muda com a procura
+  height: min(200px, calc(100vh - 400px));
+  min-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 4px 0;
+
+  .Call_Center_Value{
+    display: flex;
+    gap: 8px;
+    padding: 4px 10px;
+    white-space: normal;
+    color: var(--text);
+
+    &:hover{ background-color: var(--accent-soft); }
+  }
+
+  .Call_Center_Value_Text{
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+
+    &.Muted{ color: var(--text-3); }
+  }
+
+  .Call_Center_Value_Count{
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.Call_Center_Values_Note{
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.Call_Center_Picker_List{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .Call_Center_Check{
+    padding: 4px 0;
+    white-space: normal;
+    color: var(--text);
+  }
+}
+
+.Call_Center_Filter_Form{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.Call_Center_Filter_Actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.Call_Center_Text_Button{
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+
+  &:hover{ text-decoration: underline; }
+
+  &:disabled{
+    color: var(--text-3);
+    text-decoration: none;
+    cursor: default;
+  }
+}
+
+// Por cima da tabela: as colunas, juntar um filtro e os filtros ativos
+.Call_Center_Grid_Tools{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.Call_Center_Tool{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  background-color: var(--surface);
+
+  &:hover:not(:disabled),
+  &.Active{
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  &:disabled{
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .Call_Center_Tool_Icon{
+    display: inline-flex;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.Call_Center_Chip{
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background-color: var(--accent-soft);
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+
+  .Call_Center_Chip_Body{
+    max-width: 320px;
+    height: 100%;
+    padding: 0 4px 0 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: inherit;
+  }
+
+  .Call_Center_Chip_Column{ color: var(--text); }
+
+  .Call_Center_Chip_Remove{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 100%;
+    padding: 6px;
+    color: var(--text-3);
+
+    &:hover{ color: var(--loss); }
+  }
+}
+
+// O cabeçalho de uma coluna com o funil do filtro ao lado
+.Call_Center_Head_Cell{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.Call_Center_Header_Filter{
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  opacity: 0;
+
+  th:hover &,
+  &:focus-visible,
+  &.Active{ opacity: 1; }
+
+  &:hover{ color: var(--accent); background-color: var(--accent-soft); }
+
+  &.Active{ color: var(--accent); }
+
+  &:disabled{ cursor: default; }
+
+  // Sem rato (telemóvel), sempre à vista
+  @media (hover: none){ opacity: 1; }
+}
+
+// Uma linha da lista dos dados abre a tabela
+.Call_Center_Row_Link{
+  cursor: pointer;
+
+  &:hover td{ background-color: var(--navbar-vertical-item-hover-background); }
+}
+
+// Os comentários das Leads numa linha: o número ao lado do «Info» e a lista por cima
+.Call_Center_Comment_Count{
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--call-center-comment-count-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--call-center-comment-count-text);
+  background-color: var(--call-center-comment-count-background);
+
+  &:hover,
+  &.Active{ border-color: var(--line-strong); }
+
+  &:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.Call_Center_Row_Comments{
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 0 8px;
+}
+
+// As ligações às APIs (Shopify)
+.Conn_Check{
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.Conn_Fields{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px 12px;
+}
+
+.Conn_Mapping{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.Conn_Mapping_Row{
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: center;
+  gap: 12px;
+
+  label{
+    font-size: 13px;
+    color: var(--text-2);
+  }
+}
+
+.Conn_Error{
+  max-width: 320px;
+  color: var(--loss);
+  overflow-wrap: anywhere;
+}
+
+.Conn_Every{ width: 150px; }
+
+.Conn_Head_Action{ margin-left: auto; }
+
+// As linhas de uma tabela: o scroll é da tabela (até ao fundo do ecrã) e o cabeçalho fica preso em cima
+.Call_Center_Scroll{
+  overflow: auto;
+  overscroll-behavior: contain;
+
+  &::-webkit-scrollbar{ width: 8px; }
+
+  thead th{
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--call-center-sticky-head);
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+}

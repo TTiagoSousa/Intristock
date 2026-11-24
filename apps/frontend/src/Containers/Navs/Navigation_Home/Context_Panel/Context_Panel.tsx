@@ -7,6 +7,7 @@ import {
   companyAreaEntry,
   companyAreas,
   companySlugFromPath,
+  type Company_Area,
   type Menu_Action,
   type Menu_Section,
 } from '../Menu_Itins';
@@ -22,6 +23,25 @@ import Delete_Simulations_Popover from '../../../../Pages/Private/Trading/Tradin
 import Portfolio_Transaction_Popover from '../../../../Pages/Private/Finances/Portfolio/Portfolio_Transaction_Popover';
 import './Context_Panel.scss';
 
+// O grupo «Módulos» aberto ou fechado fica no browser (aberto por omissão)
+const MODULES_OPEN_KEY = 'intristock-company-modules-open';
+
+const readModulesOpen = () => {
+  try {
+    return localStorage.getItem(MODULES_OPEN_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+};
+
+const saveModulesOpen = (open: boolean) => {
+  try {
+    localStorage.setItem(MODULES_OPEN_KEY, String(open));
+  } catch {
+    // sem armazenamento, fica só nesta visita
+  }
+};
+
 interface Context_Panel_Props {
   // No telemóvel o painel abre por cima do conteúdo e fecha ao navegar
   onNavigate?: () => void;
@@ -34,11 +54,24 @@ export const Context_Panel = ({ onNavigate }: Context_Panel_Props) => {
   const { company, activeModules, can } = useCompany();
   // As áreas de um módulo (Trading) só com ele ligado, e cada área e secção só
   // a quem o cargo deixa ver (o backend recusa na mesma)
+  const canSee = (item: Company_Area) =>
+    (!item.moduleName || activeModules.some((m) => m.module.name === item.moduleName)) &&
+    (!item.permissions || can(...item.permissions));
+  // Os módulos não ficam soltos: vão dentro do grupo «Módulos»
+  const moduleAreas = companyAreas.filter((item) => item.inModules && canSee(item));
+  const canManageModules = can('modules.view');
   const visibleAreas = companyAreas.filter(
     (item) =>
-      (!item.moduleName || activeModules.some((m) => m.module.name === item.moduleName)) &&
-      (!item.permissions || can(...item.permissions)),
+      !item.inModules &&
+      (item.id === 'modules' ? moduleAreas.length > 0 || canManageModules : canSee(item)),
   );
+  const [modulesOpen, setModulesOpen] = useState(readModulesOpen);
+  const toggleModules = () => {
+    setModulesOpen((open) => {
+      saveModulesOpen(!open);
+      return !open;
+    });
+  };
   const { companies } = useCompanies();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
@@ -115,6 +148,65 @@ export const Context_Panel = ({ onNavigate }: Context_Panel_Props) => {
             ir de Compras para Módulos não obriga a voltar ao princípio. */}
         {visibleAreas.map((item) => {
           const isActive = area.id === item.id;
+
+          // «Módulos» abre e fecha a lista ali mesmo; cada módulo abre o dele (o que tem
+          // espaço próprio, noutro separador) e «Gerir módulos» leva à página de os ligar
+          if (item.id === 'modules') {
+            const managing = isActive;
+            const open = modulesOpen;
+
+            return (
+              <div key={item.id} className="Panel_Group">
+                <button
+                  type="button"
+                  className="Panel_Item Has_Icon"
+                  aria-expanded={open}
+                  onClick={toggleModules}
+                >
+                  <span className="Panel_Item_Icon"><item.icon /></span>
+                  <span className="Panel_Item_Label">{t(item.labelKey)}</span>
+                  <span className={`Panel_Item_Chevron ${open ? 'Open' : ''}`}><Icon.Chevron_Down /></span>
+                </button>
+
+                {open && moduleAreas.map((module) =>
+                  module.workspace ? (
+                    <a
+                      key={module.id}
+                      className="Panel_Item Sub Panel_Module_Link"
+                      href={module.workspace(slug)}
+                      target="_blank"
+                      rel="noopener"
+                      title={t('menu.opensInNewTab')}
+                      onClick={() => onNavigate?.()}
+                    >
+                      <span className="Panel_Item_Label">{t(module.labelKey)}</span>
+                      <span className="Panel_Item_External" aria-hidden="true"><Icon.Expand /></span>
+                    </a>
+                  ) : (
+                    <button
+                      key={module.id}
+                      type="button"
+                      className={`Panel_Item Sub ${area.id === module.id ? 'Active' : ''}`}
+                      onClick={() => goTo(companyAreaEntry(module, slug, can))}
+                    >
+                      <span className="Panel_Item_Label">{t(module.labelKey)}</span>
+                    </button>
+                  ),
+                )}
+
+                {open && canManageModules && (
+                  <button
+                    type="button"
+                    className={`Panel_Item Sub Panel_Module_Manage ${managing ? 'Active' : ''}`}
+                    onClick={() => goTo(item.path(slug))}
+                  >
+                    <span className="Panel_Item_Label">{t('menu.manageModules')}</span>
+                  </button>
+                )}
+
+              </div>
+            );
+          }
           const sections = (item.sections?.(slug) ?? []).filter(
             (section) => !section.permissions || can(...section.permissions),
           );

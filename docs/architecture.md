@@ -33,6 +33,8 @@ controller  →  service  →  helper (one function per file)  →  repository (
 - **Services** wire the helpers to their repositories.
 - **Helpers** hold the logic, one exported function each, so they are easy to find and test.
 - **Repositories** are the only place that talks to Prisma.
+- **Company modules**: a route that belongs to a module passes `module: '<name>'` to `assertCompanyAccess`, so a module switched off in the company (or in the catalog) answers 403 for everyone, the owner included.
+- **Data tables** (`company-data`, call center module): each table keeps its columns as JSON (`key`, `label`, `type`, `personal`, `hidden`) and its rows as JSONB (`CompanyDataRow.data`, unique by `tableId` + `key`). Files are read without dependencies (`readXlsx`: the zip and the sheet XML; `readCsv`) and imported in one transaction with an `INSERT … ON CONFLICT DO UPDATE` that merges the values and skips the unchanged rows. A joined table (`CompanyDataView`) is not stored: it is computed when read (`joinTables`, in memory, cached until the view or one of its tables changes) and the personal columns are masked on the way out.
 
 ## Scheduled jobs
 
@@ -49,6 +51,8 @@ Background work runs inside the backend as Nest services with timers. The period
 | Retention cleanup | `RetentionService` (`retention.cleanup`) | 24 h | ≥ 240 s | none | read notifications older than 90 days (not those awaiting an answer); live-test `condition` events older than 30 days of ended tests; in batches |
 | Broker sync | `BrokerSyncService` | checks every 5 min; each connection every 1, 24 or 168 h (`syncEveryHours`) | 2 min | Trading 212 | one connection at a time; up to 5 waits on 429 |
 | Time-tracking sync | `TimeTrackingSyncService` | checks every 5 min; each connection every 1, 24 or 168 h | 2–5 min (random) | solidtime | one connection at a time; up to 5 waits on 429; a failed connection retried after at most 1 h, keeping its `syncedAt` |
+| Call-center leads | `CompanyLeadJobsService` (`company-lead.background`) | 5 min | ≥ 180 s | none | runs the automations of every section with enabled rules (reads the source, creates the new leads, applies the rules — the same as opening the board); then notifies the assignee of each lead whose callback time has come (`lead_callback_due`, once per lead and time) |
+| Data connections | `CompanyDataConnectionService` | checks every 5 min; each connection every 1, 24 or 168 h | 3–6 min (random) | Shopify Admin GraphQL | orders updated since the cursor (minus 5 min), 100 per page, up to 50 pages a run, upserted by the key column as one import; never two runs of the same connection; a failure keeps `syncedAt` and sets `status` error with `lastError` |
 | Goods valuation | `GoodsValuationService` | 1 h | 3 min | SerpApi (Facebook Marketplace) | 20 goods per round, 2 searches each; a failure retried the next day; no key with searches left → waits a day |
 
 On-demand syncs (admin buttons, no timer): the prop firms from PropFirmMap (`PropFirmSyncService`, one detail request every 1.1 s, about 5 min in the background) and the crypto exchanges from CoinGecko (`ExchangeSyncService`, also when the API card is saved).

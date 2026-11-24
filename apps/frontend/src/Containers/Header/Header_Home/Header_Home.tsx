@@ -45,6 +45,13 @@ const PATH_LABELS: Record<string, string> = {
   ativos: 'menu.assets',
   registo: 'menu.assetsRegister',
   trading: 'companyTrading.title',
+  'call-center': 'callCenter.title',
+  dados: 'callCenter.menuData',
+  leads: 'callCenter.menuLeads',
+  tabela: 'callCenter.crumbTable',
+  unida: 'callCenter.crumbView',
+  nova: 'callCenter.crumbNew',
+  editar: 'common.edit',
   membros: 'menu.companyMembers',
   cargos: 'menu.companyRoles',
   pessoa: 'menu.companyMember',
@@ -64,7 +71,26 @@ const PATH_LABELS: Record<string, string> = {
   atualizar: 'menu.versionsUpdate',
 };
 
-const Header_Home = () => {
+interface Header_Home_Props {
+  // No espaço de um módulo (/w/...) não há a barra dos módulos nem o painel para recolher
+  workspace?: boolean;
+}
+
+// /w/:slug/call-center/dados → Empresas / a empresa / Call center / Dados (o espaço é da empresa)
+const pathSegments = (pathname: string) => {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments[0] !== 'w' || !segments[1]) {
+    return segments.map((segment, index) => ({ segment, path: `/${segments.slice(0, index + 1).join('/')}` }));
+  }
+  const [, slug, ...rest] = segments;
+  return [
+    { segment: 'Companies', path: '/Companies' },
+    { segment: slug, path: `/Companies/${slug}` },
+    ...rest.map((segment, index) => ({ segment, path: `/w/${slug}/${rest.slice(0, index + 1).join('/')}` })),
+  ];
+};
+
+const Header_Home = ({ workspace = false }: Header_Home_Props) => {
   const { effectiveNavigation, toggleMobileMenu, isPanelCollapsed, togglePanel } = useNavs();
   const isMobile = effectiveNavigation === 'Mobile_Menu';
   const location = useLocation();
@@ -89,13 +115,11 @@ const Header_Home = () => {
   }, []);
 
   // Cada migalha guarda o caminho acumulado até si, para poder ser clicável
-  const crumbs = location.pathname
-    .split('/')
-    .filter(Boolean)
-    .filter((segment) => segment !== 'Dashboard')
-    .map((segment, index, segments) => ({
+  const crumbs = pathSegments(location.pathname)
+    .filter(({ segment }) => segment !== 'Dashboard')
+    .map(({ segment, path }) => ({
       segment,
-      path: `/${segments.slice(0, index + 1).join('/')}`,
+      path,
       label: labels[segment] ?? (PATH_LABELS[segment] ? t(PATH_LABELS[segment]) : segment),
     }));
 
@@ -120,7 +144,7 @@ const Header_Home = () => {
     <header className="Header_Home">
       {/* Em ecrã largo a navegação é fixa — o botão só existe no telemóvel,
           onde o painel tem mesmo de abrir por cima do conteúdo */}
-      {isMobile ? (
+      {workspace ? null : isMobile ? (
         <button
           type="button"
           className="Icon_Button"

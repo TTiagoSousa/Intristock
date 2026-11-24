@@ -42,7 +42,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
   const { loading: loadingCompanies, run } = useAsyncRequest(true);
 
-  const slug = location.pathname.match(/^\/Companies\/([^/]+)/)?.[1];
+  // Dentro da app (/Companies/:slug) ou no espaço de um módulo (/w/:slug/...)
+  const slug = location.pathname.match(/^\/(?:Companies|w)\/([^/]+)/)?.[1];
   const company = companies.find((item) => item.slug === slug);
   const current = scope && company && scope.companyId === company.id ? scope : null;
 

@@ -17,6 +17,13 @@ export { default as Company_Stock_Movements } from '../../Pages/Private/Companie
 export { default as Company_Modules } from '../../Pages/Private/Companies/Company_Modules/Company_Modules';
 export { default as Company_Module_Settings } from '../../Pages/Private/Companies/Company_Modules/Company_Module_Settings';
 export { default as Company_Trading } from '../../Pages/Private/Companies/Company_Trading/Company_Trading';
+export { default as Data_Overview } from '../../Pages/Private/Companies/Company_Call_Center/Data_Overview';
+export { default as Data_Table_New } from '../../Pages/Private/Companies/Company_Call_Center/Data_Table_New';
+export { default as Data_Table_Page } from '../../Pages/Private/Companies/Company_Call_Center/Data_Table_Page';
+export { default as Data_View_Form } from '../../Pages/Private/Companies/Company_Call_Center/Data_View_Form';
+export { default as Data_View_Page } from '../../Pages/Private/Companies/Company_Call_Center/Data_View_Page';
+export { default as Call_Center_Dashboard } from '../../Pages/Private/Companies/Company_Call_Center/Call_Center_Dashboard';
+export { default as Leads_Page } from '../../Pages/Private/Companies/Company_Call_Center/Leads_Page';
 export { default as Time_Tracking_Overview } from '../../Pages/Private/Companies/Company_Time_Tracking/Time_Tracking_Overview';
 export { default as Time_Tracking_Hours } from '../../Pages/Private/Companies/Company_Time_Tracking/Time_Tracking_Hours';
 export { default as Time_Tracking_Clients } from '../../Pages/Private/Companies/Company_Time_Tracking/Time_Tracking_Clients';

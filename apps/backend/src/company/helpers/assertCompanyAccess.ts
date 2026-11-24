@@ -29,6 +29,9 @@ interface CompanyAccessOptions {
   /// - `member`: qualquer membro (a visão geral, os módulos ligados);
   /// - `owner`: só quem criou a empresa (apagá-la, mudar o estado).
   permission: CompanyAccessPermission;
+  /// O módulo de que a rota é (`Module.name`): desligado na empresa, ninguém
+  /// passa — nem o dono, que o liga em Empresa → Módulos.
+  module?: string;
 }
 
 /**
@@ -56,6 +59,10 @@ export async function assertCompanyAccess(
   }
 
   const { permission } = options;
+
+  if (options.module && !(await companyRepository.isModuleActive(companyId, options.module))) {
+    throw new ForbiddenException(`O módulo não está ligado em "${company.name}" — liga-o em Módulos`);
+  }
 
   // O dono pode tudo. Um membro passa pelo cargo dele (mais os ajustes):
   // sem cargo, só o que é de qualquer membro.

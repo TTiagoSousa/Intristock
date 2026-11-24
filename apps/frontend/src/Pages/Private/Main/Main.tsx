@@ -8,6 +8,7 @@ import { CompanyProvider } from '../../../Contexts/Company_Context';
 import { useSetupStatus } from '../../../Hooks/Setup/useSetupStatus';
 import Setup from '../Setup/Setup';
 import Private_Routes from '../../../Routes/Private_Routes';
+import Workspace_Layout from '../Workspace/Workspace_Layout';
 import './Main.scss';
 
 const Main_Layout = () => {
@@ -60,9 +61,15 @@ const Main = () => {
 
   return (
     <CompanyProvider>
-      <Main_Layout />
+      <Private_Shell />
     </CompanyProvider>
   );
+};
+
+// O espaço de um módulo (/w/...) é um ecrã à parte, sem as barras da app
+const Private_Shell = () => {
+  const location = useLocation();
+  return location.pathname.startsWith('/w/') ? <Workspace_Layout /> : <Main_Layout />;
 };
 
 export default Main;

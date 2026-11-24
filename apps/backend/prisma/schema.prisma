@@ -22,28 +22,28 @@ model Currency {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  bankAccounts          BankAccount[]
-  companies             Company[]
-  companySuppliers      CompanySupplier[]
-  companyMembers        CompanyMember[]
-  companyPayments       CompanyPayment[]
-  companyAssets         CompanyAsset[]
-  ratesFrom             CurrencyRate[]                 @relation("CurrencyRateBase")
-  ratesTo               CurrencyRate[]                 @relation("CurrencyRateQuote")
-  incomeSources         PersonalIncomeSource[]
-  incomes               PersonalIncome[]
-  expenses              PersonalExpense[]
-  subscriptions         PersonalSubscription[]
-  debts                 PersonalDebt[]
-  portfolioTransactions PersonalPortfolioTransaction[]
+  bankAccounts            BankAccount[]
+  companies               Company[]
+  companySuppliers        CompanySupplier[]
+  companyMembers          CompanyMember[]
+  companyPayments         CompanyPayment[]
+  companyAssets           CompanyAsset[]
+  ratesFrom               CurrencyRate[]                 @relation("CurrencyRateBase")
+  ratesTo                 CurrencyRate[]                 @relation("CurrencyRateQuote")
+  incomeSources           PersonalIncomeSource[]
+  incomes                 PersonalIncome[]
+  expenses                PersonalExpense[]
+  subscriptions           PersonalSubscription[]
+  debts                   PersonalDebt[]
+  portfolioTransactions   PersonalPortfolioTransaction[]
   /// O ativo de dinheiro desta moeda
-  cashAsset             Asset?
-  hourRates             CurrencyHourRate[]
+  cashAsset               Asset?
+  hourRates               CurrencyHourRate[]
   timeTrackingConnections TimeTrackingConnection[]
   timeTrackingSettlements TimeTrackingSettlement[]
+  timeTrackingPayouts     TimeTrackingPayout[]
 
   @@index([shortCode])
-  timeTrackingPayouts TimeTrackingPayout[]
 }
 
 /// A cotação de mercado de um dia: 1 `base` = `rate` `quote`. Serve para propor a
@@ -136,24 +136,24 @@ model Employee {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  email          String    @unique
-  firstName      String
-  lastName       String
-  fullName       String
-  hashedPassword String
-  active         Boolean   @default(false)
+  id                String    @id @default(uuid())
+  email             String    @unique
+  firstName         String
+  lastName          String
+  fullName          String
+  hashedPassword    String
+  active            Boolean   @default(false)
   /// ADMIN gere a instalação (utilizadores, APIs, versões, catálogo) · USER usa a app
-  role           String    @default("USER")
+  role              String    @default("USER")
   /// Bloqueado pelo admin até esta data (não entra nem usa a sessão); nulo = livre. Para sempre é `active` falso
-  blockedUntil   DateTime?
-  blockedReason  String?
+  blockedUntil      DateTime?
+  blockedReason     String?
   /// A última mudança da password: as sessões emitidas antes deixam de valer
   passwordChangedAt DateTime?
-  countryId      String?
-  country        Country?  @relation(fields: [countryId], references: [id])
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  countryId         String?
+  country           Country?  @relation(fields: [countryId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   simulations           CalculatorSimulation[]
   createdCompanies      Company[]
@@ -176,12 +176,12 @@ model User {
   portfolios            PersonalPortfolio[]
   brokerConnections     BrokerConnection[]
   timeTrackingPeople    TimeTrackingPerson[]
+  companyInvitesSent    CompanyMember[]           @relation("CompanyMemberInvitedBy")
+  memberPaysProposed    CompanyMemberPay[]        @relation("CompanyMemberPayProposedBy")
+  timeTrackingPayouts   TimeTrackingPayout[]      @relation("TimeTrackingPayoutUser")
 
   @@index([email])
   @@index([countryId])
-  companyInvitesSent  CompanyMember[]    @relation("CompanyMemberInvitedBy")
-  memberPaysProposed  CompanyMemberPay[] @relation("CompanyMemberPayProposedBy")
-  timeTrackingPayouts TimeTrackingPayout[] @relation("TimeTrackingPayoutUser")
 }
 
 /// Configuração da instalação que o admin edita na app (APIs externas e afins).
@@ -299,20 +299,25 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bankAccounts   BankAccount[]
-  members        CompanyMember[]
-  roles          CompanyRole[]
-  suppliers      CompanySupplier[]
-  supplierGroups CompanySupplierGroup[]
-  payments       CompanyPayment[]
-  modules        CompanyModule[]
-  items          CompanyItem[]
-  assets         CompanyAsset[]
-  stockMovements CompanyStockMovement[]
-  incomeSources  PersonalIncomeSource[]
-  expenses       PersonalExpense[]
+  bankAccounts            BankAccount[]
+  members                 CompanyMember[]
+  roles                   CompanyRole[]
+  suppliers               CompanySupplier[]
+  supplierGroups          CompanySupplierGroup[]
+  payments                CompanyPayment[]
+  modules                 CompanyModule[]
+  items                   CompanyItem[]
+  assets                  CompanyAsset[]
+  stockMovements          CompanyStockMovement[]
+  incomeSources           PersonalIncomeSource[]
+  expenses                PersonalExpense[]
   timeTrackingConnections TimeTrackingConnection[]
   timeTrackingSettlements TimeTrackingSettlement[]
+  timeTrackingPayouts     TimeTrackingPayout[]
+  dataTables              CompanyDataTable[]
+  dataViews               CompanyDataView[]
+  leadBoards              CompanyLeadBoard[]
+  dataConnections         CompanyDataConnection[]
 
   @@index([createdById])
   @@index([parentId])
@@ -320,7 +325,6 @@ model Company {
   @@index([currencyId])
   @@index([slug])
   @@index([status])
-  timeTrackingPayouts TimeTrackingPayout[]
 }
 
 /// Uma pessoa da empresa. Com `userId` é uma conta que entra na app (com cargo e
@@ -373,18 +377,19 @@ model CompanyMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  pays          CompanyMemberPay[]
-  contracts     CompanyMemberContract[]
-  documents     CompanyMemberDocument[]
-  payments      CompanyPayment[]
-  timeTrackingPeople      TimeTrackingPerson[]
+  pays                CompanyMemberPay[]
+  contracts           CompanyMemberContract[]
+  documents           CompanyMemberDocument[]
+  payments            CompanyPayment[]
+  timeTrackingPeople  TimeTrackingPerson[]
   /// A moeda em que se lhe paga (sem ela, a da empresa): os salários e os recibos
   /// verdes dele estão nela
-  currencyId    String?
-  currency      Currency?               @relation(fields: [currencyId], references: [id])
+  currencyId          String?
+  currency            Currency?               @relation(fields: [currencyId], references: [id])
   /// A conta da empresa de onde se lhe paga, a que os próximos pagamentos propõem
-  bankAccountId String?
-  bankAccount   BankAccount?            @relation(fields: [bankAccountId], references: [id])
+  bankAccountId       String?
+  bankAccount         BankAccount?            @relation(fields: [bankAccountId], references: [id])
+  timeTrackingPayouts TimeTrackingPayout[]
 
   /// Uma conta só é membro uma vez por empresa (os sem conta, `userId` nulo, não contam)
   @@unique([companyId, userId])
@@ -395,7 +400,6 @@ model CompanyMember {
   @@index([countryId])
   @@index([currencyId])
   @@index([bankAccountId])
-  timeTrackingPayouts TimeTrackingPayout[]
 }
 
 /// O que se paga a um membro, na moeda dele (`CompanyMember.currencyId`, ou a da empresa):
@@ -707,9 +711,9 @@ model CompanySupplier {
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
-  payments  CompanyPayment[]
-  itemLinks CompanyItemSupplier[]
-  phones    CompanySupplierPhone[]
+  payments            CompanyPayment[]
+  itemLinks           CompanyItemSupplier[]
+  phones              CompanySupplierPhone[]
   timeTrackingClients TimeTrackingClient[]
 
   @@unique([companyId, slug])
@@ -814,14 +818,15 @@ model CompanyPayment {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  taxes           CompanyPaymentTax[]
-  items           CompanyPaymentItem[]
-  documents       CompanyPaymentDocument[]
-  assets          CompanyAsset[]
-  stockMovements  CompanyStockMovement[]
-  personalExpense PersonalExpense?
+  taxes                  CompanyPaymentTax[]
+  items                  CompanyPaymentItem[]
+  documents              CompanyPaymentDocument[]
+  assets                 CompanyAsset[]
+  stockMovements         CompanyStockMovement[]
+  personalExpense        PersonalExpense?
   timeTrackingSettlement TimeTrackingSettlement?
-  confirmedIncome PersonalIncome? @relation("PersonalIncomeCompanyPayment")
+  confirmedIncome        PersonalIncome?          @relation("PersonalIncomeCompanyPayment")
+  timeTrackingPayout     TimeTrackingPayout?
 
   @@index([companyId, paymentDate])
   @@index([supplierId])
@@ -831,7 +836,6 @@ model CompanyPayment {
   @@index([toBankAccountId])
   @@index([currencyId])
   @@index([paymentDate])
-  timeTrackingPayout TimeTrackingPayout?
 }
 
 // calculationType: real, on_paid_amount, on_previous_row_amount, on_previous_row_total
@@ -1072,33 +1076,33 @@ model CompanyPaymentItem {
 /// A coisa em si: Bitcoin, Apple, S&P 500, uma casa, um carro. Os preços não vivem
 /// aqui mas nos Instrument (cada mercado onde o ativo negoceia tem o seu preço).
 model Asset {
-  id          String    @id @default(uuid())
+  id                 String    @id @default(uuid())
   /// equity | fixed_income | commodity | real_estate | liquidity | alternative
-  assetClass  String
+  assetClass         String
   /// crypto | stock | etf | index | fund | bond | cash | commodity | precious_metal | vehicle | property | collectible | other
-  subClass    String
-  name        String
+  subClass           String
+  name               String
   /// 'BTC', 'AAPL' — só nos ativos de mercado
-  ticker      String?
-  isin        String?
-  country     String?
+  ticker             String?
+  isin               String?
+  country            String?
   /// null = catálogo partilhado por toda a instalação; preenchido = só deste utilizador
-  ownerUserId String?
-  owner       User?     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerUserId        String?
+  owner              User?     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   /// Só no ativo de dinheiro (liquidity/cash): a moeda que ele é, um por moeda
-  currencyId  String?   @unique
-  currency    Currency? @relation(fields: [currencyId], references: [id])
+  currencyId         String?   @unique
+  currency           Currency? @relation(fields: [currencyId], references: [id])
   /// Só nos bens (por agora as motas): o tipo, a marca, o modelo, a versão, o ano, a matrícula e
   /// a pesquisa de preços — { vehicleType: "motorcycle", brand, model, version, year, plate,
   /// searchQuery, location, radiusKm }
-  details     Json?
+  details            Json?
   /// De quantos em quantos dias o valor se atualiza sozinho pela pesquisa online (7, 30, 90); nulo = só à mão
   valuationEveryDays Int?
   /// A próxima atualização automática
   valuationNextAt    DateTime? @db.Timestamptz
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   instruments           Instrument[]
   portfolioTransactions PersonalPortfolioTransaction[]
@@ -1609,20 +1613,20 @@ model LiveTestEvent {
 /// Os avisos de cada utilizador (o sino no topo). O texto faz-se no ecrã, na língua de quem lê,
 /// a partir do `kind` e dos números em `data`.
 model Notification {
-  id        String    @id @default(uuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// version_installed (todos: entrou uma versão nova) | version_available (admins: há uma para instalar)
-  kind      String
+  kind         String
   /// os números do aviso (a versão, a anterior…)
-  data      Json
+  data         Json
   /// a página que abre ao clicar
-  link      String?
+  link         String?
   /// Num aviso que pede resposta (um convite, uma proposta, um pagamento a confirmar):
   /// pending | accepted | declined | cancelled | done; nulo nos outros
   actionStatus String?
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  readAt       DateTime?
+  createdAt    DateTime  @default(now())
 
   @@index([userId, createdAt])
   @@index([userId, readAt])
@@ -1674,43 +1678,43 @@ model PersonalIncomeSource {
 /// que já recebeu grava aqui com `memberPayId` e o período. O mesmo com os
 /// salários fixos de uma fonte (`sourceId` + `period`).
 model PersonalIncome {
-  id             String                @id @default(uuid())
-  userId         String
-  user           User                  @relation(fields: [userId], references: [id])
+  id                 String                @id @default(uuid())
+  userId             String
+  user               User                  @relation(fields: [userId], references: [id])
   /// salary | freelance | lottery | other
-  kind           String
-  sourceId       String?
-  source         PersonalIncomeSource? @relation(fields: [sourceId], references: [id])
+  kind               String
+  sourceId           String?
+  source             PersonalIncomeSource? @relation(fields: [sourceId], references: [id])
   /// Vindo do salário de uma empresa da base
-  memberPayId    String?
-  memberPay      CompanyMemberPay?     @relation(fields: [memberPayId], references: [id])
+  memberPayId        String?
+  memberPay          CompanyMemberPay?     @relation(fields: [memberPayId], references: [id])
   /// O que paga de um salário: `YYYY-MM`, `YYYY-MM:holiday`, `YYYY-MM:christmas`;
   /// `once` num recibo verde de uma empresa; nulo num ganho solto
-  period         String?
-  description    String?
+  period             String?
+  description        String?
   /// O bruto, se se souber (um salário, um recibo verde antes da retenção)
-  grossAmount    Decimal?
+  grossAmount        Decimal?
   /// O que entrou (o líquido)
-  amount         Decimal
-  withholdingPct Decimal?
-  currencyId     String
-  currency       Currency              @relation(fields: [currencyId], references: [id])
+  amount             Decimal
+  withholdingPct     Decimal?
+  currencyId         String
+  currency           Currency              @relation(fields: [currencyId], references: [id])
   /// Quando entrou, ou quando se espera
-  date           DateTime              @db.Date
+  date               DateTime              @db.Date
   /// received | pending
-  status         String                @default("received")
+  status             String                @default("received")
   /// A conta pessoal onde entrou
-  bankAccountId  String?
-  bankAccount    BankAccount?          @relation(fields: [bankAccountId], references: [id])
+  bankAccountId      String?
+  bankAccount        BankAccount?          @relation(fields: [bankAccountId], references: [id])
   /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
   /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
-  rateHour       DateTime?             @db.Timestamptz
+  rateHour           DateTime?             @db.Timestamptz
   /// O pagamento da empresa que este ganho confirma (um ganho por pagamento)
-  companyPaymentId String?             @unique
-  companyPayment   CompanyPayment?     @relation("PersonalIncomeCompanyPayment", fields: [companyPaymentId], references: [id], onDelete: SetNull)
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-
+  companyPaymentId   String?               @unique
+  companyPayment     CompanyPayment?       @relation("PersonalIncomeCompanyPayment", fields: [companyPaymentId], references: [id], onDelete: SetNull)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  timeTrackingPayout TimeTrackingPayout?
 
   /// Cada período de um salário recebe-se uma vez
   @@unique([memberPayId, period])
@@ -1718,7 +1722,6 @@ model PersonalIncome {
   @@index([userId, date])
   @@index([currencyId])
   @@index([bankAccountId])
-  timeTrackingPayout TimeTrackingPayout?
 }
 
 // --- Finanças pessoais: despesas -----------------------------------------------
@@ -2063,47 +2066,47 @@ model BrokerConnection {
 /// (Asset liquidity/cash com o `currencyId`); nas ações, a ação (buy, sell, adjust mexem na
 /// quantidade; o dinheiro delas sai e entra no portefólio do dinheiro, transfer_out/in).
 model PersonalPortfolioTransaction {
-  id            String            @id @default(uuid())
-  portfolioId   String
-  portfolio     PersonalPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  assetId       String
-  asset         Asset             @relation(fields: [assetId], references: [id])
+  id              String            @id @default(uuid())
+  portfolioId     String
+  portfolio       PersonalPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  assetId         String
+  asset           Asset             @relation(fields: [assetId], references: [id])
   /// Dinheiro: deposit | withdrawal | interest | fee | tax | dividend | transfer_in | transfer_out
   /// Posições: buy | sell | adjust (só a quantidade, com sinal: splits e afins)
   /// Bens: buy | sell | valuation (o valor do bem nessa data, no `amount`; quantidade 0)
-  kind          String
-  date          DateTime          @db.Date
+  kind            String
+  date            DateTime          @db.Date
   /// Quanto do ativo; no dinheiro é o próprio valor
-  quantity      Decimal
+  quantity        Decimal
   /// Preço por unidade na moeda da transação; vazio no dinheiro
-  price         Decimal?
+  price           Decimal?
   /// O total, na moeda da transação
-  amount        Decimal
-  currencyId    String
-  currency      Currency          @relation(fields: [currencyId], references: [id])
+  amount          Decimal
+  currencyId      String
+  currency        Currency          @relation(fields: [currencyId], references: [id])
   /// A conta pessoal (a poupança) onde está, se for uma delas
-  bankAccountId String?
-  bankAccount   BankAccount?      @relation(fields: [bankAccountId], references: [id])
-  notes         String?
+  bankAccountId   String?
+  bankAccount     BankAccount?      @relation(fields: [bankAccountId], references: [id])
+  notes           String?
   /// O id na corretora, para não importar duas vezes
-  externalId    String?
+  externalId      String?
   /// A hora das cotações (`CurrencyHourRate`) com que se converte: a da hora em que se gravou.
   /// Vazia nos registos de antes; esses convertem pela cotação do dia (`CurrencyRate`).
-  rateHour      DateTime?         @db.Timestamptz
+  rateHour        DateTime?         @db.Timestamptz
   /// O mercado onde foi (o da corretora), nas compras, vendas, acertos e dividendos
-  instrumentId  String?
-  instrument    Instrument?       @relation(fields: [instrumentId], references: [id], onDelete: SetNull)
+  instrumentId    String?
+  instrument      Instrument?       @relation(fields: [instrumentId], references: [id], onDelete: SetNull)
   /// O tipo original na corretora (DEPOSIT, WITHDRAW, FEE, INTEREST_ON_FREE_CASH…)
-  externalType  String?
+  externalType    String?
   /// O instante exato na corretora (o `date` fica só com o dia)
-  externalAt    DateTime?         @db.Timestamptz
+  externalAt      DateTime?         @db.Timestamptz
   /// Nos bens, como se obteve: purchase | gift | inheritance | other (o preço pode ficar vazio)
-  acquisition   String?
+  acquisition     String?
   /// O relatório da pesquisa de preços que deu o valor (à venda, vendidos, estatísticas, o estado
   /// escolhido e o valor): ver `valuationReport.ts`
   valuationReport Json?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@unique([portfolioId, externalId])
   @@index([portfolioId, date])
@@ -2247,33 +2250,33 @@ model TimeTrackingEntry {
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
 
-  allocations TimeTrackingAllocation[]
+  allocations       TimeTrackingAllocation[]
+  payoutAllocations TimeTrackingPayoutAllocation[]
 
   @@unique([connectionId, externalId])
   @@index([connectionId, start])
   @@index([clientId, start])
   @@index([personId, start])
-  payoutAllocations TimeTrackingPayoutAllocation[]
 }
 
 /// Um pagamento de um cliente (de uma pessoa): as horas entre duas datas (`range`) ou um
 /// número de horas (`hours`, «50 € por 5 h», das mais antigas por pagar; o que faltar fica
 /// adiantado e as horas novas desse cliente consomem-no)
 model TimeTrackingSettlement {
-  id               String             @id @default(uuid())
+  id               String              @id @default(uuid())
   companyId        String
-  company          Company            @relation(fields: [companyId], references: [id])
+  company          Company             @relation(fields: [companyId], references: [id])
   clientId         String
-  client           TimeTrackingClient @relation(fields: [clientId], references: [id])
+  client           TimeTrackingClient  @relation(fields: [clientId], references: [id])
   /// Só as horas desta pessoa da app (sem ela, as do cliente todas)
   personId         String?
   person           TimeTrackingPerson? @relation(fields: [personId], references: [id], onDelete: SetNull)
   note             String?
   createdById      String?
   /// range | hours
-  mode             String             @default("range")
-  fromDate         DateTime?          @db.Date
-  toDate           DateTime?          @db.Date
+  mode             String              @default("range")
+  fromDate         DateTime?           @db.Date
+  toDate           DateTime?           @db.Date
   /// As horas que cobre (com as adiantadas)
   seconds          Int
   hourlyRate       Decimal
@@ -2281,12 +2284,12 @@ model TimeTrackingSettlement {
   withholdingPct   Decimal?
   netAmount        Decimal
   currencyId       String
-  currency         Currency           @relation(fields: [currencyId], references: [id])
-  paidAt           DateTime           @db.Date
+  currency         Currency            @relation(fields: [currencyId], references: [id])
+  paidAt           DateTime            @db.Date
   /// O recebimento na empresa, se se gravou
-  companyPaymentId String?            @unique
-  companyPayment   CompanyPayment?    @relation(fields: [companyPaymentId], references: [id])
-  createdAt        DateTime           @default(now())
+  companyPaymentId String?             @unique
+  companyPayment   CompanyPayment?     @relation(fields: [companyPaymentId], references: [id])
+  createdAt        DateTime            @default(now())
 
   allocations TimeTrackingAllocation[]
 
@@ -2359,4 +2362,331 @@ model TimeTrackingAllocation {
 
   @@unique([settlementId, entryId])
   @@index([entryId])
+}
+
+/// Uma tabela de dados da empresa, feita à mão (módulo call center → Dados): as
+/// linhas vêm de um ficheiro (Excel ou CSV) ou escrevem-se na app.
+model CompanyDataTable {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  name         String
+  /// file | manual (api mais tarde: shopify, eushipments)
+  source       String   @default("file")
+  /// [{ key, label, type: text|number|date|money|phone|email, personal, hidden, sourceHeader }]
+  columns      Json
+  /// A key da coluna que identifica a linha; sem ela cada importação acrescenta
+  keyColumn    String?
+  /// Como se ligou o último ficheiro: { mapping: { "Ref. number": "ref" }, skipTotals }
+  importConfig Json?
+  createdById  String
+  createdAt    DateTime @default(now())
+  /// Muda também com as linhas (é a versão da cache das tabelas unidas)
+  updatedAt    DateTime @updatedAt
+
+  rows        CompanyDataRow[]
+  imports     CompanyDataImport[]
+  viewsLeft   CompanyDataView[]       @relation("DataViewLeft")
+  viewsRight  CompanyDataView[]       @relation("DataViewRight")
+  leadBoards  CompanyLeadBoard[]
+  connections CompanyDataConnection[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+model CompanyDataRow {
+  id        String             @id @default(uuid())
+  tableId   String
+  table     CompanyDataTable   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  /// O valor da coluna chave, já limpo (nulo numa tabela sem chave)
+  key       String?
+  /// { <key da coluna>: valor }
+  data      Json
+  importId  String?
+  import    CompanyDataImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([tableId, key])
+  @@index([tableId])
+  @@index([data(ops: JsonbPathOps)], type: Gin)
+}
+
+model CompanyDataImport {
+  id          String           @id @default(uuid())
+  tableId     String
+  table       CompanyDataTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  fileName    String
+  /// done | failed
+  status      String
+  created     Int              @default(0)
+  updated     Int              @default(0)
+  /// Vieram iguais ao que já lá estava
+  unchanged   Int              @default(0)
+  skipped     Int              @default(0)
+  /// Até 50: [{ row, message }]
+  errors      Json?
+  createdById String
+  createdAt   DateTime         @default(now())
+
+  rows CompanyDataRow[]
+
+  @@index([tableId, createdAt])
+}
+
+/// Tabela unida de duas tabelas de dados: calcula-se ao ler, não se grava
+model CompanyDataView {
+  id           String             @id @default(uuid())
+  companyId    String
+  company      Company            @relation(fields: [companyId], references: [id])
+  name         String
+  leftTableId  String
+  leftTable    CompanyDataTable   @relation("DataViewLeft", fields: [leftTableId], references: [id])
+  rightTableId String
+  rightTable   CompanyDataTable   @relation("DataViewRight", fields: [rightTableId], references: [id])
+  leadBoards   CompanyLeadBoard[]
+  /// [{ left, right, normalize: ["trim","lower","digits","firstToken"] }] — todos os pares têm de bater
+  joinOn       Json
+  /// inner | left | full
+  joinType     String             @default("left")
+  /// [{ side: left|right, column, label }]
+  columns      Json
+  createdById  String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([leftTableId])
+  @@index([rightTableId])
+}
+
+/// Uma secção da página Leads (call center): um quadro com as linhas de uma tabela ou tabela unida que passam os filtros
+model CompanyLeadBoard {
+  id          String            @id @default(uuid())
+  companyId   String
+  company     Company           @relation(fields: [companyId], references: [id])
+  name        String
+  /// table | view
+  sourceType  String
+  tableId     String?
+  table       CompanyDataTable? @relation(fields: [tableId], references: [id])
+  viewId      String?
+  view        CompanyDataView?  @relation(fields: [viewId], references: [id])
+  /// Os mesmos filtros das tabelas (rowFilters.ts): [{ column, op, value | values }]
+  filters     Json              @default("[]")
+  search      String?
+  /// Numa unida: all | matched | leftOnly | rightOnly | duplicates
+  only        String?
+  /// A coluna do telefone, a do título do cartão e as que o cartão mostra
+  phoneColumn String?
+  titleColumn String?
+  cardColumns Json              @default("[]")
+  /// A ordem das secções na página
+  position    Int               @default(0)
+  archived    Boolean           @default(false)
+  createdById String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  stages   CompanyLeadStage[]
+  leads    CompanyLead[]
+  rules    CompanyLeadRule[]
+  outcomes CompanyLeadOutcome[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([tableId])
+  @@index([viewId])
+}
+
+/// Uma coluna do quadro («Por ligar», «1.ª chamada», «Atendeu»…)
+model CompanyLeadStage {
+  id        String           @id @default(uuid())
+  boardId   String
+  board     CompanyLeadBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  name      String
+  position  Int
+  /// A coluna onde entram as leads novas (uma por quadro)
+  isEntry   Boolean          @default(false)
+  /// Quantos cartões se mostram de início (nulo = todos; o resto num «Ver mais»)
+  cardLimit Int?
+
+  leads    CompanyLead[]
+  rules    CompanyLeadRule[]
+  outcomes CompanyLeadOutcome[]
+
+  @@unique([boardId, name])
+  @@index([boardId, position])
+}
+
+/// Uma lead no quadro: só se grava quando alguém lhe mexe (mover, comentar); até lá está na coluna de entrada
+model CompanyLead {
+  id             String           @id @default(uuid())
+  boardId        String
+  board          CompanyLeadBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  /// A linha: a chave da tabela (ou o id da linha); numa unida, «<linha A>|<linha B>»
+  rowKey         String
+  stageId        String
+  stage          CompanyLeadStage @relation(fields: [stageId], references: [id])
+  /// A ordem dentro da coluna
+  position       Float
+  assignedToId   String?
+  archivedAt     DateTime?
+  /// As automações que já se aplicaram a esta lead (cada uma só uma vez)
+  appliedRuleIds String[]         @default([])
+  /// A automação que a pôs na coluna em que está: fica à vista mesmo fora do filtro; mover à mão limpa-a
+  movedByRuleId  String?
+  assignedAt     DateTime?
+  /// Voltar a ligar: quando, e o que ficou combinado
+  callbackAt     DateTime?
+  callbackNote   String?
+  /// Tentativas de chamada e o resultado da última
+  attempts       Int              @default(0)
+  lastCallAt     DateTime?
+  lastOutcomeId  String?
+  /// Desde quando está na coluna atual (os dias na coluna e os tempos do dashboard)
+  stageEnteredAt DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  comments CompanyLeadComment[]
+  events   CompanyLeadEvent[]
+  calls    CompanyLeadCall[]
+
+  @@unique([boardId, rowKey])
+  @@index([boardId, stageId, position])
+  @@index([boardId, assignedToId])
+  @@index([boardId, callbackAt])
+}
+
+/// Os botões de resultado de uma secção (nome, para onde move, se atendeu, se conta como tentativa)
+model CompanyLeadOutcome {
+  id              String            @id @default(uuid())
+  boardId         String
+  board           CompanyLeadBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  name            String
+  /// A coluna para onde vai (opcional; apagar a coluna limpa-a)
+  stageId         String?
+  stage           CompanyLeadStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  /// Atendeu (conta na taxa de atendimento)
+  answered        Boolean           @default(false)
+  countsAsAttempt Boolean           @default(true)
+  /// Pede logo a data de voltar a ligar
+  asksCallback    Boolean           @default(false)
+  position        Int               @default(0)
+
+  calls CompanyLeadCall[]
+
+  @@unique([boardId, name])
+  @@index([boardId, position])
+}
+
+/// Cada chamada registada (as tentativas e o dashboard)
+model CompanyLeadCall {
+  id          String              @id @default(uuid())
+  leadId      String
+  lead        CompanyLead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  boardId     String
+  userId      String
+  outcomeId   String?
+  outcome     CompanyLeadOutcome? @relation(fields: [outcomeId], references: [id], onDelete: SetNull)
+  /// O nome do resultado no momento (fica se o botão for apagado)
+  outcomeName String
+  answered    Boolean
+  createdAt   DateTime            @default(now())
+
+  @@index([boardId, createdAt])
+  @@index([userId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model CompanyLeadComment {
+  id        String      @id @default(uuid())
+  leadId    String
+  lead      CompanyLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId    String
+  body      String
+  createdAt DateTime    @default(now())
+  editedAt  DateTime?
+
+  @@index([leadId, createdAt])
+}
+
+/// O histórico de uma lead: moveu, arquivou, atribuiu
+model CompanyLeadEvent {
+  id          String      @id @default(uuid())
+  leadId      String
+  lead        CompanyLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  /// Nulo quando foi uma automação (`ruleId`)
+  userId      String?
+  ruleId      String?
+  /// moved | archived | restored | assigned
+  kind        String
+  fromStageId String?
+  toStageId   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+/// Uma automação de uma secção, feita por quem a gere: quando os dados da lead batem nas condições (e ela está numa
+/// das colunas de `fromStageIds`, vazio = em qualquer uma), faz a ação — uma vez por lead
+model CompanyLeadRule {
+  id             String            @id @default(uuid())
+  boardId        String
+  board          CompanyLeadBoard  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  name           String
+  /// As condições, no formato dos filtros (rowFilters.ts): todas têm de bater
+  conditions     Json              @default("[]")
+  fromStageIds   String[]          @default([])
+  /// Condições sobre a própria lead: [{ field: attempts | daysInStage | assigned | callbackDue, op, value }]
+  leadConditions Json              @default("[]")
+  /// move | archive | assign
+  action         String
+  /// A coluna para onde vai (no «move»); apagar a coluna desliga a regra
+  stageId        String?
+  stage          CompanyLeadStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  /// No «assign»: os operadores (user ids) pela ordem, e de quem é a vez
+  assigneeIds    String[]          @default([])
+  assignCursor   Int               @default(0)
+  enabled        Boolean           @default(true)
+  /// A ordem (a primeira que bate é a que conta)
+  position       Int               @default(0)
+  createdById    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([boardId, position])
+}
+
+/// Uma ligação a uma API que enche uma tabela de dados (Shopify, euShipments), pela coluna chave
+model CompanyDataConnection {
+  id             String           @id @default(uuid())
+  companyId      String
+  company        Company          @relation(fields: [companyId], references: [id])
+  /// shopify | eushipments
+  provider       String
+  tableId        String
+  table          CompanyDataTable @relation(fields: [tableId], references: [id])
+  /// A loja (xxx.myshopify.com) ou o endereço da API
+  baseUrl        String
+  /// As credenciais, cifradas (secret-box); nunca saem para o browser
+  credentials    String
+  /// Campo da API → coluna da tabela
+  mapping        Json             @default("{}")
+  /// active | error | paused
+  status         String           @default("active")
+  syncEveryHours Int              @default(1)
+  /// Até onde já leu (o updated_at mais recente)
+  cursor         String?
+  lastError      String?
+  syncedAt       DateTime?
+  createdById    String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([companyId])
+  @@index([tableId])
 }

@@ -101,4 +101,10 @@ export const SYSTEM_MODULES = [
     description: 'Trading accounts at brokers and prop firms, with their rules, results and statistics.',
     icon: 'Candles',
   },
+  {
+    name: 'call_center',
+    label: 'Call center',
+    description: 'Contact lists, data tables imported from files and joined tables for the campaigns.',
+    icon: 'Phone',
+  },
 ];

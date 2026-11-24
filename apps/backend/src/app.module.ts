@@ -39,6 +39,8 @@ import { SimulationModule } from './simulation/simulation.module';
 import { LiveTestModule } from './live-test/live-test.module';
 import { NotificationModule } from './notification/notification.module';
 import { TimeTrackingModule } from './time-tracking/time-tracking.module';
+import { CompanyDataModule } from './company-data/company-data.module';
+import { CompanyLeadModule } from './company-lead/company-lead.module';
 import { CompanyInvitationModule } from './company-invitation/company-invitation.module';
 import { RetentionModule } from './retention/retention.module';
 
@@ -88,6 +90,8 @@ import { RetentionModule } from './retention/retention.module';
     LiveTestModule,
     NotificationModule,
     TimeTrackingModule,
+    CompanyDataModule,
+    CompanyLeadModule,
     CompanyInvitationModule,
     RetentionModule,
   ],

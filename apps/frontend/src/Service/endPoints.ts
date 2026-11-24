@@ -161,4 +161,7 @@ export const End_Points = {
     Live_Test_Stream_Endpoint:    (id: string) => `/live-tests/${id}/stream`,
     // O banco de horas de uma empresa
     Time_Tracking_Endpoint:       (companyId: string, path: string) => `/company/${companyId}/time-tracking/${path}`,
+    // Os dados de uma empresa (módulo call center): tabelas, importações e tabelas unidas
+    Company_Data_Endpoint:        (companyId: string, path: string) => `/company/${companyId}/data/${path}`,
+    Company_Leads_Endpoint:       (companyId: string, path: string) => `/company/${companyId}/leads/${path}`,
 };
