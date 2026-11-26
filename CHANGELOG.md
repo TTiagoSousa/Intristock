@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-26
+
+### Added
+- **personal-portfolio**: add an optional time to manual transactions and show the time of every transaction, broker ones included
+
 ## [1.2.0] - 2026-11-24
 
 ### Added
@@ -45,7 +50,8 @@ First public release of IntriStock.
 - **Administration**: users, external APIs, taxes, platforms (banks, brokers, exchanges and prop firms from PropFirmMap) and in-app updates, one version at a time.
 - **Deployment**: a one-line installer for a Proxmox VM (Debian 13, PostgreSQL, Garage, ClickHouse, nginx and the services).
 
-[Unreleased]: https://github.com/TTiagoSousa/Intristock/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/TTiagoSousa/Intristock/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/TTiagoSousa/Intristock/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/TTiagoSousa/Intristock/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TTiagoSousa/Intristock/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/TTiagoSousa/Intristock/releases/tag/v1.0.0
