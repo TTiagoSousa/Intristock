@@ -20,6 +20,7 @@ import Goods_Popover from './Goods/Goods_Popover';
 import '../Earnings/Earnings.scss';
 import './Portfolio.scss';
 import { activateOnKey } from '../../../../utils/rowKeyboard';
+import { timeOf } from './transactionTime';
 
 const PAGE_SIZE = 20;
 
@@ -192,7 +193,10 @@ const Portfolio_Transactions = () => {
                         className={tx.asset.subClass === 'vehicle' ? 'Clickable' : undefined}
                         onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined} tabIndex={tx.asset.subClass === 'vehicle' ? 0 : undefined} onKeyDown={activateOnKey}
                       >
-                        <td className="Num">{formatDay(tx.date.slice(0, 10), locale)}</td>
+                        <td className="Num">
+                          {formatDay(tx.date.slice(0, 10), locale)}
+                          {timeOf(tx, locale) && <div className="Portfolio_Muted">{timeOf(tx, locale)}</div>}
+                        </td>
                         <td>
                           <button
                             type="button"

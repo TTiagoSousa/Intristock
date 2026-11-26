@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
 import { CreateCashTransactionDto } from '../dto/personal-portfolio.dto';
+import { transactionInstant } from './transactionInstant';
 
 /**
  * Grava uma transação de dinheiro passivo num portefólio da pessoa. O ativo é o
@@ -34,12 +35,14 @@ export async function createCashTransaction(
       );
   }
 
+  const externalAt = transactionInstant(dto.date, dto.at);
   const asset = await repository.ensureCashAsset(currency);
   return repository.createTransaction({
     portfolioId,
     assetId: asset.id,
     kind: dto.kind,
     date: new Date(dto.date),
+    externalAt,
     quantity: dto.amount,
     price: null,
     amount: dto.amount,

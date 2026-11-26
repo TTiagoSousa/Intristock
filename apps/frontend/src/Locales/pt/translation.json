@@ -5297,7 +5297,10 @@
     "totalSell": "Total recebido: {{total}}",
     "asset_motorcycle": "Motas",
     "assetHint_motorcycle": "Com o preço online pelo Marketplace",
-    "kind_valuation": "Avaliação"
+    "kind_valuation": "Avaliação",
+    "dateTime": "Data e hora",
+    "time": "Hora",
+    "timeHint": "A hora é opcional: com ela a transação fica no sítio certo do dia nos gráficos de hora a hora"
   },
   "goods": {
     "sectionBike": "A mota",

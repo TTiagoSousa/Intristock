@@ -31,6 +31,8 @@ export interface Market_Result {
 export interface Position_Transaction_Body {
   kind: 'buy' | 'sell';
   date: string;
+  // A hora (o instante ISO), opcional
+  at?: string | null;
   yahooSymbol?: string;
   instrumentId?: string;
   quantity: number;
@@ -169,6 +171,8 @@ export interface Broker_Connection {
 export interface Cash_Transaction_Body {
   kind: Cash_Transaction_Kind;
   date: string;
+  // A hora (o instante ISO), opcional
+  at?: string | null;
   amount: number;
   currencyId: string;
   bankAccountId: string | null;

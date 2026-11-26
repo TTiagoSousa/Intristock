@@ -724,3 +724,20 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
 }
+
+// A data e a hora (opcional) lado a lado
+.Portfolio_When{
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 8px;
+}
+
+.Portfolio_Hidden_Label{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

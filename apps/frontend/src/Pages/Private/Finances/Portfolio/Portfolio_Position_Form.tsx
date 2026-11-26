@@ -15,6 +15,7 @@ import {
   type Position_Transaction_Body,
 } from '../../../../Hooks/Finances/usePersonalPortfolio';
 import { amountInput, localToday, parseAmount } from '../../../../Hooks/Finances/portfolioInput';
+import { instantOf } from './transactionTime';
 
 interface Portfolio_Position_Form_Props {
   // securities: ações e ETF do Yahoo · crypto: um par da Binance ou da Coinbase
@@ -66,6 +67,7 @@ const Portfolio_Position_Form = ({
 
   const [kind, setKind] = useState<'buy' | 'sell'>('buy');
   const [date, setDate] = useState(localToday);
+  const [time, setTime] = useState('');
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
   // O preço proposto (o fecho do dia, na moeda dele); escrever um à mão para de o propor.
@@ -170,6 +172,7 @@ const Portfolio_Position_Form = ({
     onSubmit({
       kind,
       date,
+      at: instantOf(date, time),
       ...(market.yahooSymbol ? { yahooSymbol: market.yahooSymbol } : { instrumentId: market.instrumentId! }),
       quantity: qty,
       price: unit,
@@ -272,8 +275,12 @@ const Portfolio_Position_Form = ({
 
         <div className="Portfolio_Pair">
           <div className="Form_Field">
-            <label htmlFor="portfolio-position-date">{t('portfolio.date')} *</label>
-            <Global_Input id="portfolio-position-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <label htmlFor="portfolio-position-date">{t('portfolio.dateTime')} *</label>
+            <div className="Portfolio_When">
+              <Global_Input id="portfolio-position-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <label htmlFor="portfolio-position-time" className="Portfolio_Hidden_Label">{t('portfolio.time')}</label>
+              <Global_Input id="portfolio-position-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            </div>
           </div>
           <div className="Form_Field">
             <label htmlFor="portfolio-quantity">{t('portfolio.quantity')} *</label>

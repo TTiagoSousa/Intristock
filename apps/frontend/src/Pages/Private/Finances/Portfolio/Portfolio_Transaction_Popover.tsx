@@ -23,6 +23,7 @@ import { getErrorMessage } from '../../../../Hooks/useAsyncRequest';
 import { localToday, parseAmount } from '../../../../Hooks/Finances/portfolioInput';
 import './Portfolio.scss';
 import Popover_Shell from '../../../../Components/Popover_Shell/Popover_Shell';
+import { instantOf } from './transactionTime';
 
 interface Portfolio_Transaction_Popover_Props {
   onClose: () => void;
@@ -67,6 +68,7 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
   const currencyId =
     chosenCurrencyId || (currencies.find((currency) => currency.shortCode === selectedCurrency) ?? currencies[0])?.id || '';
   const [date, setDate] = useState(localToday);
+  const [time, setTime] = useState('');
   const [bankAccountId, setBankAccountId] = useState(NONE);
   const [notes, setNotes] = useState('');
   const [goodsSaving, setGoodsSaving] = useState(false);
@@ -109,6 +111,7 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
     const saved = await createCashTransaction(portfolio.id, {
       kind,
       date,
+      at: instantOf(date, time),
       amount: value,
       currencyId,
       bankAccountId: bankAccountId || null,
@@ -294,8 +297,13 @@ const Portfolio_Transaction_Popover = ({ onClose }: Portfolio_Transaction_Popove
             </div>
           </div>
           <div className="Form_Field">
-            <label htmlFor="portfolio-date">{t('portfolio.date')} *</label>
-            <Global_Input id="portfolio-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <label htmlFor="portfolio-date">{t('portfolio.dateTime')} *</label>
+            <div className="Portfolio_When">
+              <Global_Input id="portfolio-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <label htmlFor="portfolio-time" className="Portfolio_Hidden_Label">{t('portfolio.time')}</label>
+              <Global_Input id="portfolio-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            </div>
+            <span className="Field_Hint">{t('portfolio.timeHint')}</span>
           </div>
           <div className="Form_Field">
             <label htmlFor="portfolio-account">{t('portfolio.account')}</label>

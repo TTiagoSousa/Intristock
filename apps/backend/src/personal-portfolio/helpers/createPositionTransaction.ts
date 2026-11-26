@@ -1,4 +1,5 @@
 import { isoDay } from 'src/utils/dates';
+import { transactionInstant } from './transactionInstant';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { StockPriceService } from 'src/market-data/stock-price.service';
 import { PrismaPersonalPortfolioRepository } from '../repositories/prisma/prisma-personal-portfolio-repository';
@@ -39,8 +40,9 @@ async function assertCanSell(
   date: Date,
   quantity: number,
   repository: PrismaPersonalPortfolioRepository,
+  externalAt: Date | null = null,
 ) {
-  const sale = { kind: 'sell', quantity, date: new Date(isoDay(date)), externalAt: null, createdAt: new Date(), isNew: true };
+  const sale = { kind: 'sell', quantity, date: new Date(isoDay(date)), externalAt, createdAt: new Date(), isNew: true };
   const rows = [
     ...(await repository.findPositionTransactions(portfolioId, instrumentId)).map((tx) => ({
       ...tx,
@@ -116,8 +118,9 @@ export async function createPositionTransaction(
   if (amount <= 0) throw new BadRequestException('A comissão não pode ser igual ou maior do que o valor da venda');
 
   const date = new Date(dto.date);
+  const externalAt = transactionInstant(dto.date, dto.at);
   const notes = dto.notes?.trim() || null;
-  const base = { assetId: listing.assetId, date, currencyId: currency.id, bankAccountId: null };
+  const base = { assetId: listing.assetId, date, externalAt, currencyId: currency.id, bankAccountId: null };
   const rows: PortfolioTransactionData[] = [];
   const cashAsset = dto.cash === 'new' ? await repository.ensureCashAsset(currency) : null;
   // Dinheiro novo numa compra: primeiro entra
@@ -152,7 +155,7 @@ export async function createPositionTransaction(
   // duas a mesma quantidade. O backend corre num só processo, por isso chega uma fila em
   // memória (a verificação e a gravação ficam juntas dentro dela)
   const created = await serialize(`${portfolioId}:${listing.instrumentId}`, async () => {
-    if (dto.kind === 'sell') await assertCanSell(portfolioId, listing.instrumentId, date, dto.quantity, repository);
+    if (dto.kind === 'sell') await assertCanSell(portfolioId, listing.instrumentId, date, dto.quantity, repository, externalAt);
     return repository.createTransactions(rows);
   });
   // Os fechos deste mercado, até hoje (em fundo: a resposta não espera)

@@ -21,6 +21,7 @@ import { Transaction_Amount, Transaction_Asset } from './Transaction_Amount';
 import '../Earnings/Earnings.scss';
 import './Portfolio.scss';
 import { activateOnKey } from '../../../../utils/rowKeyboard';
+import { timeOf } from './transactionTime';
 
 const day = (tx: Portfolio_Transaction) => tx.date.slice(0, 10);
 const signed = (tx: Portfolio_Transaction) => (KIND_SIGN[tx.kind] ?? 0) * Number(tx.amount);
@@ -357,7 +358,10 @@ const Portfolio_Page = () => {
                         className={tx.asset.subClass === 'vehicle' ? 'Clickable' : undefined}
                         onClick={tx.asset.subClass === 'vehicle' ? () => setGoodsId(tx.asset.id) : undefined} tabIndex={tx.asset.subClass === 'vehicle' ? 0 : undefined} onKeyDown={activateOnKey}
                       >
-                        <td className="Num">{formatDay(day(tx), locale)}</td>
+                        <td className="Num">
+                          {formatDay(day(tx), locale)}
+                          {timeOf(tx, locale) && <div className="Portfolio_Muted">{timeOf(tx, locale)}</div>}
+                        </td>
                         <td>{t(`portfolio.kind_${tx.kind}`)}</td>
                         <Transaction_Asset tx={tx} />
                         <td className="Portfolio_Muted">{tx.notes ?? tx.bankAccount?.name ?? '—'}</td>

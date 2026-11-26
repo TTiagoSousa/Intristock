@@ -115,6 +115,8 @@ export type PortfolioTransactionData = {
   acquisition?: string | null;
   valuationReport?: object | null;
   externalType?: string | null;
+  // O instante exato: o da corretora, ou a hora que se escreveu à mão (o `date` fica só com o dia)
+  externalAt?: Date | null;
 };
 
 /** Um bem da pessoa (por agora as motas): o ativo com os detalhes e a atualização automática. */

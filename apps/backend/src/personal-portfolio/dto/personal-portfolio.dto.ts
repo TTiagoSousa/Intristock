@@ -54,6 +54,12 @@ export class CreatePositionTransactionDto {
   @IsDateString()
   date: string;
 
+  // A hora (o instante em ISO, já em UTC): opcional; sem ela fica só o dia
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsDateString()
+  at?: string | null;
+
   // Um destes dois
   @ValidateIf((dto: CreatePositionTransactionDto) => !dto.instrumentId)
   @IsString()
@@ -252,6 +258,12 @@ export class CreateCashTransactionDto {
 
   @IsDateString()
   date: string;
+
+  // A hora (o instante em ISO, já em UTC): opcional; sem ela fica só o dia
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsDateString()
+  at?: string | null;
 
   @Type(() => Number)
   @IsNumber()

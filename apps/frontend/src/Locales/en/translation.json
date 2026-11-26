@@ -5297,7 +5297,10 @@
     "totalSell": "Total received: {{total}}",
     "asset_motorcycle": "Motorcycles",
     "assetHint_motorcycle": "Priced online from Marketplace",
-    "kind_valuation": "Valuation"
+    "kind_valuation": "Valuation",
+    "dateTime": "Date and time",
+    "time": "Time",
+    "timeHint": "The time is optional: with it the transaction sits at the right point of the day in the hourly charts"
   },
   "goods": {
     "sectionBike": "The motorcycle",
